@@ -2,13 +2,13 @@
 
 Update this file at the end of every phase. Newest notes go at the top of each section.
 
-**Current phase:** 3 (Phase 2 done)
+**Current phase:** 4 (Phase 3 done)
 
 ## Phase checklist
 - [x] Phase 0: Setup and feasibility
 - [x] Phase 1: Ingestion with caching
 - [x] Phase 2: Districts, daily tables, Replay map
-- [ ] Phase 3: Features, quantile model, backtest, ablation
+- [x] Phase 3: Features, quantile model, backtest, ablation
 - [ ] Phase 4: RAG knowledge base
 - [ ] Phase 5: Agents (tools, Sentinel, Analyst, Verifier)
 - [ ] Phase 6: Forecast, Watch & Briefing, Evidence pages
@@ -19,7 +19,16 @@ Update this file at the end of every phase. Newest notes go at the top of each s
 - Ingest (Phase 1): fires 139,419 rows after dropping 6,707 low-confidence (2022: 59,162; 2023: 41,962; 2024: 21,812; 2025: 16,483). Daily PM2.5 and weather: 1,472 rows each (4 cities × 92 days × 4 seasons), 0 NaN. First run about 3 min, cached rerun about 1 s.
 - Peak-window (Oct 25 to Nov 15) top districts: 2022 Sangrur 5014, Bathinda 3819, Ferozepur 2805, Moga 2689; 2025 Tarn Taran 437, Sangrur 434, Ferozepur 233. This matches public reporting (Sangrur, Bathinda, Ferozepur, Moga, Tarn Taran). Fires fall sharply from 2022 to 2025, which also matches reporting. 88,487 of 139,419 fires fall inside the 22 districts.
 - Usable seasons: 2022, 2023, 2024, 2025 (2026 has FIRMS only to about Nov 2). Test on 2024 and 2025.
-- Backtest (variant × MAE × pinball × coverage):
+- Backtest (Phase 3; train on seasons < S, test on 2024 and 2025 pooled, 4 cities, n = 608 each; 80% band):
+
+  | variant | MAE (µg/m³) | pinball | coverage | band width |
+  |---|---|---|---|---|
+  | full | 11.94 | 4.05 | 84.4% | 41.6 |
+  | no_fire | 11.88 | 3.97 | 83.8% | 40.5 |
+  | persistence | 11.20 | 3.83 | 76.9% | 33.9 |
+
+  **Honest reading: the fire features do not help, and persistence is the best on MAE and pinball.** `full` is no better than `no_fire` (MAE 11.94 vs 11.88). I did not tune on the test seasons. Likely reasons: (1) CAMS PM2.5 already assimilates fire emissions (GFAS), so today's PM2.5 carries the fire signal; (2) only 2 to 3 training seasons (about 600 to 900 rows) and fires fall sharply from 2022 to 2025; (3) a daily mean is a coarse target. Top gain features of the final model: pm25_today, day_of_season, temp_mean, wind_speed_mean, pm25_3d_mean, punjab_fire_count_3d. Persistence is also the narrowest band but undercovers (76.9%).
+  Conformal (CQR) was applied in every fold: the raw 80% band covered only 41 to 51% of the last training season, so it was widened by 8 to 10 µg/m³. After this, `full` covers 84% on the test seasons.
 - Briefing verifier pass rate (n, agent / agent_revised / template):
 
 ## Deviations from PLAN.md
@@ -37,7 +46,17 @@ Update this file at the end of every phase. Newest notes go at the top of each s
 - Phase 2: pipeline subcommands `train | kb | brief | demo-cache` exist but exit with "Not implemented yet (Phase N)". `all` currently runs `ingest` and `process`.
 - Phase 2: the map was only tested with Streamlit's `AppTest` (no exceptions, play loop runs to Nov 30 and stops) and a headless server health check (HTTP 200). **I could not look at the rendered map.**
 
+- Phase 3: `train` also writes `features.parquet` (feature table, 1,232 rows). `pipeline all` now runs ingest, process, train.
+- Phase 3: `psw/models/__init__.py` and `fit_with_conformal` / `predict_with_correction` / `cqr_correction` are extra helpers in `train.py`. The conformal step runs for both `full` and `no_fire` (so the ablation is fair), not for `persistence`.
+- Phase 3: wind direction for the upwind feature is the vector mean of (u_mean, v_mean) via `dir_from_uv`, not the `wind_dir_mean` column (which is a plain average and wrong across the 0/360 wrap).
+- Phase 3: lagged fire features on the first days of a season treat days before Sep 15 as zero fires (FIRMS only covers the season window). `punjab_fire_count_3d` is a 3-day sum.
+- Phase 3: `upwind_contributors` groups fires outside the 22 districts as "Outside Punjab".
+- Phase 3: the saved `model_full_{alpha}.txt` boosters have no conformal correction (the backtest forecasts do).
+- Phase 3 (fix after review): `seasons_train` wrongly listed the test seasons. It is now the seasons before the first test season ([2022, 2023]), and a new `folds` key gives the exact training seasons per test season (2024: [2022, 2023]; 2025: [2022, 2023, 2024]). Metrics are unchanged. The final model in `model_full_*.txt` trains on all seasons.
+- Phase 3: `metrics.json` has an extra `conformal` key with per-season inner coverage and corrections, and `n` per score.
+
 ## Open questions / user actions needed
+- User (Phase 3): decide whether the negative result is acceptable for the demo. Plan: the Evidence page shows it as is. Say if you want an extra experiment (not tuned on test seasons) before Phase 4.
 - User (Phase 2): run `uv run streamlit run src/psw/app/main.py`, open Replay Map, and check that it looks right and Play works.
 - User: confirm the LLM key works when Phase 5 starts (not tested yet).
 - User: the 2026 FIRMS feed looks stale after about Nov 2. Decide if that matters (it only affects the stretch Live mode).

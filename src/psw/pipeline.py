@@ -41,6 +41,26 @@ def cmd_process(_args) -> None:
           f"district_daily: {len(daily)} rows for {len(names)} districts")
 
 
+def cmd_train(_args) -> None:
+    import pandas as pd
+
+    from psw.models import evaluate
+    from psw.processing import features as feat
+
+    P = config.PROCESSED
+    fires = pd.read_parquet(P / "fires.parquet")
+    table = feat.build_features(fires, pd.read_parquet(P / "pm25_daily.parquet"), pd.read_parquet(P / "weather_daily.parquet"))
+    table.to_parquet(P / "features.parquet", index=False)
+    print(f"features: {len(table)} rows, {table.shape[1]} columns")
+    m = evaluate.run_all(table)
+    print(f"test seasons {m['seasons_test']}, conformal applied: {m['conformal_applied']}")
+    print(f"{'variant':12s} {'MAE':>7s} {'pinball':>8s} {'cov80':>7s} {'width':>7s}")
+    for name in evaluate.VARIANTS:
+        o = m["variants"][name]["overall"]
+        print(f"{name:12s} {o['mae']:7.2f} {o['pinball']:8.2f} {o['coverage80']:7.1%} {o['band_width']:7.1f}")
+    print("top features (gain):", {k: round(v) for k, v in list(m["feature_importance"].items())[:6]})
+
+
 def _later(phase: int):
     def run(_args) -> None:
         raise SystemExit(f"Not implemented yet (Phase {phase}).")
@@ -50,7 +70,7 @@ def _later(phase: int):
 COMMANDS = {
     "ingest": cmd_ingest,
     "process": cmd_process,
-    "train": _later(3),
+    "train": cmd_train,
     "kb": _later(4),
     "brief": _later(5),
     "demo-cache": _later(7),
@@ -58,7 +78,7 @@ COMMANDS = {
 
 
 def cmd_all(args) -> None:
-    for name in ("ingest", "process"):  # extended as later phases land
+    for name in ("ingest", "process", "train"):  # extended as later phases land
         COMMANDS[name](args)
 
 
