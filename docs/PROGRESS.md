@@ -2,7 +2,7 @@
 
 Update this file at the end of every phase. Newest notes go at the top of each section.
 
-**Current phase:** 6 (Phase 5 done, awaiting user commit and review)
+**Current phase:** 7 (Phase 6 done, awaiting user commit and review)
 
 ## Phase checklist
 - [x] Phase 0: Setup and feasibility
@@ -11,7 +11,7 @@ Update this file at the end of every phase. Newest notes go at the top of each s
 - [x] Phase 3: Features, quantile model, backtest, ablation
 - [x] Phase 4: RAG knowledge base
 - [x] Phase 5: Agents (tools, Sentinel, Analyst, Verifier)
-- [ ] Phase 6: Forecast, Watch & Briefing, Evidence pages
+- [x] Phase 6: Forecast, Watch & Briefing, Evidence pages
 - [ ] Phase 7: Demo cache, README, rehearsal
 - [ ] Stretch
 
@@ -34,6 +34,9 @@ Update this file at the end of every phase. Newest notes go at the top of each s
 - Agents (Phase 5): 130 tests pass offline (FakeLLM, no network). Live check with `gemini-3.5-flash`, daily watch for 2025-10-31 (busiest day of 2025; 15 of 22 districts flagged): the top 3 (Tarn Taran, Bathinda, Moga) were all written by the agent, mode `agent`, verified (22 to 24 numbers checked each, 5 to 6 tool calls).
 - Briefing verifier pass rate (n = 12 sampled flagged district-days from the 2024 and 2025 test seasons, seed 42; 779 flagged district-days in total): **12 verified of 12. agent 12 / agent_revised 0 / template 0.** The target was at least 10. Models: 9 briefings by `gemini-3.5-flash-lite`, 3 by `gemini-3.5-flash` (reused from an earlier partial run that hit the free-tier quota; the first resumable rerun kept them). Word counts 108 to 147 (mean 128). Rerun with `uv run python -m psw.pipeline brief --sample 12`. Token use of the 9 flash-lite briefings: 18 calls, 35,862 prompt and 3,887 completion tokens.
   Reading two of them as a reader: every number is real and the text is clear, but (1) both were **zero-fire days flagged only as `smog_risk`** (the nearest city's p90 is above 120, so every district near that city is flagged on a smoggy day), and (2) one cites a 2023 season-summary chunk after "ranking 7 in Punjab", which that chunk does not support. **The Verifier proves a cited chunk was retrieved, not that it supports the sentence.** Phase 6 should say this on the Evidence page, and the Daily Watch should list fire-heavy flags first (it already sorts by priority score, which includes the fire-count rank).
+
+- App (Phase 6): 145 tests pass offline (15 new in `tests/test_app.py`: helpers on synthetic data, plus a Streamlit `AppTest` run of all 5 pages and of the Watch page's no-LLM and off-season paths). Acceptance run with `.env` moved to `.env.bak`: all 5 pages load with 0 exceptions, and the headless server health check returns 200. **I could not look at the rendered pages** (no browser), so check the layout by eye.
+- Evidence page, read from the real `metrics.json` (all text is computed, none typed in): 616 forecasts per variant (4 cities × 154 days; the earlier "n = 608" above was a typo), lowest MAE is persistence (11.20), fire features did not help (11.94 vs 11.88), the model's 80% band covers 84.4% and persistence's 76.9%. Agent reliability table: demo set 4 of 4 verified (3 agent, 1 template), sampled run 12 of 12 verified (12 agent).
 
 ## Deviations from PLAN.md
 - D10 fallback applied: 22 districts, no Malerkotla (neither source has it). Source is geoBoundaries (ODbL), not udit-001, because the latter has no licence file.
@@ -66,6 +69,12 @@ Update this file at the end of every phase. Newest notes go at the top of each s
 - Phase 4: `pipeline kb` regenerates `kb/generated/` (deleting old files) and rebuilds the index. `pipeline all` now runs ingest, process, train, kb.
 - Phase 4: the model card is generated from `metrics.json` with conditional wording ("did not improve" / "did not beat"), so it states the negative result as it is. Its "possible reasons" are marked "not tested here".
 - Phase 4: `data/processed/kb_*` should be committed. `kb/generated/` is gitignored (rebuilt by `pipeline kb`).
+- Phase 6: new `psw/app/helpers.py` holds the pure logic (no Streamlit): peak day, finding saved briefings, badge, the Verifier number report, backtest tables, `interpret(metrics)` (the Evidence text, which changes wording with the result), and the reliability table. `common.py` gained cached loaders (`get_store`, `get_kb`, `load_forecasts`, `load_metrics`, `scan_watchlist`).
+- Phase 6: the Watch page always runs the Sentinel live (offline, fast) and does **not** read `watch/{date}.json`. It marks the districts that have a saved briefing. Any date in the data can be picked. Outside the test seasons there is no forecast, so the page says so.
+- Phase 6: the page looks for a saved briefing in `briefings/` first, then `sample_run/briefings/`. The Evidence reliability table covers both folders separately ("demo briefings", "sampled run"), since the 12-briefing sample lives in `sample_run/`, not `briefings/` as PLAN.md assumed.
+- Phase 6: the Verifier report maps each number to the evidence value and the tool that supplied it by re-applying `Evidence.matches` to each tool result alone. The Verifier itself is unchanged.
+- Phase 6: the "Run agent" / "Regenerate" button calls `run_briefing` and **writes into `data/processed/briefings/`**. Without an LLM key it only shows a message. The Forecast "upwind contributors" are for the issue date (the wind and fires the forecast was made from), via `get_wind_and_upwind`.
+- Phase 6: used `width="stretch"` instead of the deprecated `use_container_width=True`.
 - Phase 5: `run_agent` has one extra optional argument `history` and `AgentResult` has an extra `messages` field. The orchestrator uses them to continue the same conversation for the one revision ("Fix these: ..."), so the revision costs one LLM call and not a second full tool run.
 - Phase 5: the orchestrator **injects** `date` into the three date tools, `city` (the district's nearest city) into the city tools, and `district` into the snapshot, in addition to `before` and `district` for `search_knowledge`. PLAN.md only injects the retrieval filters. Without this the model could ask for a future date and read tomorrow's data. The tool schemas still list these arguments, and the trace shows the effective values.
 - Phase 5: the tools are built per run by `build_tools(store, kb)` (closures over a `DataStore` and the knowledge base), so there is no module-level `ANALYST` constant. `analyst.build_analyst()` returns the `AgentSpec`. `TOOL_SCHEMAS` is module-level as planned.
@@ -83,6 +92,9 @@ Update this file at the end of every phase. Newest notes go at the top of each s
 ## Open questions / user actions needed
 - User (Phase 3): decide whether the negative result is acceptable for the demo. Plan: the Evidence page shows it as is. Say if you want an extra experiment (not tuned on test seasons) before Phase 4.
 - User (Phase 2): run `uv run streamlit run src/psw/app/main.py`, open Replay Map, and check that it looks right and Play works.
+- User (Phase 6): run `uv run streamlit run src/psw/app/main.py` and look at Forecast, Watch & Briefing and Evidence. Things I could not see: the Plotly band and the "NAAQS 24 h" label, the green best-value highlighting, the layout of the two columns, and whether the briefing text reads well with `[K103]` citations.
+- User (Phase 6): the Evidence page tells the reader the Verifier does not check that a source supports a sentence, and that Sentinel flags can come from `smog_risk` alone. Say if you want that wording changed.
+- User (Phase 6): decide what to commit under `data/processed/`. The page now reads both `briefings/` (4 files) and `sample_run/briefings/` (12 files). If you commit only `briefings/`, the reliability table shows one row. Phase 7 `demo-cache` should decide the final set.
 - User (Phase 5): **set `LLM_MODEL=gemini-3.5-flash` in `.env`.** It still says `gemini-3.8-flash`, which returned 503 "high demand" on every request when I tested it. The key itself works. Tested live with `gemini-3.5-flash`: plain, JSON mode, tool calls, and a full agent run.
 - User (Phase 5): `gemini-3.5-flash` hit its free-tier quota (429 after all retries) during the first sample try, so I used `gemini-3.5-flash-lite` for the rest. Consider setting `LLM_MODEL=gemini-3.5-flash-lite` in `.env`. The retry backoff only costs time. Ollama on the P6000 is untested (you said you would set it up).
 - User (Phase 5): `data/processed/briefings/` and `watch/` hold the real 2025-10-31 watch (3 briefings written by the agent) and one template briefing for Sangrur from the `--no-llm` check (it is overwritten by the next run for the same district-day). `data/processed/sample_run/` and `brief_sample_report.json` come from the sample run. Decide what to commit. Phase 7 `demo-cache` rebuilds the demo set anyway.

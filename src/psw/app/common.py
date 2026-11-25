@@ -37,3 +37,35 @@ def load_fires() -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def load_geojson() -> dict:
     return json.loads((config.GEO / "punjab_districts.geojson").read_text())
+
+
+# ---------- Phase 6 loaders ----------
+
+@st.cache_resource(show_spinner=False)
+def get_store():
+    """One DataStore per server process (it caches the parquet tables itself)."""
+    from psw.agents.tools import DataStore
+    return DataStore()
+
+
+@st.cache_resource(show_spinner="Loading the knowledge base…")
+def get_kb():
+    from psw.rag.index import KnowledgeBase
+    return KnowledgeBase()
+
+
+@st.cache_data(show_spinner=False)
+def load_forecasts() -> pd.DataFrame:
+    return pd.read_parquet(config.PROCESSED / "forecasts.parquet")
+
+
+@st.cache_data(show_spinner=False)
+def load_metrics() -> dict:
+    return json.loads((config.PROCESSED / "metrics.json").read_text())
+
+
+@st.cache_data(show_spinner=False)
+def scan_watchlist(date: str) -> list[dict]:
+    """Sentinel for one date (deterministic, offline, fast). Raises ValueError when there is no data for the date."""
+    from psw.agents import sentinel
+    return sentinel.scan(date, get_store())
