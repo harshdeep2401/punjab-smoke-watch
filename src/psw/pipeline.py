@@ -61,6 +61,17 @@ def cmd_train(_args) -> None:
     print("top features (gain):", {k: round(v) for k, v in list(m["feature_importance"].items())[:6]})
 
 
+def cmd_kb(_args) -> None:
+    from psw.rag import build_kb, index
+
+    print("First run downloads the embedding model (~130 MB) and caches it.")
+    paths = build_kb.generate_docs()
+    docs = index.load_docs(config.KB / "curated", config.KB / "generated")
+    table = index.build_index(docs)
+    size = sum((config.PROCESSED / f).stat().st_size for f in (index.VECTORS_FILE, index.CHUNKS_FILE))
+    print(f"generated {len(paths)} docs; indexed {len(docs)} docs into {len(table)} chunks ({size / 1e6:.2f} MB)")
+
+
 def _later(phase: int):
     def run(_args) -> None:
         raise SystemExit(f"Not implemented yet (Phase {phase}).")
@@ -71,14 +82,14 @@ COMMANDS = {
     "ingest": cmd_ingest,
     "process": cmd_process,
     "train": cmd_train,
-    "kb": _later(4),
+    "kb": cmd_kb,
     "brief": _later(5),
     "demo-cache": _later(7),
 }
 
 
 def cmd_all(args) -> None:
-    for name in ("ingest", "process", "train"):  # extended as later phases land
+    for name in ("ingest", "process", "train", "kb"):  # extended as later phases land
         COMMANDS[name](args)
 
 
