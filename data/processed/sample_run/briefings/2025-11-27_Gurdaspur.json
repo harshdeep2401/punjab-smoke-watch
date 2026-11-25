@@ -1,0 +1,217 @@
+{
+ "district": "Gurdaspur",
+ "date": "2025-11-27",
+ "mode": "agent",
+ "headline": "Zero Fire Detections Recorded in Gurdaspur District",
+ "briefing": "On 2025-11-27, Gurdaspur recorded 0 fire detections with a total fire radiative power of 0.0 MW, placing it at rank 9 in Punjab out of a total of 13 detections [K097]. Satellite fire detections serve as a lower bound due to missed fires, cloud cover, and overpass timing [K097]. For the nearest monitored city of Amritsar, the next-day PM2.5 forecast predicts a p50 level of 97.6 ug/m3, with an 80% uncertainty band ranging from a p10 of 73.6 ug/m3 to a p90 of 130.2 ug/m3. Today's observed PM2.5 level in Amritsar was 112.2 ug/m3. Wind conditions at Amritsar blew from the N at a speed of 3.4 kmh, with an upwind fire pressure score of 10.5. Upwind activity is contextual and does not prove direct causation. Model reliability testing shows an 83.1 percent coverage for the 80% interval across 154 forecasts.",
+ "citations": [
+  "K097"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K097",
+   "title": "Gurdaspur fire season 2024",
+   "doc_type": "season_summary"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   2025.0,
+   11.0,
+   27.0,
+   0.0,
+   0.0,
+   9.0,
+   13.0,
+   97.6,
+   80.0,
+   73.6,
+   130.2,
+   112.2,
+   3.4,
+   10.5,
+   83.1,
+   80.0,
+   154.0
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "analyst",
+   "tool": "get_district_snapshot",
+   "args": {
+    "date": "2025-11-27",
+    "district": "Gurdaspur"
+   },
+   "result_summary": "{\"district\": \"Gurdaspur\", \"date\": \"2025-11-27\", \"fire_count\": 0, \"frp_sum_mw\": 0.0, \"fire_count_7d_mean\": 0.1, \"change_vs_7d_pct\": -100.0, \"rank_in_punjab\": 9, \"punjab_total\": 13,…",
+   "ms": 5
+  },
+  {
+   "step": 2,
+   "agent": "analyst",
+   "tool": "get_city_forecast",
+   "args": {
+    "city": "Amritsar",
+    "date": "2025-11-27"
+   },
+   "result_summary": "{\"city\": \"Amritsar\", \"issue_date\": \"2025-11-27\", \"target_date\": \"2025-11-28\", \"p10\": 73.6, \"p50\": 97.6, \"p90\": 130.2, \"pm25_today\": 112.2, \"persistence_p50\": 112.2, \"band_width\": …",
+   "ms": 2
+  },
+  {
+   "step": 3,
+   "agent": "analyst",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "date": "2025-11-27",
+    "city": "Amritsar"
+   },
+   "result_summary": "{\"city\": \"Amritsar\", \"date\": \"2025-11-27\", \"wind_dir_from_deg\": 353.6, \"wind_dir_compass\": \"N\", \"wind_speed_kmh\": 3.4, \"upwind_frp_l0\": 10.5, \"top_upwind_districts\": [{\"district\":…",
+   "ms": 8
+  },
+  {
+   "step": 4,
+   "agent": "analyst",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Amritsar"
+   },
+   "result_summary": "{\"city\": \"Amritsar\", \"test_seasons\": [2024, 2025], \"mae\": 13.2, \"coverage_80_pct\": 83.1, \"mae_persistence\": 12.4, \"mae_no_fire\": 13.1, \"n_forecasts\": 154}",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "Gurdaspur 2024 season",
+    "before": "2025-11-27",
+    "district": "Gurdaspur"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K097\", \"title\": \"Gurdaspur fire season 2024\", \"text\": \"# Gurdaspur: fire detections, season 2024\\n\\nIn the 2024 season (Sep 15 to Nov 30), satellite fir…",
+   "ms": 34
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "Gurdaspur",
+   "date": "2025-11-27",
+   "fire_count": 0,
+   "frp_sum_mw": 0.0,
+   "fire_count_7d_mean": 0.1,
+   "change_vs_7d_pct": -100.0,
+   "rank_in_punjab": 9,
+   "punjab_total": 13,
+   "last_7_days": [
+    {
+     "date": "2025-11-21",
+     "count": 0
+    },
+    {
+     "date": "2025-11-22",
+     "count": 1
+    },
+    {
+     "date": "2025-11-23",
+     "count": 0
+    },
+    {
+     "date": "2025-11-24",
+     "count": 0
+    },
+    {
+     "date": "2025-11-25",
+     "count": 0
+    },
+    {
+     "date": "2025-11-26",
+     "count": 0
+    },
+    {
+     "date": "2025-11-27",
+     "count": 0
+    }
+   ],
+   "nearest_city": "Amritsar",
+   "data_as_of": "2025-11-27"
+  },
+  "get_city_forecast": {
+   "city": "Amritsar",
+   "issue_date": "2025-11-27",
+   "target_date": "2025-11-28",
+   "p10": 73.6,
+   "p50": 97.6,
+   "p90": 130.2,
+   "pm25_today": 112.2,
+   "persistence_p50": 112.2,
+   "band_width": 56.6,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Amritsar",
+   "date": "2025-11-27",
+   "wind_dir_from_deg": 353.6,
+   "wind_dir_compass": "N",
+   "wind_speed_kmh": 3.4,
+   "upwind_frp_l0": 10.5,
+   "top_upwind_districts": [
+    {
+     "district": "Outside Punjab",
+     "share_pct": 100.0
+    },
+    {
+     "district": "Bathinda",
+     "share_pct": 0.0
+    },
+    {
+     "district": "Fatehgarh Sahib",
+     "share_pct": 0.0
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Amritsar",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 13.2,
+   "coverage_80_pct": 83.1,
+   "mae_persistence": 12.4,
+   "mae_no_fire": 13.1,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K097",
+     "title": "Gurdaspur fire season 2024",
+     "text": "# Gurdaspur: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 167 fire detections in Gurdaspur district, with a total fire radiative power of 673 MW. Among the 22 districts it ranked number 16 by detections.\n\nThe busiest day was 2024-11-01, with 39 detections.\n\nCompared with the previous season: -52% compared with 2023 (345 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K053",
+     "title": "Gurdaspur fire season 2022",
+     "text": "# Gurdaspur: fire detections, season 2022\n\nIn the 2022 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 832 fire detections in Gurdaspur district, with a total fire radiative power of 3,647 MW. Among the 22 districts it ranked number 17 by detections.\n\nThe busiest day was 2022-10-23, with 140 detections.\n\nCompared with the previous season: no earlier season is available to compare with.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K075",
+     "title": "Gurdaspur fire season 2023",
+     "text": "# Gurdaspur: fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 345 fire detections in Gurdaspur district, with a total fire radiative power of 1,409 MW. Among the 22 districts it ranked number 17 by detections.\n\nThe busiest day was 2023-11-05, with 57 detections.\n\nCompared with the previous season: -59% compared with 2022 (832 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K110",
+     "title": "Sri Muktsar Sahib fire season 2024",
+     "text": "# Sri Muktsar Sahib: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 657 fire detections in Sri Muktsar Sahib district, with a total fire radiative power of 3,814 MW. Among the 22 districts it ranked number 5 by detections.\n\nThe busiest day was 2024-11-18, with 197 detections.\n\nCompared with the previous season: -50% compared with 2023 (1,320 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-25T07:20:59+00:00",
+ "nearest_city": "Amritsar",
+ "first_attempt_errors": [],
+ "llm_error": null,
+ "label": null
+}

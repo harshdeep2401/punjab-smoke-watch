@@ -1,0 +1,218 @@
+{
+ "district": "SAS Nagar (Mohali)",
+ "date": "2024-11-14",
+ "mode": "agent",
+ "headline": "SAS Nagar Fire Activity Update and Patiala Air Quality Forecast",
+ "briefing": "In SAS Nagar (Mohali), satellite detection recorded 0 fire detections on 2024-11-14. Fire detections represent a lower bound due to missed fires, clouds, and overpass timing [K063]. For the nearest monitored city, Patiala, the next-day PM2.5 forecast predicts a p50 of 116.2 ug/m3, with an 80% uncertainty interval from a p10 of 79.9 ug/m3 to a p90 of 151.1 ug/m3. Today's value in Patiala is 172.0 ug/m3. Winds at Patiala blow from the N at 6.4 km/h, with upwind fire pressure driven by contributors such as Outside Punjab at 29.7% and Fatehgarh Sahib at 24.9%. Forecast results are noisy due to data from only a few seasons [K036]. This project is not a regulatory or health tool and gives no medical advice [K036].",
+ "citations": [
+  "K036",
+  "K063"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K036",
+   "title": "Limitations of this project",
+   "doc_type": "curated"
+  },
+  {
+   "chunk_id": "K063",
+   "title": "SAS Nagar (Mohali) fire season 2022",
+   "doc_type": "season_summary"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   2024.0,
+   11.0,
+   14.0,
+   0.0,
+   116.2,
+   80.0,
+   79.9,
+   151.1,
+   172.0,
+   6.4,
+   29.7,
+   24.9
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "analyst",
+   "tool": "get_district_snapshot",
+   "args": {
+    "date": "2024-11-14",
+    "district": "SAS Nagar (Mohali)"
+   },
+   "result_summary": "{\"district\": \"SAS Nagar (Mohali)\", \"date\": \"2024-11-14\", \"fire_count\": 0, \"frp_sum_mw\": 0.0, \"fire_count_7d_mean\": 0.3, \"change_vs_7d_pct\": -100.0, \"rank_in_punjab\": 6, \"punjab_to…",
+   "ms": 7
+  },
+  {
+   "step": 2,
+   "agent": "analyst",
+   "tool": "get_city_forecast",
+   "args": {
+    "date": "2024-11-14",
+    "city": "Patiala"
+   },
+   "result_summary": "{\"city\": \"Patiala\", \"issue_date\": \"2024-11-14\", \"target_date\": \"2024-11-15\", \"p10\": 79.9, \"p50\": 116.2, \"p90\": 151.1, \"pm25_today\": 172.0, \"persistence_p50\": 172.0, \"band_width\": …",
+   "ms": 4
+  },
+  {
+   "step": 3,
+   "agent": "analyst",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "date": "2024-11-14",
+    "city": "Patiala"
+   },
+   "result_summary": "{\"city\": \"Patiala\", \"date\": \"2024-11-14\", \"wind_dir_from_deg\": 353.7, \"wind_dir_compass\": \"N\", \"wind_speed_kmh\": 6.4, \"upwind_frp_l0\": 14.5, \"top_upwind_districts\": [{\"district\": …",
+   "ms": 5
+  },
+  {
+   "step": 4,
+   "agent": "analyst",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Patiala"
+   },
+   "result_summary": "{\"city\": \"Patiala\", \"test_seasons\": [2024, 2025], \"mae\": 10.5, \"coverage_80_pct\": 83.1, \"mae_persistence\": 10.1, \"mae_no_fire\": 10.0, \"n_forecasts\": 154}",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "SAS Nagar 2024 season limitations model card",
+    "before": "2024-11-14",
+    "district": "SAS Nagar (Mohali)"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K063\", \"title\": \"SAS Nagar (Mohali) fire season 2022\", \"text\": \"# SAS Nagar (Mohali): fire detections, season 2022\\n\\nIn the 2022 season (Sep 15 to Nov …",
+   "ms": 11
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "SAS Nagar (Mohali)",
+   "date": "2024-11-14",
+   "fire_count": 0,
+   "frp_sum_mw": 0.0,
+   "fire_count_7d_mean": 0.3,
+   "change_vs_7d_pct": -100.0,
+   "rank_in_punjab": 6,
+   "punjab_total": 6,
+   "last_7_days": [
+    {
+     "date": "2024-11-08",
+     "count": 0
+    },
+    {
+     "date": "2024-11-09",
+     "count": 0
+    },
+    {
+     "date": "2024-11-10",
+     "count": 1
+    },
+    {
+     "date": "2024-11-11",
+     "count": 1
+    },
+    {
+     "date": "2024-11-12",
+     "count": 0
+    },
+    {
+     "date": "2024-11-13",
+     "count": 0
+    },
+    {
+     "date": "2024-11-14",
+     "count": 0
+    }
+   ],
+   "nearest_city": "Patiala",
+   "data_as_of": "2024-11-14"
+  },
+  "get_city_forecast": {
+   "city": "Patiala",
+   "issue_date": "2024-11-14",
+   "target_date": "2024-11-15",
+   "p10": 79.9,
+   "p50": 116.2,
+   "p90": 151.1,
+   "pm25_today": 172.0,
+   "persistence_p50": 172.0,
+   "band_width": 71.2,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Patiala",
+   "date": "2024-11-14",
+   "wind_dir_from_deg": 353.7,
+   "wind_dir_compass": "N",
+   "wind_speed_kmh": 6.4,
+   "upwind_frp_l0": 14.5,
+   "top_upwind_districts": [
+    {
+     "district": "Outside Punjab",
+     "share_pct": 29.7
+    },
+    {
+     "district": "Fatehgarh Sahib",
+     "share_pct": 24.9
+    },
+    {
+     "district": "Kapurthala",
+     "share_pct": 18.8
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Patiala",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 10.5,
+   "coverage_80_pct": 83.1,
+   "mae_persistence": 10.1,
+   "mae_no_fire": 10.0,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K063",
+     "title": "SAS Nagar (Mohali) fire season 2022",
+     "text": "# SAS Nagar (Mohali): fire detections, season 2022\n\nIn the 2022 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 139 fire detections in SAS Nagar (Mohali) district, with a total fire radiative power of 588 MW. Among the 22 districts it ranked number 21 by detections.\n\nThe busiest day was 2022-10-24, with 17 detections.\n\nCompared with the previous season: no earlier season is available to compare with.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K085",
+     "title": "SAS Nagar (Mohali) fire season 2023",
+     "text": "# SAS Nagar (Mohali): fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 112 fire detections in SAS Nagar (Mohali) district, with a total fire radiative power of 525 MW. Among the 22 districts it ranked number 19 by detections.\n\nThe busiest day was 2023-10-24, with 15 detections.\n\nCompared with the previous season: -19% compared with 2022 (139 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K036",
+     "title": "Limitations of this project",
+     "text": "**Cities.** Forecasts exist for four cities only: Ludhiana, Amritsar, Patiala and Bathinda. District briefings use the fires of a district and the PM2.5 and wind of the cities, so a district without a city has no PM2.5 forecast of its own.\n\n**Data size.** Only four seasons (2022 to 2025) have complete fire and PM2.5 data. The forecast is tested on the last two seasons, and each test fold is trained on only two or three seasons. Results from so few seasons are noisy. Fires also fell a lot from 2022 to 2025, so the seasons are not alike.\n\n**Forecast skill.** See the model card for the measured results, including how the model compares with a persistence baseline and with a model without fire features.\n\n**Use.** This is a student project. It is not a regulatory or health tool and gives no medical advice. It does not identify any individual farm or farmer."
+    },
+    {
+     "chunk_id": "K042",
+     "title": "Model card for the PM2.5 forecast",
+     "text": "# Model card: next-day PM2.5 forecast\n\nThe model is LightGBM quantile regression (p10, p50, p90) for the next-day mean PM2.5 in 4 cities. Test seasons: [2024, 2025]. Backtest folds (2024: trained on [2022, 2023], 2025: trained on [2022, 2023, 2024]). Each fold uses only earlier seasons for training, so the training sets are small (two to three seasons). Number of test rows per variant: 616.\n\nNote on as_of: this card describes the method and the backtest result. Its date is the start of the first test season so that briefings about the test seasons can cite it."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-25T07:20:15+00:00",
+ "nearest_city": "Patiala",
+ "first_attempt_errors": [],
+ "llm_error": null,
+ "label": null
+}

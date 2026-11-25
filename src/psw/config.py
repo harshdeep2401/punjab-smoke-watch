@@ -35,3 +35,29 @@ FIRMS_MAP_KEY = os.getenv("FIRMS_MAP_KEY", "")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
+
+# ---------- Phase 5: LLM, Sentinel, Verifier ----------
+LLM_MIN_INTERVAL_S = float(os.getenv("LLM_MIN_INTERVAL_S", "4"))  # free tiers are tight
+
+NAAQS_PM25_24H = 60  # India NAAQS, 24 h, ug/m3
+
+# Sentinel thresholds (PLAN 5.3)
+SENTINEL_SPIKE_MIN = 15  # "spike": fire_count >= max(SPIKE_MIN, SPIKE_RATIO * 7d mean)
+SENTINEL_SPIKE_RATIO = 2.0
+SENTINEL_HIGH_COUNT_TOP = 3  # "high_count": top-3 in Punjab and at least HIGH_COUNT_MIN detections
+SENTINEL_HIGH_COUNT_MIN = 30
+SENTINEL_SMOG_P90 = 120  # "smog_risk": nearest-city p90 forecast above this (ug/m3)
+
+# Verifier (PLAN 5.5)
+BRIEFING_WORDS = (100, 180)
+HEADLINE_MAX_WORDS = 12
+# numbers that may appear without being in a tool result: "7-day", "80% interval", p10/p50/p90, "24-hour"
+VERIFY_CONSTANTS = (7, 80, 10, 50, 90, 24)
+BANNED_PATTERNS = [  # (regex, why). Matched case-insensitively except the name rule, which needs a capital letter.
+    (r"\bwear(ing)?\s+(a\s+|an\s+)?(face\s+)?mask", "health advice"),
+    (r"\bstay(ing)?\s+(indoors|inside)\b", "health advice"),
+    (r"\bshould\s+stay\s+(indoors|inside|home)\b", "health advice"),
+    (r"\bN95\b", "health advice"),
+    (r"\b(see|consult)\s+a\s+(doctor|physician)\b", "health advice"),
+]
+BANNED_NAME_PATTERN = r"\b(?:[Ff]armer|Mr|Mrs|Ms|Smt|Shri|Sardar)\.?\s+[A-Z][a-z]+"  # personal names (case-sensitive)

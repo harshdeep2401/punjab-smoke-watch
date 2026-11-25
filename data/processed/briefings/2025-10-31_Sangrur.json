@@ -1,0 +1,210 @@
+{
+ "district": "Sangrur",
+ "date": "2025-10-31",
+ "mode": "template",
+ "headline": "Sangrur: 72 fire detections on 31 October",
+ "briefing": "On 31 October 2025, satellites detected 72 fires in Sangrur district, releasing 421.3 MW of fire radiative power. That is 169.5% above the 7-day average of 26.7. Sangrur ranks number 1 in Punjab, which recorded 273 detections in total. The nearest city, Patiala, has a forecast median PM2.5 of 90.8 µg/m³ for 1 November 2025, with an 80% interval of 54.4 to 103.2. The median is above the national 24-hour standard of 60 µg/m³. Wind at Patiala blows from the NW (322.0°) at 8.1 km/h, with the largest upwind fire shares from Outside Punjab (23.1%) and Sangrur (22.3%). On the 2024 and 2025 test seasons the model's average error here was 10.5 µg/m³, against 10.1 for persistence, so it did not beat that simple baseline. Limitation: satellites detect heat anomalies, not stubble burning itself, and miss fires under cloud, so counts are lower bounds; PM2.5 here is modelled, not measured. [K035]",
+ "citations": [
+  "K035"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K035",
+   "title": "Limitations of this project",
+   "doc_type": "curated"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   72.0,
+   31.0,
+   31.0,
+   2025.0,
+   72.0,
+   421.3,
+   169.5,
+   7.0,
+   26.7,
+   1.0,
+   273.0,
+   90.8,
+   1.0,
+   2025.0,
+   80.0,
+   54.4,
+   103.2,
+   24.0,
+   60.0,
+   322.0,
+   8.1,
+   23.1,
+   22.3,
+   2024.0,
+   2025.0,
+   10.5,
+   10.1
+  ]
+ },
+ "trace": [
+  {
+   "agent": "template",
+   "tool": "get_district_snapshot",
+   "args": {
+    "district": "Sangrur",
+    "date": "2025-10-31"
+   },
+   "result_summary": "{\"district\": \"Sangrur\", \"date\": \"2025-10-31\", \"fire_count\": 72, \"frp_sum_mw\": 421.3, \"fire_count_7d_mean\": 26.7, \"change_vs_7d_pct\": 169.5, \"rank_in_punjab\": 1, \"punjab_total\": 27…",
+   "ms": 1,
+   "step": 1
+  },
+  {
+   "agent": "template",
+   "tool": "get_city_forecast",
+   "args": {
+    "city": "Patiala",
+    "date": "2025-10-31"
+   },
+   "result_summary": "{\"city\": \"Patiala\", \"issue_date\": \"2025-10-31\", \"target_date\": \"2025-11-01\", \"p10\": 54.4, \"p50\": 90.8, \"p90\": 103.2, \"pm25_today\": 91.9, \"persistence_p50\": 91.9, \"band_width\": 48.…",
+   "ms": 5,
+   "step": 2
+  },
+  {
+   "agent": "template",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "city": "Patiala",
+    "date": "2025-10-31"
+   },
+   "result_summary": "{\"city\": \"Patiala\", \"date\": \"2025-10-31\", \"wind_dir_from_deg\": 322.0, \"wind_dir_compass\": \"NW\", \"wind_speed_kmh\": 8.1, \"upwind_frp_l0\": 442.2, \"top_upwind_districts\": [{\"district\"…",
+   "ms": 48,
+   "step": 3
+  },
+  {
+   "agent": "template",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Patiala"
+   },
+   "result_summary": "{\"city\": \"Patiala\", \"test_seasons\": [2024, 2025], \"mae\": 10.5, \"coverage_80_pct\": 83.1, \"mae_persistence\": 10.1, \"mae_no_fire\": 10.0, \"n_forecasts\": 154}",
+   "ms": 0,
+   "step": 4
+  },
+  {
+   "agent": "template",
+   "tool": "search_knowledge",
+   "args": {
+    "doc": "limitations"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K035\", \"title\": \"Limitations of this project\", \"text\": \"# What to keep in mind when reading any output\\n\\n**Fires.** Satellites detect heat anomalies. T…",
+   "ms": 0,
+   "step": 5
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "Sangrur",
+   "date": "2025-10-31",
+   "fire_count": 72,
+   "frp_sum_mw": 421.3,
+   "fire_count_7d_mean": 26.7,
+   "change_vs_7d_pct": 169.5,
+   "rank_in_punjab": 1,
+   "punjab_total": 273,
+   "last_7_days": [
+    {
+     "date": "2025-10-25",
+     "count": 7
+    },
+    {
+     "date": "2025-10-26",
+     "count": 13
+    },
+    {
+     "date": "2025-10-27",
+     "count": 10
+    },
+    {
+     "date": "2025-10-28",
+     "count": 10
+    },
+    {
+     "date": "2025-10-29",
+     "count": 40
+    },
+    {
+     "date": "2025-10-30",
+     "count": 35
+    },
+    {
+     "date": "2025-10-31",
+     "count": 72
+    }
+   ],
+   "nearest_city": "Patiala",
+   "data_as_of": "2025-10-31"
+  },
+  "get_city_forecast": {
+   "city": "Patiala",
+   "issue_date": "2025-10-31",
+   "target_date": "2025-11-01",
+   "p10": 54.4,
+   "p50": 90.8,
+   "p90": 103.2,
+   "pm25_today": 91.9,
+   "persistence_p50": 91.9,
+   "band_width": 48.8,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Patiala",
+   "date": "2025-10-31",
+   "wind_dir_from_deg": 322.0,
+   "wind_dir_compass": "NW",
+   "wind_speed_kmh": 8.1,
+   "upwind_frp_l0": 442.2,
+   "top_upwind_districts": [
+    {
+     "district": "Outside Punjab",
+     "share_pct": 23.1
+    },
+    {
+     "district": "Sangrur",
+     "share_pct": 22.3
+    },
+    {
+     "district": "Tarn Taran",
+     "share_pct": 14.3
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Patiala",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 10.5,
+   "coverage_80_pct": 83.1,
+   "mae_persistence": 10.1,
+   "mae_no_fire": 10.0,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K035",
+     "title": "Limitations of this project",
+     "text": "# What to keep in mind when reading any output\n\n**Fires.** Satellites detect heat anomalies. They do not know that a fire is stubble burning. They miss fires that burn between overpasses, fires under cloud, and small or short burns. A district's detection count is a lower bound. Fire dates are UTC dates that we treat as local days, so some night detections are filed one day early.\n\n**Air quality.** PM2.5 is modelled by CAMS on a coarse grid. It is not measured at street level and it is not CPCB monitor data. It already includes fire emissions as the model sees them.\n\n**Districts.** We use 22 district boundaries. Malerkotla, created in 2021, is not a separate district in our boundary data. Its area is counted in Sangrur."
+    }
+   ]
+  }
+ },
+ "model": "template",
+ "generated_at": "2026-11-25T06:59:03+00:00",
+ "nearest_city": "Patiala",
+ "first_attempt_errors": [],
+ "llm_error": "LLM error: --no-llm",
+ "label": "template (LLM unavailable or failed verification)"
+}

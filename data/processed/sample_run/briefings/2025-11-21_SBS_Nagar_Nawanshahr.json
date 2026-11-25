@@ -1,0 +1,217 @@
+{
+ "district": "SBS Nagar (Nawanshahr)",
+ "date": "2025-11-21",
+ "mode": "agent",
+ "headline": "SBS Nagar District Air Quality and Fire Activity Briefing",
+ "briefing": "On 2025-11-21, SBS Nagar recorded 0 fire detections, with a 7-day mean of 0.6 and a change of -100.0 percent. The punjab total was 25 detections [K108]. For the nearest monitored city of Ludhiana, the next-day PM2.5 forecast is p10 98.6, p50 140.9, and p90 176.9 ug/m3, compared to today's value of 154.4 ug/m3. Wind at Ludhiana blows from ESE at 4.4 km/h, with an upwind pressure score of 15.3, of which Outside Punjab contributed 98.5 percent. Satellite fire detections are a lower bound and can be missed due to cloud cover or overpass timing [K108]. Model reliability testing shows an 80 percent interval coverage of 87.7 percent.",
+ "citations": [
+  "K108"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K108",
+   "title": "SBS Nagar (Nawanshahr) fire season 2024",
+   "doc_type": "season_summary"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   2025.0,
+   11.0,
+   21.0,
+   0.0,
+   7.0,
+   0.6,
+   100.0,
+   25.0,
+   98.6,
+   140.9,
+   176.9,
+   154.4,
+   4.4,
+   15.3,
+   98.5,
+   80.0,
+   87.7
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "analyst",
+   "tool": "get_district_snapshot",
+   "args": {
+    "district": "SBS Nagar (Nawanshahr)",
+    "date": "2025-11-21"
+   },
+   "result_summary": "{\"district\": \"SBS Nagar (Nawanshahr)\", \"date\": \"2025-11-21\", \"fire_count\": 0, \"frp_sum_mw\": 0.0, \"fire_count_7d_mean\": 0.6, \"change_vs_7d_pct\": -100.0, \"rank_in_punjab\": 12, \"punj…",
+   "ms": 7
+  },
+  {
+   "step": 2,
+   "agent": "analyst",
+   "tool": "get_city_forecast",
+   "args": {
+    "date": "2025-11-21",
+    "city": "Ludhiana"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"issue_date\": \"2025-11-21\", \"target_date\": \"2025-11-22\", \"p10\": 98.6, \"p50\": 140.9, \"p90\": 176.9, \"pm25_today\": 154.4, \"persistence_p50\": 154.4, \"band_width\":…",
+   "ms": 3
+  },
+  {
+   "step": 3,
+   "agent": "analyst",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "city": "Ludhiana",
+    "date": "2025-11-21"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"date\": \"2025-11-21\", \"wind_dir_from_deg\": 104.1, \"wind_dir_compass\": \"ESE\", \"wind_speed_kmh\": 4.4, \"upwind_frp_l0\": 15.3, \"top_upwind_districts\": [{\"district…",
+   "ms": 4
+  },
+  {
+   "step": 4,
+   "agent": "analyst",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Ludhiana"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"test_seasons\": [2024, 2025], \"mae\": 11.0, \"coverage_80_pct\": 87.7, \"mae_persistence\": 10.3, \"mae_no_fire\": 10.8, \"n_forecasts\": 154}",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "SBS Nagar 2024 season",
+    "before": "2025-11-21",
+    "district": "SBS Nagar (Nawanshahr)"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K108\", \"title\": \"SBS Nagar (Nawanshahr) fire season 2024\", \"text\": \"# SBS Nagar (Nawanshahr): fire detections, season 2024\\n\\nIn the 2024 season (Sep 15…",
+   "ms": 10
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "SBS Nagar (Nawanshahr)",
+   "date": "2025-11-21",
+   "fire_count": 0,
+   "frp_sum_mw": 0.0,
+   "fire_count_7d_mean": 0.6,
+   "change_vs_7d_pct": -100.0,
+   "rank_in_punjab": 12,
+   "punjab_total": 25,
+   "last_7_days": [
+    {
+     "date": "2025-11-15",
+     "count": 0
+    },
+    {
+     "date": "2025-11-16",
+     "count": 0
+    },
+    {
+     "date": "2025-11-17",
+     "count": 0
+    },
+    {
+     "date": "2025-11-18",
+     "count": 1
+    },
+    {
+     "date": "2025-11-19",
+     "count": 3
+    },
+    {
+     "date": "2025-11-20",
+     "count": 0
+    },
+    {
+     "date": "2025-11-21",
+     "count": 0
+    }
+   ],
+   "nearest_city": "Ludhiana",
+   "data_as_of": "2025-11-21"
+  },
+  "get_city_forecast": {
+   "city": "Ludhiana",
+   "issue_date": "2025-11-21",
+   "target_date": "2025-11-22",
+   "p10": 98.6,
+   "p50": 140.9,
+   "p90": 176.9,
+   "pm25_today": 154.4,
+   "persistence_p50": 154.4,
+   "band_width": 78.3,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Ludhiana",
+   "date": "2025-11-21",
+   "wind_dir_from_deg": 104.1,
+   "wind_dir_compass": "ESE",
+   "wind_speed_kmh": 4.4,
+   "upwind_frp_l0": 15.3,
+   "top_upwind_districts": [
+    {
+     "district": "Outside Punjab",
+     "share_pct": 98.5
+    },
+    {
+     "district": "Patiala",
+     "share_pct": 1.5
+    },
+    {
+     "district": "Bathinda",
+     "share_pct": 0.0
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Ludhiana",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 11.0,
+   "coverage_80_pct": 87.7,
+   "mae_persistence": 10.3,
+   "mae_no_fire": 10.8,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K108",
+     "title": "SBS Nagar (Nawanshahr) fire season 2024",
+     "text": "# SBS Nagar (Nawanshahr): fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 41 fire detections in SBS Nagar (Nawanshahr) district, with a total fire radiative power of 174 MW. Among the 22 districts it ranked number 19 by detections.\n\nThe busiest day was 2024-11-01, with 8 detections.\n\nCompared with the previous season: -81% compared with 2023 (215 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K064",
+     "title": "SBS Nagar (Nawanshahr) fire season 2022",
+     "text": "# SBS Nagar (Nawanshahr): fire detections, season 2022\n\nIn the 2022 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 245 fire detections in SBS Nagar (Nawanshahr) district, with a total fire radiative power of 1,326 MW. Among the 22 districts it ranked number 20 by detections.\n\nThe busiest day was 2022-11-02, with 28 detections.\n\nCompared with the previous season: no earlier season is available to compare with.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K086",
+     "title": "SBS Nagar (Nawanshahr) fire season 2023",
+     "text": "# SBS Nagar (Nawanshahr): fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 215 fire detections in SBS Nagar (Nawanshahr) district, with a total fire radiative power of 1,131 MW. Among the 22 districts it ranked number 18 by detections.\n\nThe busiest day was 2023-11-05, with 43 detections.\n\nCompared with the previous season: -12% compared with 2022 (245 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K107",
+     "title": "SAS Nagar (Mohali) fire season 2024",
+     "text": "# SAS Nagar (Mohali): fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 53 fire detections in SAS Nagar (Mohali) district, with a total fire radiative power of 188 MW. Among the 22 districts it ranked number 18 by detections.\n\nThe busiest day was 2024-10-12, with 5 detections.\n\nCompared with the previous season: -53% compared with 2023 (112 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-25T07:20:42+00:00",
+ "nearest_city": "Ludhiana",
+ "first_attempt_errors": [],
+ "llm_error": null,
+ "label": null
+}

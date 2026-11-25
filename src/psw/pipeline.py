@@ -72,6 +72,109 @@ def cmd_kb(_args) -> None:
     print(f"generated {len(paths)} docs; indexed {len(docs)} docs into {len(table)} chunks ({size / 1e6:.2f} MB)")
 
 
+def _print_briefing(rec) -> None:
+    v = rec.verification
+    print(f"\n[{rec.mode}] {rec.district} {rec.date} | model {rec.model} | verified {v['ok']} "
+          f"({len(v['checked_numbers'])} numbers checked) | tools: {[t['tool'] for t in rec.trace]}")
+    print(f"  {rec.headline}\n  {rec.briefing}")
+    if rec.first_attempt_errors:
+        print("  first draft errors:", rec.first_attempt_errors)
+    if rec.llm_error:
+        print("  llm:", rec.llm_error)
+    if v["errors"]:
+        print("  VERIFY ERRORS:", v["errors"])
+
+
+def _sample_district_days(n: int, seed: int = 42) -> list[tuple[str, str]]:
+    """n random (date, district) pairs the Sentinel flags in the test seasons: the days the product would brief."""
+    import random
+
+    from psw.agents import sentinel
+    from psw.agents.tools import DataStore
+
+    store = DataStore()
+    days = sorted(store.forecasts["issue_date"].unique())
+    flagged = [(d, r["district"]) for d in days for r in sentinel.scan(d, store) if r["flags"]]
+    print(f"{len(flagged)} flagged district-days in the test seasons; sampling {n} (seed {seed})")
+    return sorted(random.Random(seed).sample(flagged, min(n, len(flagged))))
+
+
+def cmd_brief(args) -> None:
+    import json
+    from collections import Counter
+
+    from psw.agents import orchestrator
+    from psw.agents.tools import DataStore
+    from psw.llm import LLM, LLMError
+    from psw.rag.index import KnowledgeBase
+
+    store, kb = DataStore(), KnowledgeBase()
+    llm = None
+    if not args.no_llm:
+        try:
+            llm = LLM.from_env()
+            print(f"LLM: {llm.model} at {llm.base_url} (min {llm.min_interval_s:.0f}s between calls)")
+        except LLMError as e:
+            print(f"No LLM ({e}); using the template fallback.")
+    if args.no_llm:
+        class _NoLLM:  # forces the template path without trying .env
+            model = "none"
+
+            def chat(self, *a, **k):
+                raise LLMError("--no-llm")
+        llm = _NoLLM()
+
+    if args.sample:
+        pairs = _sample_district_days(args.sample)
+        root = config.PROCESSED / "sample_run"
+        recs = []
+        for i, (d, dist) in enumerate(pairs, 1):
+            print(f"--- {i}/{len(pairs)}: {dist} {d}", flush=True)
+            saved = orchestrator.briefing_path(d, dist, root)
+            rec = _load(saved) if saved.exists() and json.loads(saved.read_text())["mode"] != "template" else None
+            if rec is not None:
+                print("    (reusing the saved agent briefing)", flush=True)
+            else:  # new, or the earlier try fell back to the template (for example a rate limit): try again
+                rec = orchestrator.run_briefing(dist, d, llm=llm, store=store, kb=kb, root=root)
+            print(f"    -> {rec.mode}, verified={rec.verification['ok']}" + (f", llm: {rec.llm_error}" if rec.llm_error else ""))
+            recs.append(rec)
+        modes = Counter(r.mode for r in recs)
+        passed = sum(r.verification["ok"] for r in recs)
+        report = {"n": len(recs), "verified_ok": passed, "modes": dict(modes),
+                  "agent_or_revised": modes["agent"] + modes["agent_revised"], "model": getattr(llm, "model", None),
+                  "items": [{"date": r.date, "district": r.district, "mode": r.mode, "ok": r.verification["ok"],
+                             "first_attempt_errors": r.first_attempt_errors, "llm_error": r.llm_error} for r in recs]}
+        (config.PROCESSED / "brief_sample_report.json").write_text(json.dumps(report, indent=1))
+        print(f"\nSAMPLE: {passed}/{len(recs)} verified; modes {dict(modes)}; "
+              f"{report['agent_or_revised']} written by the agent (not the template)")
+        if llm is not None and hasattr(llm, "usage"):
+            print("token usage:", llm.usage)
+        return
+
+    if not args.date:
+        raise SystemExit("--date YYYY-MM-DD is required (or use --sample N)")
+    if args.district:
+        _print_briefing(orchestrator.run_briefing(args.district, args.date, llm=llm, store=store, kb=kb))
+        return
+    watch = orchestrator.run_daily_watch(args.date, top_n=args.top_n, llm=llm, store=store, kb=kb)
+    print(f"Daily watch {args.date}: {watch['n_flagged']} districts flagged, briefing the top {len(watch['briefings'])}")
+    for r in watch["watchlist"][:max(args.top_n, 6)]:
+        print(f"  {r['district']:26s} {r['fire_count']:4d} fires (7d mean {r['fire_count_7d_mean']:6.1f})  "
+              f"{'; '.join(f.split(':')[0] for f in r['flags']) or '-'}")
+    for b in watch["briefings"]:
+        _print_briefing(_load(b["file"]))
+    print(f"\nSaved data/processed/watch/{args.date}.json and {len(watch['briefings'])} briefings.")
+
+
+def _load(path):
+    """Reload a saved briefing record (a Path, or a file name inside data/processed/briefings)."""
+    import json
+    from pathlib import Path
+    from types import SimpleNamespace as NS
+    path = Path(path) if Path(path).is_absolute() else config.PROCESSED / "briefings" / path
+    return NS(**json.loads(path.read_text()))
+
+
 def _later(phase: int):
     def run(_args) -> None:
         raise SystemExit(f"Not implemented yet (Phase {phase}).")
@@ -83,7 +186,7 @@ COMMANDS = {
     "process": cmd_process,
     "train": cmd_train,
     "kb": cmd_kb,
-    "brief": _later(5),
+    "brief": cmd_brief,
     "demo-cache": _later(7),
 }
 
@@ -101,6 +204,9 @@ def main() -> None:
     p.add_argument("command", choices=sorted(COMMANDS))
     p.add_argument("--date")
     p.add_argument("--district")
+    p.add_argument("--sample", type=int, help="brief N sampled flagged district-days in the test seasons and report the pass rate")
+    p.add_argument("--top-n", type=int, default=3, help="daily watch: how many flagged districts to brief")
+    p.add_argument("--no-llm", action="store_true", help="brief: skip the LLM and use the template fallback")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     COMMANDS[args.command](args)

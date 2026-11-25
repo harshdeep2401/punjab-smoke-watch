@@ -1,0 +1,225 @@
+{
+ "district": "Tarn Taran",
+ "date": "2024-11-15",
+ "mode": "agent",
+ "headline": "Tarn Taran Stubble-Fire Briefing for November 15, 2024",
+ "briefing": "On 2024-11-15, Tarn Taran district recorded 0 fire detections with a total fire radiative power of 0.0 MW, ranking 7 in Punjab [K089]. The 7-day mean was 6.9, and the change versus the mean was -100.0%. For the nearest monitored city, Amritsar, the next-day PM2.5 forecast predicts a p50 of 116.7 ug/m3, with an 80% uncertainty interval ranging from a p10 of 75.1 to a p90 of 146.3 ug/m3. Today's value stood at 214.4 ug/m3. Winds in Amritsar blew from the NW at 4.6 km/h, with an upwind fire pressure score of 8.3, where Outside Punjab contributed 100.0% of the upwind share. Satellite detection is a lower bound, as heat anomalies can be missed due to clouds, overpass timing, or small burns [K035]. PM2.5 is modelled on a coarse grid and is not street-level data [K035].",
+ "citations": [
+  "K035",
+  "K089"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K035",
+   "title": "Limitations of this project",
+   "doc_type": "curated"
+  },
+  {
+   "chunk_id": "K089",
+   "title": "Tarn Taran fire season 2023",
+   "doc_type": "season_summary"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   15.0,
+   2024.0,
+   2024.0,
+   11.0,
+   15.0,
+   0.0,
+   0.0,
+   7.0,
+   7.0,
+   6.9,
+   100.0,
+   116.7,
+   80.0,
+   75.1,
+   146.3,
+   214.4,
+   4.6,
+   8.3,
+   100.0
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "analyst",
+   "tool": "get_district_snapshot",
+   "args": {
+    "date": "2024-11-15",
+    "district": "Tarn Taran"
+   },
+   "result_summary": "{\"district\": \"Tarn Taran\", \"date\": \"2024-11-15\", \"fire_count\": 0, \"frp_sum_mw\": 0.0, \"fire_count_7d_mean\": 6.9, \"change_vs_7d_pct\": -100.0, \"rank_in_punjab\": 7, \"punjab_total\": 57…",
+   "ms": 5
+  },
+  {
+   "step": 2,
+   "agent": "analyst",
+   "tool": "get_city_forecast",
+   "args": {
+    "date": "2024-11-15",
+    "city": "Amritsar"
+   },
+   "result_summary": "{\"city\": \"Amritsar\", \"issue_date\": \"2024-11-15\", \"target_date\": \"2024-11-16\", \"p10\": 75.1, \"p50\": 116.7, \"p90\": 146.3, \"pm25_today\": 214.4, \"persistence_p50\": 214.4, \"band_width\":…",
+   "ms": 3
+  },
+  {
+   "step": 3,
+   "agent": "analyst",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "city": "Amritsar",
+    "date": "2024-11-15"
+   },
+   "result_summary": "{\"city\": \"Amritsar\", \"date\": \"2024-11-15\", \"wind_dir_from_deg\": 314.8, \"wind_dir_compass\": \"NW\", \"wind_speed_kmh\": 4.6, \"upwind_frp_l0\": 8.3, \"top_upwind_districts\": [{\"district\":…",
+   "ms": 5
+  },
+  {
+   "step": 4,
+   "agent": "analyst",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Amritsar"
+   },
+   "result_summary": "{\"city\": \"Amritsar\", \"test_seasons\": [2024, 2025], \"mae\": 13.2, \"coverage_80_pct\": 83.1, \"mae_persistence\": 12.4, \"mae_no_fire\": 13.1, \"n_forecasts\": 154}",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "Tarn Taran 2024 season limitations of satellite fire detection",
+    "before": "2024-11-15",
+    "district": "Tarn Taran"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K089\", \"title\": \"Tarn Taran fire season 2023\", \"text\": \"# Tarn Taran: fire detections, season 2023\\n\\nIn the 2023 season (Sep 15 to Nov 30), satellite f…",
+   "ms": 11
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "Tarn Taran",
+   "date": "2024-11-15",
+   "fire_count": 0,
+   "frp_sum_mw": 0.0,
+   "fire_count_7d_mean": 6.9,
+   "change_vs_7d_pct": -100.0,
+   "rank_in_punjab": 7,
+   "punjab_total": 57,
+   "last_7_days": [
+    {
+     "date": "2024-11-09",
+     "count": 2
+    },
+    {
+     "date": "2024-11-10",
+     "count": 5
+    },
+    {
+     "date": "2024-11-11",
+     "count": 10
+    },
+    {
+     "date": "2024-11-12",
+     "count": 0
+    },
+    {
+     "date": "2024-11-13",
+     "count": 30
+    },
+    {
+     "date": "2024-11-14",
+     "count": 1
+    },
+    {
+     "date": "2024-11-15",
+     "count": 0
+    }
+   ],
+   "nearest_city": "Amritsar",
+   "data_as_of": "2024-11-15"
+  },
+  "get_city_forecast": {
+   "city": "Amritsar",
+   "issue_date": "2024-11-15",
+   "target_date": "2024-11-16",
+   "p10": 75.1,
+   "p50": 116.7,
+   "p90": 146.3,
+   "pm25_today": 214.4,
+   "persistence_p50": 214.4,
+   "band_width": 71.2,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Amritsar",
+   "date": "2024-11-15",
+   "wind_dir_from_deg": 314.8,
+   "wind_dir_compass": "NW",
+   "wind_speed_kmh": 4.6,
+   "upwind_frp_l0": 8.3,
+   "top_upwind_districts": [
+    {
+     "district": "Outside Punjab",
+     "share_pct": 100.0
+    },
+    {
+     "district": "Bathinda",
+     "share_pct": 0.0
+    },
+    {
+     "district": "Fazilka",
+     "share_pct": 0.0
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Amritsar",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 13.2,
+   "coverage_80_pct": 83.1,
+   "mae_persistence": 12.4,
+   "mae_no_fire": 13.1,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K089",
+     "title": "Tarn Taran fire season 2023",
+     "text": "# Tarn Taran: fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 1,599 fire detections in Tarn Taran district, with a total fire radiative power of 9,236 MW. Among the 22 districts it ranked number 8 by detections.\n\nThe busiest day was 2023-11-05, with 174 detections.\n\nCompared with the previous season: -45% compared with 2022 (2,914 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K067",
+     "title": "Tarn Taran fire season 2022",
+     "text": "# Tarn Taran: fire detections, season 2022\n\nIn the 2022 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 2,914 fire detections in Tarn Taran district, with a total fire radiative power of 18,000 MW. Among the 22 districts it ranked number 8 by detections.\n\nThe busiest day was 2022-10-28, with 206 detections.\n\nCompared with the previous season: no earlier season is available to compare with.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K035",
+     "title": "Limitations of this project",
+     "text": "# What to keep in mind when reading any output\n\n**Fires.** Satellites detect heat anomalies. They do not know that a fire is stubble burning. They miss fires that burn between overpasses, fires under cloud, and small or short burns. A district's detection count is a lower bound. Fire dates are UTC dates that we treat as local days, so some night detections are filed one day early.\n\n**Air quality.** PM2.5 is modelled by CAMS on a coarse grid. It is not measured at street level and it is not CPCB monitor data. It already includes fire emissions as the model sees them.\n\n**Districts.** We use 22 district boundaries. Malerkotla, created in 2021, is not a separate district in our boundary data. Its area is counted in Sangrur."
+    },
+    {
+     "chunk_id": "K082",
+     "title": "Pathankot fire season 2023",
+     "text": "# Pathankot: fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 6 fire detections in Pathankot district, with a total fire radiative power of 22 MW. Among the 22 districts it ranked number 22 by detections.\n\nThe busiest day was 2023-11-05, with 2 detections.\n\nCompared with the previous season: +50% compared with 2022 (4 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-25T07:20:27+00:00",
+ "nearest_city": "Amritsar",
+ "first_attempt_errors": [],
+ "llm_error": null,
+ "label": null
+}

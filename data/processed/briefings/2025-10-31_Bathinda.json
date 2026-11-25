@@ -1,0 +1,230 @@
+{
+ "district": "Bathinda",
+ "date": "2025-10-31",
+ "mode": "agent",
+ "headline": "Bathinda Records 23 Stubble Fires as PM2.5 Forecast Reaches 102.3",
+ "briefing": "On 2025-10-31, Bathinda district recorded 23 fire detections with a total fire radiative power of 108.2 MW, ranking 3 among Punjab districts out of a total of 273 detections. This represents a 151.6% increase compared to its 7-day mean of 9.1 detections. In the 2024 season, Bathinda recorded 658 fire detections [K092]. Bathinda recorded a PM2.5 level of 105.6 today. For tomorrow, the PM2.5 forecast p50 is 102.3, with an 80% forecast uncertainty band from p10 of 61.8 to p90 of 131.2. Winds are blowing FROM the NNW at 6.8 km/h. As context, upwind fire pressure stands at 715.8, with Outside Punjab contributing 64.1%, Tarn Taran 13.0%, and Ferozepur 5.9%. A key limitation is that satellite fire counts are a lower bound because satellites miss fires under cloud cover or between overpasses [K035].",
+ "citations": [
+  "K035",
+  "K092"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K035",
+   "title": "Limitations of this project",
+   "doc_type": "curated"
+  },
+  {
+   "chunk_id": "K092",
+   "title": "Bathinda fire season 2024",
+   "doc_type": "season_summary"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   23.0,
+   102.3,
+   2025.0,
+   10.0,
+   31.0,
+   23.0,
+   108.2,
+   3.0,
+   273.0,
+   151.6,
+   7.0,
+   9.1,
+   2024.0,
+   658.0,
+   105.6,
+   102.3,
+   80.0,
+   61.8,
+   131.2,
+   6.8,
+   715.8,
+   64.1,
+   13.0,
+   5.9
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "analyst",
+   "tool": "get_district_snapshot",
+   "args": {
+    "date": "2025-10-31",
+    "district": "Bathinda"
+   },
+   "result_summary": "{\"district\": \"Bathinda\", \"date\": \"2025-10-31\", \"fire_count\": 23, \"frp_sum_mw\": 108.2, \"fire_count_7d_mean\": 9.1, \"change_vs_7d_pct\": 151.6, \"rank_in_punjab\": 3, \"punjab_total\": 27…",
+   "ms": 11
+  },
+  {
+   "step": 2,
+   "agent": "analyst",
+   "tool": "get_city_forecast",
+   "args": {
+    "date": "2025-10-31",
+    "city": "Bathinda"
+   },
+   "result_summary": "{\"city\": \"Bathinda\", \"issue_date\": \"2025-10-31\", \"target_date\": \"2025-11-01\", \"p10\": 61.8, \"p50\": 102.3, \"p90\": 131.2, \"pm25_today\": 105.6, \"persistence_p50\": 105.6, \"band_width\":…",
+   "ms": 10
+  },
+  {
+   "step": 3,
+   "agent": "analyst",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "date": "2025-10-31",
+    "city": "Bathinda"
+   },
+   "result_summary": "{\"city\": \"Bathinda\", \"date\": \"2025-10-31\", \"wind_dir_from_deg\": 331.0, \"wind_dir_compass\": \"NNW\", \"wind_speed_kmh\": 6.8, \"upwind_frp_l0\": 715.8, \"top_upwind_districts\": [{\"distric…",
+   "ms": 28
+  },
+  {
+   "step": 4,
+   "agent": "analyst",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Bathinda"
+   },
+   "result_summary": "{\"city\": \"Bathinda\", \"test_seasons\": [2024, 2025], \"mae\": 13.1, \"coverage_80_pct\": 83.8, \"mae_persistence\": 12.0, \"mae_no_fire\": 13.5, \"n_forecasts\": 154}",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "Bathinda 2024 season limitations of satellite fire detection",
+    "before": "2025-10-31",
+    "district": "Bathinda"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K092\", \"title\": \"Bathinda fire season 2024\", \"text\": \"# Bathinda: fire detections, season 2024\\n\\nIn the 2024 season (Sep 15 to Nov 30), satellite fire …",
+   "ms": 59
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "Bathinda",
+   "date": "2025-10-31",
+   "fire_count": 23,
+   "frp_sum_mw": 108.2,
+   "fire_count_7d_mean": 9.1,
+   "change_vs_7d_pct": 151.6,
+   "rank_in_punjab": 3,
+   "punjab_total": 273,
+   "last_7_days": [
+    {
+     "date": "2025-10-25",
+     "count": 4
+    },
+    {
+     "date": "2025-10-26",
+     "count": 10
+    },
+    {
+     "date": "2025-10-27",
+     "count": 3
+    },
+    {
+     "date": "2025-10-28",
+     "count": 6
+    },
+    {
+     "date": "2025-10-29",
+     "count": 8
+    },
+    {
+     "date": "2025-10-30",
+     "count": 10
+    },
+    {
+     "date": "2025-10-31",
+     "count": 23
+    }
+   ],
+   "nearest_city": "Bathinda",
+   "data_as_of": "2025-10-31"
+  },
+  "get_city_forecast": {
+   "city": "Bathinda",
+   "issue_date": "2025-10-31",
+   "target_date": "2025-11-01",
+   "p10": 61.8,
+   "p50": 102.3,
+   "p90": 131.2,
+   "pm25_today": 105.6,
+   "persistence_p50": 105.6,
+   "band_width": 69.4,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Bathinda",
+   "date": "2025-10-31",
+   "wind_dir_from_deg": 331.0,
+   "wind_dir_compass": "NNW",
+   "wind_speed_kmh": 6.8,
+   "upwind_frp_l0": 715.8,
+   "top_upwind_districts": [
+    {
+     "district": "Outside Punjab",
+     "share_pct": 64.1
+    },
+    {
+     "district": "Tarn Taran",
+     "share_pct": 13.0
+    },
+    {
+     "district": "Ferozepur",
+     "share_pct": 5.9
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Bathinda",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 13.1,
+   "coverage_80_pct": 83.8,
+   "mae_persistence": 12.0,
+   "mae_no_fire": 13.5,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K092",
+     "title": "Bathinda fire season 2024",
+     "text": "# Bathinda: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 658 fire detections in Bathinda district, with a total fire radiative power of 3,413 MW. Among the 22 districts it ranked number 4 by detections.\n\nThe busiest day was 2024-11-17, with 93 detections.\n\nCompared with the previous season: -75% compared with 2023 (2,615 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K048",
+     "title": "Bathinda fire season 2022",
+     "text": "# Bathinda: fire detections, season 2022\n\nIn the 2022 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 4,428 fire detections in Bathinda district, with a total fire radiative power of 30,698 MW. Among the 22 districts it ranked number 2 by detections.\n\nThe busiest day was 2022-11-11, with 436 detections.\n\nCompared with the previous season: no earlier season is available to compare with.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K070",
+     "title": "Bathinda fire season 2023",
+     "text": "# Bathinda: fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 2,615 fire detections in Bathinda district, with a total fire radiative power of 17,281 MW. Among the 22 districts it ranked number 2 by detections.\n\nThe busiest day was 2023-11-15, with 299 detections.\n\nCompared with the previous season: -41% compared with 2022 (4,428 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K035",
+     "title": "Limitations of this project",
+     "text": "# What to keep in mind when reading any output\n\n**Fires.** Satellites detect heat anomalies. They do not know that a fire is stubble burning. They miss fires that burn between overpasses, fires under cloud, and small or short burns. A district's detection count is a lower bound. Fire dates are UTC dates that we treat as local days, so some night detections are filed one day early.\n\n**Air quality.** PM2.5 is modelled by CAMS on a coarse grid. It is not measured at street level and it is not CPCB monitor data. It already includes fire emissions as the model sees them.\n\n**Districts.** We use 22 district boundaries. Malerkotla, created in 2021, is not a separate district in our boundary data. Its area is counted in Sangrur."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash",
+ "generated_at": "2026-11-25T07:01:40+00:00",
+ "nearest_city": "Bathinda",
+ "first_attempt_errors": [],
+ "llm_error": null,
+ "label": null
+}

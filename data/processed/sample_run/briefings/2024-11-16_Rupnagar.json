@@ -1,0 +1,216 @@
+{
+ "district": "Rupnagar",
+ "date": "2024-11-16",
+ "mode": "agent",
+ "headline": "Rupnagar Records Zero Fire Detections With PM2.5 Forecast Ahead",
+ "briefing": "On 2024-11-16, Rupnagar recorded 0 fire detections with an FRP sum of 0.0 MW, placing it at rank 14 in Punjab. For the nearest monitored city of Ludhiana, the next-day PM2.5 forecast for 2024-11-17 projects a p50 of 113.5 ug/m3, with an 80% uncertainty band ranging from a p10 of 71.7 to a p90 of 142.2 ug/m3. Today's PM2.5 was recorded at 152.9 ug/m3, and the persistence baseline is 152.9 ug/m3. Winds at Ludhiana blew from the NW at 4.2 km/h, with upwind fire pressure driven by Ferozepur and Fazilka. Satellite fire counts are a lower bound because satellites can miss fires that burn under clouds or between overpasses [K035]. Furthermore, CAMS air quality modelling is on a coarse grid and does not represent local street-level concentrations [K035].",
+ "citations": [
+  "K035"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K035",
+   "title": "Limitations of this project",
+   "doc_type": "curated"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   2024.0,
+   11.0,
+   16.0,
+   2024.0,
+   11.0,
+   17.0,
+   0.0,
+   0.0,
+   14.0,
+   113.5,
+   80.0,
+   71.7,
+   142.2,
+   152.9,
+   152.9,
+   4.2
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "analyst",
+   "tool": "get_district_snapshot",
+   "args": {
+    "date": "2024-11-16",
+    "district": "Rupnagar"
+   },
+   "result_summary": "{\"district\": \"Rupnagar\", \"date\": \"2024-11-16\", \"fire_count\": 0, \"frp_sum_mw\": 0.0, \"fire_count_7d_mean\": 0.0, \"change_vs_7d_pct\": null, \"rank_in_punjab\": 14, \"punjab_total\": 133, …",
+   "ms": 66
+  },
+  {
+   "step": 2,
+   "agent": "analyst",
+   "tool": "get_city_forecast",
+   "args": {
+    "city": "Ludhiana",
+    "date": "2024-11-16"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"issue_date\": \"2024-11-16\", \"target_date\": \"2024-11-17\", \"p10\": 71.7, \"p50\": 113.5, \"p90\": 142.2, \"pm25_today\": 152.9, \"persistence_p50\": 152.9, \"band_width\":…",
+   "ms": 1
+  },
+  {
+   "step": 3,
+   "agent": "analyst",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "city": "Ludhiana",
+    "date": "2024-11-16"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"date\": \"2024-11-16\", \"wind_dir_from_deg\": 319.9, \"wind_dir_compass\": \"NW\", \"wind_speed_kmh\": 4.2, \"upwind_frp_l0\": 24.9, \"top_upwind_districts\": [{\"district\"…",
+   "ms": 2
+  },
+  {
+   "step": 4,
+   "agent": "analyst",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Ludhiana"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"test_seasons\": [2024, 2025], \"mae\": 11.0, \"coverage_80_pct\": 87.7, \"mae_persistence\": 10.3, \"mae_no_fire\": 10.8, \"n_forecasts\": 154}",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "Rupnagar district limitations satellite fire detection",
+    "before": "2024-11-16",
+    "district": "Rupnagar"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K062\", \"title\": \"Rupnagar fire season 2022\", \"text\": \"# Rupnagar: fire detections, season 2022\\n\\nIn the 2022 season (Sep 15 to Nov 30), satellite fire …",
+   "ms": 7
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "Rupnagar",
+   "date": "2024-11-16",
+   "fire_count": 0,
+   "frp_sum_mw": 0.0,
+   "fire_count_7d_mean": 0.0,
+   "change_vs_7d_pct": null,
+   "rank_in_punjab": 14,
+   "punjab_total": 133,
+   "last_7_days": [
+    {
+     "date": "2024-11-10",
+     "count": 0
+    },
+    {
+     "date": "2024-11-11",
+     "count": 0
+    },
+    {
+     "date": "2024-11-12",
+     "count": 0
+    },
+    {
+     "date": "2024-11-13",
+     "count": 0
+    },
+    {
+     "date": "2024-11-14",
+     "count": 0
+    },
+    {
+     "date": "2024-11-15",
+     "count": 0
+    },
+    {
+     "date": "2024-11-16",
+     "count": 0
+    }
+   ],
+   "nearest_city": "Ludhiana",
+   "data_as_of": "2024-11-16"
+  },
+  "get_city_forecast": {
+   "city": "Ludhiana",
+   "issue_date": "2024-11-16",
+   "target_date": "2024-11-17",
+   "p10": 71.7,
+   "p50": 113.5,
+   "p90": 142.2,
+   "pm25_today": 152.9,
+   "persistence_p50": 152.9,
+   "band_width": 70.5,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Ludhiana",
+   "date": "2024-11-16",
+   "wind_dir_from_deg": 319.9,
+   "wind_dir_compass": "NW",
+   "wind_speed_kmh": 4.2,
+   "upwind_frp_l0": 24.9,
+   "top_upwind_districts": [
+    {
+     "district": "Ferozepur",
+     "share_pct": 37.7
+    },
+    {
+     "district": "Fazilka",
+     "share_pct": 35.9
+    },
+    {
+     "district": "Moga",
+     "share_pct": 8.1
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Ludhiana",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 11.0,
+   "coverage_80_pct": 87.7,
+   "mae_persistence": 10.3,
+   "mae_no_fire": 10.8,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K062",
+     "title": "Rupnagar fire season 2022",
+     "text": "# Rupnagar: fire detections, season 2022\n\nIn the 2022 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 256 fire detections in Rupnagar district, with a total fire radiative power of 1,191 MW. Among the 22 districts it ranked number 19 by detections.\n\nThe busiest day was 2022-10-24, with 27 detections.\n\nCompared with the previous season: no earlier season is available to compare with.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K084",
+     "title": "Rupnagar fire season 2023",
+     "text": "# Rupnagar: fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 56 fire detections in Rupnagar district, with a total fire radiative power of 221 MW. Among the 22 districts it ranked number 21 by detections.\n\nThe busiest day was 2023-11-05, with 9 detections.\n\nCompared with the previous season: -78% compared with 2022 (256 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K035",
+     "title": "Limitations of this project",
+     "text": "# What to keep in mind when reading any output\n\n**Fires.** Satellites detect heat anomalies. They do not know that a fire is stubble burning. They miss fires that burn between overpasses, fires under cloud, and small or short burns. A district's detection count is a lower bound. Fire dates are UTC dates that we treat as local days, so some night detections are filed one day early.\n\n**Air quality.** PM2.5 is modelled by CAMS on a coarse grid. It is not measured at street level and it is not CPCB monitor data. It already includes fire emissions as the model sees them.\n\n**Districts.** We use 22 district boundaries. Malerkotla, created in 2021, is not a separate district in our boundary data. Its area is counted in Sangrur."
+    },
+    {
+     "chunk_id": "K071",
+     "title": "Faridkot fire season 2023",
+     "text": "# Faridkot: fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 1,465 fire detections in Faridkot district, with a total fire radiative power of 10,924 MW. Among the 22 districts it ranked number 11 by detections.\n\nThe busiest day was 2023-11-15, with 152 detections.\n\nCompared with the previous season: -33% compared with 2022 (2,200 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-25T07:20:34+00:00",
+ "nearest_city": "Ludhiana",
+ "first_attempt_errors": [],
+ "llm_error": null,
+ "label": null
+}

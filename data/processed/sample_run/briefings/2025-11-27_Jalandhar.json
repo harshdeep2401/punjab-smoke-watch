@@ -1,0 +1,221 @@
+{
+ "district": "Jalandhar",
+ "date": "2025-11-27",
+ "mode": "agent",
+ "headline": "Jalandhar Reports Zero Fire Detections on November 27",
+ "briefing": "On 2025-11-27, Jalandhar recorded 0 fire detections with an FRP sum of 0.0 MW, ranking number 9 in Punjab out of a punjab_total of 13 detections [K099]. The nearest monitored city is Ludhiana, where today's PM2.5 was 107.4. The next-day forecast p50 is 100.7, with an 80% uncertainty interval ranging from a p10 of 73.8 to a p90 of 127.0. Winds were blowing from the NNW at 2.4 km/h, with an upwind pressure score of 14.6, led by Outside Punjab at 78.5%. Satellite fire detections are a lower bound and can miss fires due to cloud cover, overpass timing, or smaller burns [K099]. Historical records show Jalandhar had 156 detections in the 2024 season [K099]. Model evaluation on test seasons shows an 80% interval coverage of 87.7%.",
+ "citations": [
+  "K099"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K099",
+   "title": "Jalandhar fire season 2024",
+   "doc_type": "season_summary"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   27.0,
+   2025.0,
+   11.0,
+   27.0,
+   0.0,
+   0.0,
+   9.0,
+   13.0,
+   107.4,
+   100.7,
+   80.0,
+   73.8,
+   127.0,
+   2.4,
+   14.6,
+   78.5,
+   156.0,
+   2024.0,
+   80.0,
+   87.7
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "analyst",
+   "tool": "get_district_snapshot",
+   "args": {
+    "date": "2025-11-27",
+    "district": "Jalandhar"
+   },
+   "result_summary": "{\"district\": \"Jalandhar\", \"date\": \"2025-11-27\", \"fire_count\": 0, \"frp_sum_mw\": 0.0, \"fire_count_7d_mean\": 0.4, \"change_vs_7d_pct\": -100.0, \"rank_in_punjab\": 9, \"punjab_total\": 13,…",
+   "ms": 5
+  },
+  {
+   "step": 2,
+   "agent": "analyst",
+   "tool": "get_city_forecast",
+   "args": {
+    "date": "2025-11-27",
+    "city": "Ludhiana"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"issue_date\": \"2025-11-27\", \"target_date\": \"2025-11-28\", \"p10\": 73.8, \"p50\": 100.7, \"p90\": 127.0, \"pm25_today\": 107.4, \"persistence_p50\": 107.4, \"band_width\":…",
+   "ms": 3
+  },
+  {
+   "step": 3,
+   "agent": "analyst",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "city": "Ludhiana",
+    "date": "2025-11-27"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"date\": \"2025-11-27\", \"wind_dir_from_deg\": 335.3, \"wind_dir_compass\": \"NNW\", \"wind_speed_kmh\": 2.4, \"upwind_frp_l0\": 14.6, \"top_upwind_districts\": [{\"district…",
+   "ms": 4
+  },
+  {
+   "step": 4,
+   "agent": "analyst",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Ludhiana"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"test_seasons\": [2024, 2025], \"mae\": 11.0, \"coverage_80_pct\": 87.7, \"mae_persistence\": 10.3, \"mae_no_fire\": 10.8, \"n_forecasts\": 154}",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "k": 4,
+    "query": "satellite fire detection limitations Jalandhar 2024 season",
+    "before": "2025-11-27",
+    "district": "Jalandhar"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K099\", \"title\": \"Jalandhar fire season 2024\", \"text\": \"# Jalandhar: fire detections, season 2024\\n\\nIn the 2024 season (Sep 15 to Nov 30), satellite fir…",
+   "ms": 13
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "Jalandhar",
+   "date": "2025-11-27",
+   "fire_count": 0,
+   "frp_sum_mw": 0.0,
+   "fire_count_7d_mean": 0.4,
+   "change_vs_7d_pct": -100.0,
+   "rank_in_punjab": 9,
+   "punjab_total": 13,
+   "last_7_days": [
+    {
+     "date": "2025-11-21",
+     "count": 0
+    },
+    {
+     "date": "2025-11-22",
+     "count": 0
+    },
+    {
+     "date": "2025-11-23",
+     "count": 0
+    },
+    {
+     "date": "2025-11-24",
+     "count": 2
+    },
+    {
+     "date": "2025-11-25",
+     "count": 0
+    },
+    {
+     "date": "2025-11-26",
+     "count": 1
+    },
+    {
+     "date": "2025-11-27",
+     "count": 0
+    }
+   ],
+   "nearest_city": "Ludhiana",
+   "data_as_of": "2025-11-27"
+  },
+  "get_city_forecast": {
+   "city": "Ludhiana",
+   "issue_date": "2025-11-27",
+   "target_date": "2025-11-28",
+   "p10": 73.8,
+   "p50": 100.7,
+   "p90": 127.0,
+   "pm25_today": 107.4,
+   "persistence_p50": 107.4,
+   "band_width": 53.2,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Ludhiana",
+   "date": "2025-11-27",
+   "wind_dir_from_deg": 335.3,
+   "wind_dir_compass": "NNW",
+   "wind_speed_kmh": 2.4,
+   "upwind_frp_l0": 14.6,
+   "top_upwind_districts": [
+    {
+     "district": "Outside Punjab",
+     "share_pct": 78.5
+    },
+    {
+     "district": "Kapurthala",
+     "share_pct": 10.3
+    },
+    {
+     "district": "Hoshiarpur",
+     "share_pct": 9.2
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Ludhiana",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 11.0,
+   "coverage_80_pct": 87.7,
+   "mae_persistence": 10.3,
+   "mae_no_fire": 10.8,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K099",
+     "title": "Jalandhar fire season 2024",
+     "text": "# Jalandhar: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 156 fire detections in Jalandhar district, with a total fire radiative power of 694 MW. Among the 22 districts it ranked number 17 by detections.\n\nThe busiest day was 2024-11-18, with 27 detections.\n\nCompared with the previous season: -83% compared with 2023 (912 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K055",
+     "title": "Jalandhar fire season 2022",
+     "text": "# Jalandhar: fire detections, season 2022\n\nIn the 2022 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 1,249 fire detections in Jalandhar district, with a total fire radiative power of 7,825 MW. Among the 22 districts it ranked number 14 by detections.\n\nThe busiest day was 2022-11-02, with 93 detections.\n\nCompared with the previous season: no earlier season is available to compare with.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K077",
+     "title": "Jalandhar fire season 2023",
+     "text": "# Jalandhar: fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 912 fire detections in Jalandhar district, with a total fire radiative power of 4,969 MW. Among the 22 districts it ranked number 14 by detections.\n\nThe busiest day was 2023-11-05, with 128 detections.\n\nCompared with the previous season: -27% compared with 2022 (1,249 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K093",
+     "title": "Faridkot fire season 2024",
+     "text": "# Faridkot: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 386 fire detections in Faridkot district, with a total fire radiative power of 2,352 MW. Among the 22 districts it ranked number 11 by detections.\n\nThe busiest day was 2024-11-18, with 64 detections.\n\nCompared with the previous season: -74% compared with 2023 (1,465 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-25T07:21:07+00:00",
+ "nearest_city": "Ludhiana",
+ "first_attempt_errors": [],
+ "llm_error": null,
+ "label": null
+}

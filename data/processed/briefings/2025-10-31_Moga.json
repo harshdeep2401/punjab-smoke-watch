@@ -1,0 +1,250 @@
+{
+ "district": "Moga",
+ "date": "2025-10-31",
+ "mode": "agent",
+ "headline": "Moga Stubble Fire Update and Bathinda Air Quality Forecast",
+ "briefing": "On October 31, 2025, Moga recorded 11 fire detections with a total fire radiative power of 54.5 MW. This reflects a 285.0% change compared to its 7-day mean of 2.9, placing Moga rank 8 in Punjab out of 273 total detections across the state. In the 2024 season, Moga logged 562 detections [K103]. Satellite counts serve as a lower bound since overpasses miss brief fires [K026]. At the nearest monitored city, Bathinda, today's PM2.5 level is 105.6. The next-day PM2.5 forecast predicts a median of 102.3, with an 80% uncertainty band spanning from a p10 of 61.8 to a p90 of 131.2. Wind at Bathinda blows from the NNW (331.0 degrees) at 6.8 km/h. Upwind fire pressure reaches 715.8, with Outside Punjab contributing 64.1%, Tarn Taran 13.0%, and Ferozepur 5.9%. Upwind fires provide regional context rather than proof of direct PM2.5 impact.",
+ "citations": [
+  "K103",
+  "K026"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K103",
+   "title": "Moga fire season 2024",
+   "doc_type": "season_summary"
+  },
+  {
+   "chunk_id": "K026",
+   "title": "How satellite fire detection (VIIRS, NASA FIRMS) works and what it misses",
+   "doc_type": "curated"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   31.0,
+   2025.0,
+   11.0,
+   54.5,
+   285.0,
+   7.0,
+   2.9,
+   8.0,
+   273.0,
+   2024.0,
+   562.0,
+   105.6,
+   102.3,
+   80.0,
+   61.8,
+   131.2,
+   331.0,
+   6.8,
+   715.8,
+   64.1,
+   13.0,
+   5.9
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "analyst",
+   "tool": "get_district_snapshot",
+   "args": {
+    "date": "2025-10-31",
+    "district": "Moga"
+   },
+   "result_summary": "{\"district\": \"Moga\", \"date\": \"2025-10-31\", \"fire_count\": 11, \"frp_sum_mw\": 54.5, \"fire_count_7d_mean\": 2.9, \"change_vs_7d_pct\": 285.0, \"rank_in_punjab\": 8, \"punjab_total\": 273, \"l…",
+   "ms": 5
+  },
+  {
+   "step": 2,
+   "agent": "analyst",
+   "tool": "get_city_forecast",
+   "args": {
+    "date": "2025-10-31",
+    "city": "Bathinda"
+   },
+   "result_summary": "{\"city\": \"Bathinda\", \"issue_date\": \"2025-10-31\", \"target_date\": \"2025-11-01\", \"p10\": 61.8, \"p50\": 102.3, \"p90\": 131.2, \"pm25_today\": 105.6, \"persistence_p50\": 105.6, \"band_width\":…",
+   "ms": 5
+  },
+  {
+   "step": 3,
+   "agent": "analyst",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "date": "2025-10-31",
+    "city": "Bathinda"
+   },
+   "result_summary": "{\"city\": \"Bathinda\", \"date\": \"2025-10-31\", \"wind_dir_from_deg\": 331.0, \"wind_dir_compass\": \"NNW\", \"wind_speed_kmh\": 6.8, \"upwind_frp_l0\": 715.8, \"top_upwind_districts\": [{\"distric…",
+   "ms": 17
+  },
+  {
+   "step": 4,
+   "agent": "analyst",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Bathinda"
+   },
+   "result_summary": "{\"city\": \"Bathinda\", \"test_seasons\": [2024, 2025], \"mae\": 13.1, \"coverage_80_pct\": 83.8, \"mae_persistence\": 12.0, \"mae_no_fire\": 13.5, \"n_forecasts\": 154}",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "Moga 2024 season limitations satellite fire detection",
+    "before": "2025-10-31",
+    "district": "Moga"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K103\", \"title\": \"Moga fire season 2024\", \"text\": \"# Moga: fire detections, season 2024\\n\\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detectio…",
+   "ms": 62
+  },
+  {
+   "step": 6,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "limitations satellite fire detection VIIRS",
+    "before": "2025-10-31",
+    "district": "Moga"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K024\", \"title\": \"How satellite fire detection (VIIRS, NASA FIRMS) works and what it misses\", \"text\": \"# How satellite fire detection works\\n\\nNASA FIRMS…",
+   "ms": 14
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "Moga",
+   "date": "2025-10-31",
+   "fire_count": 11,
+   "frp_sum_mw": 54.5,
+   "fire_count_7d_mean": 2.9,
+   "change_vs_7d_pct": 285.0,
+   "rank_in_punjab": 8,
+   "punjab_total": 273,
+   "last_7_days": [
+    {
+     "date": "2025-10-25",
+     "count": 1
+    },
+    {
+     "date": "2025-10-26",
+     "count": 2
+    },
+    {
+     "date": "2025-10-27",
+     "count": 4
+    },
+    {
+     "date": "2025-10-28",
+     "count": 0
+    },
+    {
+     "date": "2025-10-29",
+     "count": 0
+    },
+    {
+     "date": "2025-10-30",
+     "count": 2
+    },
+    {
+     "date": "2025-10-31",
+     "count": 11
+    }
+   ],
+   "nearest_city": "Bathinda",
+   "data_as_of": "2025-10-31"
+  },
+  "get_city_forecast": {
+   "city": "Bathinda",
+   "issue_date": "2025-10-31",
+   "target_date": "2025-11-01",
+   "p10": 61.8,
+   "p50": 102.3,
+   "p90": 131.2,
+   "pm25_today": 105.6,
+   "persistence_p50": 105.6,
+   "band_width": 69.4,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Bathinda",
+   "date": "2025-10-31",
+   "wind_dir_from_deg": 331.0,
+   "wind_dir_compass": "NNW",
+   "wind_speed_kmh": 6.8,
+   "upwind_frp_l0": 715.8,
+   "top_upwind_districts": [
+    {
+     "district": "Outside Punjab",
+     "share_pct": 64.1
+    },
+    {
+     "district": "Tarn Taran",
+     "share_pct": 13.0
+    },
+    {
+     "district": "Ferozepur",
+     "share_pct": 5.9
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Bathinda",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 13.1,
+   "coverage_80_pct": 83.8,
+   "mae_persistence": 12.0,
+   "mae_no_fire": 13.5,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K103",
+     "title": "Moga fire season 2024",
+     "text": "# Moga: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 562 fire detections in Moga district, with a total fire radiative power of 2,980 MW. Among the 22 districts it ranked number 6 by detections.\n\nThe busiest day was 2024-11-18, with 119 detections.\n\nCompared with the previous season: -75% compared with 2023 (2,286 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K059",
+     "title": "Moga fire season 2022",
+     "text": "# Moga: fire detections, season 2022\n\nIn the 2022 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 3,153 fire detections in Moga district, with a total fire radiative power of 22,364 MW. Among the 22 districts it ranked number 5 by detections.\n\nThe busiest day was 2022-11-11, with 358 detections.\n\nCompared with the previous season: no earlier season is available to compare with.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K081",
+     "title": "Moga fire season 2023",
+     "text": "# Moga: fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 2,286 fire detections in Moga district, with a total fire radiative power of 14,707 MW. Among the 22 districts it ranked number 4 by detections.\n\nThe busiest day was 2023-11-16, with 254 detections.\n\nCompared with the previous season: -27% compared with 2022 (3,153 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K102",
+     "title": "Mansa fire season 2024",
+     "text": "# Mansa: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 479 fire detections in Mansa district, with a total fire radiative power of 2,633 MW. Among the 22 districts it ranked number 9 by detections.\n\nThe busiest day was 2024-11-08, with 51 detections.\n\nCompared with the previous season: -76% compared with 2023 (2,013 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K024",
+     "title": "How satellite fire detection (VIIRS, NASA FIRMS) works and what it misses",
+     "text": "# How satellite fire detection works\n\nNASA FIRMS distributes active fire detections from the VIIRS instrument on the Suomi NPP (S-NPP) satellite. This project uses only S-NPP, so every year is seen by the same sensor. The VIIRS active fire product has a pixel size of about 375 m. Each detection is a pixel that looks hotter than its surroundings in the thermal infrared bands. Each record has a date, a time (UTC), a position, a fire radiative power (FRP, in megawatts) and a confidence class of low, nominal or high. We drop the low-confidence records."
+    },
+    {
+     "chunk_id": "K026",
+     "title": "How satellite fire detection (VIIRS, NASA FIRMS) works and what it misses",
+     "text": "# Why fires are missed\n\n- **Overpass timing.** S-NPP passes over a place about twice a day, at roughly 01:30 and 13:30 local solar time. A fire that starts and burns out between two passes is never seen.\n- **Cloud and thick smoke.** The sensor cannot see through thick cloud, so fires under it are missed.\n- **Small or weak fires.** Small, short or low-intensity burns can fall below the detection threshold of a 375 m pixel.\n\nSo a detection count is a lower bound that moves with the weather and the overpass timing. It is not a census of fires."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash",
+ "generated_at": "2026-11-25T07:04:06+00:00",
+ "nearest_city": "Bathinda",
+ "first_attempt_errors": [],
+ "llm_error": null,
+ "label": null
+}

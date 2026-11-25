@@ -1,0 +1,107 @@
+{
+ "n": 12,
+ "verified_ok": 12,
+ "modes": {
+  "agent": 12
+ },
+ "agent_or_revised": 12,
+ "model": "gemini-3.5-flash-lite",
+ "items": [
+  {
+   "date": "2024-11-01",
+   "district": "Sangrur",
+   "mode": "agent",
+   "ok": true,
+   "first_attempt_errors": [],
+   "llm_error": null
+  },
+  {
+   "date": "2024-11-08",
+   "district": "SBS Nagar (Nawanshahr)",
+   "mode": "agent",
+   "ok": true,
+   "first_attempt_errors": [],
+   "llm_error": null
+  },
+  {
+   "date": "2024-11-09",
+   "district": "Ludhiana",
+   "mode": "agent",
+   "ok": true,
+   "first_attempt_errors": [],
+   "llm_error": null
+  },
+  {
+   "date": "2024-11-10",
+   "district": "Ludhiana",
+   "mode": "agent",
+   "ok": true,
+   "first_attempt_errors": [],
+   "llm_error": null
+  },
+  {
+   "date": "2024-11-14",
+   "district": "SAS Nagar (Mohali)",
+   "mode": "agent",
+   "ok": true,
+   "first_attempt_errors": [],
+   "llm_error": null
+  },
+  {
+   "date": "2024-11-15",
+   "district": "Tarn Taran",
+   "mode": "agent",
+   "ok": true,
+   "first_attempt_errors": [],
+   "llm_error": null
+  },
+  {
+   "date": "2024-11-16",
+   "district": "Rupnagar",
+   "mode": "agent",
+   "ok": true,
+   "first_attempt_errors": [],
+   "llm_error": null
+  },
+  {
+   "date": "2025-11-21",
+   "district": "SBS Nagar (Nawanshahr)",
+   "mode": "agent",
+   "ok": true,
+   "first_attempt_errors": [],
+   "llm_error": null
+  },
+  {
+   "date": "2025-11-23",
+   "district": "Moga",
+   "mode": "agent",
+   "ok": true,
+   "first_attempt_errors": [],
+   "llm_error": null
+  },
+  {
+   "date": "2025-11-27",
+   "district": "Gurdaspur",
+   "mode": "agent",
+   "ok": true,
+   "first_attempt_errors": [],
+   "llm_error": null
+  },
+  {
+   "date": "2025-11-27",
+   "district": "Jalandhar",
+   "mode": "agent",
+   "ok": true,
+   "first_attempt_errors": [],
+   "llm_error": null
+  },
+  {
+   "date": "2025-11-27",
+   "district": "Ludhiana",
+   "mode": "agent",
+   "ok": true,
+   "first_attempt_errors": [],
+   "llm_error": null
+  }
+ ]
+}

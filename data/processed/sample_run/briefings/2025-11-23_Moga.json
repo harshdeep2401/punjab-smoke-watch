@@ -1,0 +1,214 @@
+{
+ "district": "Moga",
+ "date": "2025-11-23",
+ "mode": "agent",
+ "headline": "Moga Records Zero Fire Detections as Bathinda Air Quality Forecasts 129.0 ug/m3",
+ "briefing": "On 2025-11-23, satellite fire detection recorded 0 fire detections in Moga district, with a total fire radiative power of 0.0 MW [K103]. Across Punjab, a total of 6 detections were logged. For the nearest monitored city, Bathinda, the PM2.5 level today is 152.6 ug/m3. The next-day forecast predicts a p50 of 129.0 ug/m3, with an 80% uncertainty band ranging from a p10 of 98.5 ug/m3 to a p90 of 173.9 ug/m3. Winds at Bathinda blow from the N direction at 4.0 km/h, with an upwind fire pressure score of 9.6. Stubble-fire detections represent a lower bound due to missed fires, cloud cover, and overpass timing [K103]. Model reliability evaluations show historical forecast errors, and local conditions can vary significantly.",
+ "citations": [
+  "K103"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K103",
+   "title": "Moga fire season 2024",
+   "doc_type": "season_summary"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   129.0,
+   2025.0,
+   11.0,
+   23.0,
+   0.0,
+   0.0,
+   6.0,
+   152.6,
+   129.0,
+   80.0,
+   98.5,
+   173.9,
+   4.0,
+   9.6
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "analyst",
+   "tool": "get_district_snapshot",
+   "args": {
+    "date": "2025-11-23",
+    "district": "Moga"
+   },
+   "result_summary": "{\"district\": \"Moga\", \"date\": \"2025-11-23\", \"fire_count\": 0, \"frp_sum_mw\": 0.0, \"fire_count_7d_mean\": 0.6, \"change_vs_7d_pct\": -100.0, \"rank_in_punjab\": 4, \"punjab_total\": 6, \"last…",
+   "ms": 6
+  },
+  {
+   "step": 2,
+   "agent": "analyst",
+   "tool": "get_city_forecast",
+   "args": {
+    "city": "Bathinda",
+    "date": "2025-11-23"
+   },
+   "result_summary": "{\"city\": \"Bathinda\", \"issue_date\": \"2025-11-23\", \"target_date\": \"2025-11-24\", \"p10\": 98.5, \"p50\": 129.0, \"p90\": 173.9, \"pm25_today\": 152.6, \"persistence_p50\": 152.6, \"band_width\":…",
+   "ms": 4
+  },
+  {
+   "step": 3,
+   "agent": "analyst",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "city": "Bathinda",
+    "date": "2025-11-23"
+   },
+   "result_summary": "{\"city\": \"Bathinda\", \"date\": \"2025-11-23\", \"wind_dir_from_deg\": 359.3, \"wind_dir_compass\": \"N\", \"wind_speed_kmh\": 4.0, \"upwind_frp_l0\": 9.6, \"top_upwind_districts\": [{\"district\": …",
+   "ms": 5
+  },
+  {
+   "step": 4,
+   "agent": "analyst",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Bathinda"
+   },
+   "result_summary": "{\"city\": \"Bathinda\", \"test_seasons\": [2024, 2025], \"mae\": 13.1, \"coverage_80_pct\": 83.8, \"mae_persistence\": 12.0, \"mae_no_fire\": 13.5, \"n_forecasts\": 154}",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "Moga 2024 season limitations satellite fire detection",
+    "before": "2025-11-23",
+    "district": "Moga"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K103\", \"title\": \"Moga fire season 2024\", \"text\": \"# Moga: fire detections, season 2024\\n\\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detectio…",
+   "ms": 11
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "Moga",
+   "date": "2025-11-23",
+   "fire_count": 0,
+   "frp_sum_mw": 0.0,
+   "fire_count_7d_mean": 0.6,
+   "change_vs_7d_pct": -100.0,
+   "rank_in_punjab": 4,
+   "punjab_total": 6,
+   "last_7_days": [
+    {
+     "date": "2025-11-17",
+     "count": 0
+    },
+    {
+     "date": "2025-11-18",
+     "count": 1
+    },
+    {
+     "date": "2025-11-19",
+     "count": 0
+    },
+    {
+     "date": "2025-11-20",
+     "count": 1
+    },
+    {
+     "date": "2025-11-21",
+     "count": 2
+    },
+    {
+     "date": "2025-11-22",
+     "count": 0
+    },
+    {
+     "date": "2025-11-23",
+     "count": 0
+    }
+   ],
+   "nearest_city": "Bathinda",
+   "data_as_of": "2025-11-23"
+  },
+  "get_city_forecast": {
+   "city": "Bathinda",
+   "issue_date": "2025-11-23",
+   "target_date": "2025-11-24",
+   "p10": 98.5,
+   "p50": 129.0,
+   "p90": 173.9,
+   "pm25_today": 152.6,
+   "persistence_p50": 152.6,
+   "band_width": 75.4,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Bathinda",
+   "date": "2025-11-23",
+   "wind_dir_from_deg": 359.3,
+   "wind_dir_compass": "N",
+   "wind_speed_kmh": 4.0,
+   "upwind_frp_l0": 9.6,
+   "top_upwind_districts": [
+    {
+     "district": "Fazilka",
+     "share_pct": 39.4
+    },
+    {
+     "district": "Outside Punjab",
+     "share_pct": 32.4
+    },
+    {
+     "district": "Sri Muktsar Sahib",
+     "share_pct": 14.7
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Bathinda",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 13.1,
+   "coverage_80_pct": 83.8,
+   "mae_persistence": 12.0,
+   "mae_no_fire": 13.5,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K103",
+     "title": "Moga fire season 2024",
+     "text": "# Moga: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 562 fire detections in Moga district, with a total fire radiative power of 2,980 MW. Among the 22 districts it ranked number 6 by detections.\n\nThe busiest day was 2024-11-18, with 119 detections.\n\nCompared with the previous season: -75% compared with 2023 (2,286 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K059",
+     "title": "Moga fire season 2022",
+     "text": "# Moga: fire detections, season 2022\n\nIn the 2022 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 3,153 fire detections in Moga district, with a total fire radiative power of 22,364 MW. Among the 22 districts it ranked number 5 by detections.\n\nThe busiest day was 2022-11-11, with 358 detections.\n\nCompared with the previous season: no earlier season is available to compare with.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K081",
+     "title": "Moga fire season 2023",
+     "text": "# Moga: fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 2,286 fire detections in Moga district, with a total fire radiative power of 14,707 MW. Among the 22 districts it ranked number 4 by detections.\n\nThe busiest day was 2023-11-16, with 254 detections.\n\nCompared with the previous season: -27% compared with 2022 (3,153 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K102",
+     "title": "Mansa fire season 2024",
+     "text": "# Mansa: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 479 fire detections in Mansa district, with a total fire radiative power of 2,633 MW. Among the 22 districts it ranked number 9 by detections.\n\nThe busiest day was 2024-11-08, with 51 detections.\n\nCompared with the previous season: -76% compared with 2023 (2,013 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-25T07:20:50+00:00",
+ "nearest_city": "Bathinda",
+ "first_attempt_errors": [],
+ "llm_error": null,
+ "label": null
+}
