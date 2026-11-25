@@ -1,0 +1,35 @@
+[project]
+name = "psw"
+version = "0.1.0"
+description = "Punjab Smoke Watch: agentic, RAG-grounded stubble-fire and air-quality intelligence"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pandas",
+    "pyarrow",
+    "geopandas",
+    "shapely",
+    "requests",
+    "python-dotenv",
+    "lightgbm",
+    "scikit-learn",
+    "fastembed",
+    "numpy",
+    "openai",
+    "streamlit",
+    "pydeck",
+    "plotly",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/psw"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

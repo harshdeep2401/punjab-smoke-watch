@@ -3,10 +3,10 @@
 Read `AGENTS.md` first. Run the phases **in order**. Each phase has tasks, interfaces, acceptance criteria and a review checklist for the Reviewer. Time budget: about 10 hours in total.
 
 **Kick-off prompt for each phase (paste into a new Sonnet chat):**
-> Read AGENTS.md, docs/PROGRESS.md and the "Phase N" section of docs/PLAN.md. Implement Phase N exactly. Run the tests, commit in small steps, then update docs/PROGRESS.md (tick tasks, note deviations, and list anything the user must do).
+> Read AGENTS.md, docs/PROGRESS.md and the "Phase N" section of docs/PLAN.md. Implement Phase N exactly. Run the tests. Use read-only git commands only (status, diff, log): after each green step, give me a commit message and the files to stage, and wait for me to commit. At the end, update docs/PROGRESS.md (tick tasks, note deviations, and list anything I must do).
 
 **Review prompt (GPT 6 Luna):**
-> Read AGENTS.md and the "Phase N → Review checklist" in docs/PLAN.md. Review the diff for Phase N (`git log` / `git diff <phase-start>..HEAD`). Report only concrete problems, each with file:line. Don't rewrite the code.
+> Read AGENTS.md and the "Phase N → Review checklist" in docs/PLAN.md. Review the diff for Phase N (`git log` / `git diff <phase-start>..HEAD`; read-only git only). Report only concrete problems, each with file:line. Don't rewrite the code.
 
 | Phase | Goal | Est. |
 |---|---|---|
@@ -56,7 +56,7 @@ Read `AGENTS.md` first. Run the phases **in order**. Each phase has tasks, inter
 
 **Acceptance:** `uv run pytest -q` runs (zero tests is fine), `uv run python -c "import psw.config, lightgbm, fastembed, geopandas"` works, feasibility.md exists, and the GeoJSON is committed.
 
-**Review checklist:** `.env` is not tracked (`git ls-files | grep .env` shows only `.env.example`); no key appears in any committed file or printed log; feasibility.md states the real ranges, not assumptions.
+**Review checklist:** `.env` is not tracked (`git ls-files | grep .env` should show only `.env.example`); no key appears in any committed file or printed log; feasibility.md states the real ranges, not assumptions.
 
 ---
 
@@ -264,13 +264,47 @@ def scan(date) -> list[dict]   # every district: fire_count, 7d mean, ratio, nea
 ```
 Thresholds go in config.py, and the reasons are human-readable strings shown in the app.
 
-### 5.4 `src/psw/agents/analyst.py`: the LLM tool-calling loop
+### 5.4a `src/psw/agents/runtime.py`: a reusable agent loop (write this first)
+Every LLM agent (the Analyst now, and the stretch Planner, Critic and Comparison agents later) is **a prompt plus a tool list run through this one function**. Don't write a second loop.
+```python
+@dataclass
+class Tool:
+    name: str
+    description: str
+    parameters: dict              # JSON schema (OpenAI function format)
+    fn: Callable[..., dict]       # returns a small JSON-serialisable dict
+
+@dataclass
+class AgentSpec:
+    name: str                     # "analyst", "critic", ...
+    system_prompt: str
+    tools: list[Tool]
+    required_tools: list[str] = field(default_factory=list)   # nudged if missing
+    max_turns: int = 8
+    json_output: bool = True      # final answer must parse as JSON
+
+@dataclass
+class AgentResult:
+    output: dict | str            # parsed final answer
+    trace: list[dict]             # {step, agent, tool, args, result_summary, ms}
+    tool_results: list[dict]      # full results → feeds Verifier evidence
+    turns: int
+    error: str | None
+
+def run_agent(spec: AgentSpec, user_message: str, llm: LLM,
+              injected_args: dict | None = None) -> AgentResult
+```
+- `injected_args` are merged into the tool call arguments and override any value the LLM sent (e.g. `{"search_knowledge": {"before": date, "district": d}}`). This way the LLM can never control the leakage filters.
+- It handles: dispatching tool calls, catching tool exceptions (returned to the LLM as `{"error": ...}`), the required-tools nudge, tolerant JSON parsing with one "Return only the JSON" retry, the turn limit, and the trace.
+- `run_agent` must not know about districts or PM2.5. Domain logic stays in the tools and prompts.
+- Tests (`tests/test_runtime.py`, FakeLLM): tools are dispatched with the injected args overriding, the nudge fires for a missing required tool, the turn limit stops the loop, bad JSON gets one retry, and a tool exception doesn't crash the loop.
+
+### 5.4b `src/psw/agents/analyst.py`: the Analyst, an `AgentSpec` run through `run_agent`
+- `ANALYST = AgentSpec(name="analyst", system_prompt=..., tools=[the 5 tools], required_tools=[the 4 below])`, plus `def analyse(district, date, llm) -> AgentResult`, a thin wrapper that builds the user message and the injected args.
 - The system prompt (store it as a constant and show it in the app's "How it works" expander) says:
   - "You are an environmental analyst writing a district briefing for officials and the public. Use the tools to gather facts. You MUST call get_district_snapshot, get_city_forecast, get_wind_and_upwind and search_knowledge at least once. Use ONLY numbers that appear in tool results. Never calculate new numbers. Cite knowledge chunks as [K###] after the sentence they support. No health or medical advice. Never name or identify individual farmers or fields. 120–160 words. Plain language. Mention the uncertainty band and one limitation."
   - Final output is JSON: `{"headline": str (≤12 words), "briefing": str, "citations": ["K012", ...]}`
-- Loop: at most **8** LLM turns. Execute each tool call and append the result as a `tool` message. Record every step in a `trace` list: `{step, tool, args, result_summary, ms}`.
-- If the model returns a final message without all 4 required tools, append "You have not called X yet." and continue.
-- Parse the final JSON tolerantly (strip code fences). If parsing fails once, ask again with "Return only the JSON."
+- `run_agent` handles the loop, the nudge, JSON parsing and the trace.
 
 ### 5.5 `src/psw/agents/verifier.py` (deterministic)
 ```python
@@ -307,7 +341,7 @@ def run_daily_watch(date, top_n=3, llm=None) -> dict   # sentinel.scan → run_b
 
 **Acceptance:** `pipeline brief --date <a peak day in the latest test season>` produces a watch file plus 3 briefings using the real LLM. Run 12 sampled district-days (`pipeline brief --sample 12`) and report the pass rate and mode counts in PROGRESS.md. The definition of done needs ≥10 to pass, with agent or template mode counted honestly.
 
-**Review checklist:** the LLM never receives the raw parquet, only tool outputs; `before` and `district` for RAG are injected and not LLM-controlled; the loop is bounded; API errors fall back cleanly; there are no `eval` or exec calls on model output; the verifier tolerance can't be gamed (e.g. it allows every integer below 100).
+**Review checklist:** `run_agent` is the only LLM loop in the codebase and contains no domain logic; the LLM never receives the raw parquet, only tool outputs; `before` and `district` for RAG are injected and not LLM-controlled; the loop is bounded; API errors fall back cleanly; there are no `eval` or exec calls on model output; the verifier tolerance can't be gamed (e.g. it allows every integer below 100).
 
 ---
 
@@ -339,10 +373,10 @@ def run_daily_watch(date, top_n=3, llm=None) -> dict   # sentinel.scan → run_b
 
 ## Phase 7: Demo cache, README, rehearsal
 
-1. Pick **3 demo dates** in the latest test season (the peak fire day, a moderate day and an early-season day). Run `pipeline demo-cache`, which does `run_daily_watch` for each and also briefs Ludhiana's district and Sangrur on the peak day. Commit `data/processed/briefings/` and `watch/`.
+1. Pick **3 demo dates** in the latest test season (the peak fire day, a moderate day and an early-season day). Run `pipeline demo-cache`, which does `run_daily_watch` for each and also briefs Ludhiana's district and Sangrur on the peak day. Ask the user to commit `data/processed/briefings/` and `watch/`.
 2. Set the app defaults to the peak demo date and Ludhiana.
 3. README.md: the problem, the solution, an architecture diagram (ASCII is fine, include the agent loop), a quickstart (clean clone → `uv sync` → `streamlit run`), how to regenerate the data, the agent design (Sentinel → Analyst ↔ tools/RAG → Verifier → template fallback), the results table (copied from metrics.json by a script, or written by hand from it), data sources with attribution, limitations, and "what is ours".
-4. Check from a clean clone: `git clone . /tmp/psw-check && cd /tmp/psw-check && uv sync && uv run streamlit run src/psw/app/main.py` with no `.env`.
+4. Give the user these commands to check a clean clone (the user runs them): `git clone . /tmp/psw-check && cd /tmp/psw-check && uv sync && uv run streamlit run src/psw/app/main.py` with no `.env`.
 5. Take screenshots of each page into `docs/screenshots/`.
 6. Update the demo script in the brief (§12): step 5 now shows the Sentinel watchlist → open the briefing → walk through the agent trace → the sources → the verified badge.
 
@@ -352,7 +386,7 @@ def run_daily_watch(date, top_n=3, llm=None) -> dict   # sentinel.scan → run_b
 - [ ] ≥10 sampled district-day briefings pass the verifier, with the agent/template split reported.
 - [ ] RAG retrieval respects `as_of`, as shown by a test.
 - [ ] The README credits every source and lists the limitations.
-- [ ] No secrets in git (`git log -p | grep -i "key="` is clean).
+- [ ] No secrets in git (`git log -p | grep -i "key="` should print nothing).
 
 ---
 
@@ -361,6 +395,13 @@ def run_daily_watch(date, top_n=3, llm=None) -> dict   # sentinel.scan → run_b
 2. **Delhi** as a 5th city (it's a target only; keep the bbox as it is).
 3. **Detection-gap panel:** hand-entered `data/official_counts.csv` (`date,district,count`) vs FIRMS counts, with an indicative ratio range and a strong caveat. Add `official_counts` as an extra fact for the agent when it's present.
 4. CPCB ground sanity check via data.gov.in.
+
+### Stretch: deeper RAG and agents (no framework, all built on `run_agent`)
+Do these in order. Each must keep the demo working: cached briefings still render, and the Verifier still runs last on any text shown as verified.
+5. **Hybrid retrieval:** add `rank_bm25` keyword search next to the embedding search and merge with reciprocal rank fusion (`score = Σ 1/(60 + rank)`). Add `tests/fixtures/retrieval_eval.json`, about 15 (query → expected doc_id) pairs. Report hit@3 for embeddings alone, BM25 alone and hybrid on the Evidence page.
+6. **Planner step:** an `AgentSpec(name="planner", tools=[], json_output=True)` that returns `{"steps": [...], "questions_to_answer": [...]}` for the district and date. Its plan is passed into the Analyst's user message and shown at the top of the Agent trace tab.
+7. **Critic agent:** an `AgentSpec(name="critic", tools=[])`. Its input is the verified briefing; its output is `{"ok": bool, "issues": [...], "suggested_briefing": str}`, covering clarity, tone and missing caveats. If it suggests a rewrite, **run the Verifier again on the rewrite**, and use it only if it passes. Otherwise keep the original. Show the critic's notes in the trace.
+8. **Comparison agent:** `AgentSpec(name="comparer")` with tools `get_district_snapshot`, `search_knowledge` and a new `compare_districts(a, b, date)` / `same_week_last_season(district, date)` (pure Python, all the maths in the tool). It writes a short comparison card on the Briefing page. Same Verifier and same template fallback.
 
 ## Risks and fallbacks
 | Risk | Fallback |

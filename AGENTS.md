@@ -27,7 +27,7 @@ An **agentic, RAG-grounded stubble-fire and air-quality intelligence pipeline** 
 | Role | Model | Responsibilities |
 |---|---|---|
 | Architect | Claude Opus | Architecture, PLAN.md, hard technical decisions, debugging dead ends. Changes to interfaces go through Opus. |
-| Implementer | Claude Sonnet | Executes PLAN.md one phase at a time: code, tests, commits, updates PROGRESS.md. |
+| Implementer | Claude Sonnet | Executes PLAN.md one phase at a time: code, tests, suggests commit messages (the user commits), updates PROGRESS.md. |
 | Reviewer | GPT 6 Luna | Reviews code at the end of each phase against the phase's "Review checklist" in PLAN.md, and handles trivial chores. |
 
 Implementer rules:
@@ -66,7 +66,7 @@ src/psw/
   processing/  districts.py  features.py
   models/      train.py  evaluate.py
   rag/         build_kb.py  index.py
-  agents/      tools.py  sentinel.py  analyst.py  verifier.py  orchestrator.py  template.py
+  agents/      runtime.py  tools.py  sentinel.py  analyst.py  verifier.py  orchestrator.py  template.py
   app/         main.py  pages/
 tests/  fixtures/
 docs/   PLAN.md  PROGRESS.md  feasibility.md
@@ -93,7 +93,7 @@ uv run streamlit run src/psw/app/main.py       # app
 - **Dates:** a `datetime.date` or an ISO string `YYYY-MM-DD`. FIRMS dates are UTC, so we treat `acq_date` as the local day (document this as a limitation). Season year = calendar year; season window = Sep 15 to Nov 30.
 - **Units:** PM2.5 in µg/m³, FRP in MW, distances in km, wind direction in degrees, meteorological convention (the direction the wind blows *from*).
 - **No leakage:** features for day *t* use data up to *t* only. The target is the mean PM2.5 on *t+1*. RAG retrieval filters `as_of < briefing_date`.
-- Commit after each green step with a small, conventional message (`feat(ingest): ...`, `test(...)`, `docs: ...`).
+- **Git: AI tools may run read-only git commands only** (`git status`, `git diff`, `git log`, `git show`, `git ls-files`, `git blame`). **The user runs every command that changes anything**: add, commit, push, pull, checkout, branch, merge, rebase, reset, stash, tag, clone and the like. When a step is green, stop and give the user a suggested commit message in conventional style (`feat(ingest): ...`, `test(...)`, `docs: ...`) and the list of files to stage. Then wait for them to commit before starting the next step.
 - Keep functions small and pure where you can, and keep I/O at the edges (the `pipeline.py` CLI).
 - The app must run from committed `data/processed/` with **no API keys and no network** (Replay mode, cached briefings). LLM regeneration is an optional button.
 
@@ -110,4 +110,6 @@ uv run streamlit run src/psw/app/main.py       # app
 | D7 | RAG = fastembed + numpy and an `as_of` filter. Corpus = curated notes plus pipeline-generated docs. | No server; RAG grounded in our own data |
 | D8 | Sentinel and Verifier are deterministic. Only the Analyst uses the LLM. | Reliability on the free tier, and verifiable |
 | D9 | Commit `data/processed/` (including demo briefings) and gitignore `data/raw/`. | The demo runs from a clean clone, offline |
+| D11 | One reusable `run_agent(AgentSpec, ...)` loop in `agents/runtime.py`. Every LLM agent is a prompt plus tools run through it. No agent framework. | New agents (Planner, Critic, Comparison) cost a prompt, not a new loop |
+| D12 | AI tools run read-only git commands only. The user runs every git command that changes anything (add, commit, push, etc.). AI tools suggest commit messages and the files to stage. | User preference |
 | D10 | District boundaries: chosen in Phase 0 (see feasibility.md). Prefer 23 districts including Malerkotla; the fallback is the 2011-era 22 districts with a stated limitation. | Must verify the data |
