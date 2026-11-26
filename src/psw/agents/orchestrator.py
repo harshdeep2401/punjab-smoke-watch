@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from psw import config
-from psw.agents import analyst, sentinel, template, tools
+from psw.agents import analyst, planner, sentinel, template, tools
 from psw.agents.runtime import AgentResult, run_agent
 from psw.agents.tools import DataStore, nearest_city
 from psw.agents.verifier import Evidence, verify
@@ -43,6 +43,8 @@ class BriefingRecord:
     first_attempt_errors: list[str] = field(default_factory=list)  # why the first draft failed, if it did
     llm_error: str | None = None
     label: str | None = None  # set for template mode
+    plan: dict | None = None  # the Planner's {steps, questions_to_answer}, when the planner ran and produced a usable plan
+    planner_error: str | None = None  # why there is no plan, when the planner was asked to run
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -116,10 +118,29 @@ def _template_facts(store: DataStore, kb, district: str, date: str, city: str) -
     return facts, results, trace
 
 
+def load_reusable(district: str, date: str, root: Path | None = None) -> BriefingRecord | None:
+    """A saved briefing written by the agent that passed the Verifier. Template or failed ones are not reused."""
+    path = briefing_path(date, district, root)
+    try:
+        d = json.loads(path.read_text())
+        ok = d["mode"] in ("agent", "agent_revised") and d["verification"]["ok"]
+        names = BriefingRecord.__dataclass_fields__
+        return BriefingRecord(**{k: v for k, v in d.items() if k in names}) if ok else None
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        return None
+
+
 def run_briefing(district: str, date, llm=None, store: DataStore | None = None, kb=None,
-                 root: Path | None = None, save: bool = True) -> BriefingRecord:
-    """One briefing. Never raises because of the LLM; raises ValueError only for an unknown district or date."""
+                 root: Path | None = None, save: bool = True, reuse: bool = False, use_planner: bool = False) -> BriefingRecord:
+    """One briefing. Never raises because of the LLM; raises ValueError only for an unknown district or date.
+
+    reuse=True returns the saved briefing when it was written by the agent and verified (saves LLM quota on reruns).
+    use_planner=True first asks the Planner for a plan (one extra LLM call) and passes it to the Analyst. A failed plan
+    is recorded in `planner_error` and the Analyst runs without it.
+    """
     date = str(date)
+    if reuse and (saved := load_reusable(district, date, root)) is not None:
+        return saved
     store = store or DataStore()
     if kb is None:
         from psw.rag.index import KnowledgeBase
@@ -141,8 +162,15 @@ def run_briefing(district: str, date, llm=None, store: DataStore | None = None, 
     first_errors: list[str] = []
     mode, draft, verdict = None, None, None
 
+    plan = planner_error = None
+    if llm is not None and use_planner:
+        plan, planner_error, entry = planner.make_plan(district, date, city, planner.flag_kinds(store, district, date), llm)
+        trace.append(entry)
+        if planner_error:
+            log.info("%s %s: no plan (%s), the Analyst runs without one", district, date, planner_error)
+
     if llm is not None:
-        res: AgentResult = analyst.analyse(district, date, llm, store, kb)
+        res: AgentResult = analyst.analyse(district, date, llm, store, kb, plan_text=planner.plan_text(plan) if plan else None)
         trace += res.trace
         results += res.tool_results
         if res.error:
@@ -187,6 +215,7 @@ def run_briefing(district: str, date, llm=None, store: DataStore | None = None, 
         generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         nearest_city=city, first_attempt_errors=first_errors, llm_error=llm_error,
         label=draft.get("label") if mode == "template" else None,
+        plan=plan, planner_error=planner_error,
     )
     if save:
         _write_json(briefing_path(date, district, root), record.to_dict())
@@ -194,7 +223,7 @@ def run_briefing(district: str, date, llm=None, store: DataStore | None = None, 
 
 
 def run_daily_watch(date, top_n: int = 3, llm=None, store: DataStore | None = None, kb=None,
-                    root: Path | None = None) -> dict:
+                    root: Path | None = None, reuse: bool = False, use_planner: bool = False) -> dict:
     """Sentinel scan, then a briefing for the top `top_n` flagged districts. Saves the watch file and returns it."""
     date = str(date)
     store = store or DataStore()
@@ -207,7 +236,7 @@ def run_daily_watch(date, top_n: int = 3, llm=None, store: DataStore | None = No
             log.warning("no LLM (%s): briefings will use the template", e)
     briefings = []
     for r in flagged[:top_n]:
-        rec = run_briefing(r["district"], date, llm=llm, store=store, kb=kb, root=root)
+        rec = run_briefing(r["district"], date, llm=llm, store=store, kb=kb, root=root, reuse=reuse, use_planner=use_planner)
         briefings.append({"district": rec.district, "mode": rec.mode, "headline": rec.headline,
                           "verified": rec.verification["ok"], "file": briefing_path(date, rec.district, root).name})
     watch = {"date": date, "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),

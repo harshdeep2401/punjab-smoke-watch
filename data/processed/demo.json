@@ -1,0 +1,23 @@
+{
+ "peak": "2025-10-31",
+ "moderate": "2025-10-26",
+ "early": "2025-10-18",
+ "season": 2025,
+ "default_district": "Ludhiana",
+ "briefed": {
+  "2025-10-31": [
+   "Tarn Taran:agent",
+   "Bathinda:agent",
+   "Moga:agent",
+   "Ludhiana:agent",
+   "Sangrur:agent"
+  ],
+  "2025-10-26": [
+   "Tarn Taran:agent"
+  ],
+  "2025-10-18": [
+   "Tarn Taran:agent"
+  ]
+ },
+ "generated_at": "2026-11-25T07:41:19+00:00"
+}

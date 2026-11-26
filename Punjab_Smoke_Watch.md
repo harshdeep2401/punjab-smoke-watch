@@ -150,12 +150,16 @@ Support two modes: **Replay** (a stored past season, works offline from cache) a
 
 ## 12. Demo script (5 minutes)
 
+Updated in Phase 7 to match the results and the agent design (this section replaces the original script; the app opens on the right defaults: the 2025 peak day and Ludhiana, and `data/processed/demo.json` lists the three demo dates).
+
 1. **Hook (30 s):** "Every winter Punjab's fires make headlines, but no one can see how a fire in Tarn Taran becomes smog in Ludhiana."
-2. **Replay (60 s):** play the 2025 season on the map; pause on a peak day.
-3. **Forecast (60 s):** show tomorrow's PM2.5 with its uncertainty band for Ludhiana.
-4. **Proof (60 s):** open Evidence; show the model beats persistence and that removing fire features makes it worse.
-5. **Briefing (60 s):** generate a district briefing; point at the "numbers verified" badge and show the JSON it came from.
-6. **Close (30 s):** state limitations and the detection-gap idea as future work.
+2. **Replay (60 s):** open Replay map, play the 2025 season, pause on the peak day (2025-10-31). Point at Tarn Taran, Bathinda, Moga.
+3. **Forecast (45 s):** open Forecast, city Ludhiana, season 2025. Show tomorrow's PM2.5 with its 80% band, the 60 µg/m³ NAAQS line, and the upwind contributors for the selected day. Say it is an out-of-sample backtest and CAMS modelled PM2.5.
+4. **Proof (60 s):** open Evidence. Say the result as it is: **persistence is the best on MAE and pinball, and the fire features did not improve the forecast.** Give the reasons the page lists (CAMS already assimilates fires; only a few training seasons). Show that the 80% band is checked for coverage. A negative result reported honestly is the point.
+5. **Briefing (90 s):** open Daily Watch & Briefing on the peak day. Show the Sentinel watchlist and its reasons (rules, no LLM). Open the Ludhiana briefing, then walk through the right-hand tabs: **Agent trace** (the tools it called, with the date and filters fixed by the orchestrator), **Sources** (the retrieved chunks, the cited ones ticked), **Verifier report** (each number matched to a tool value), and finish on the **✅ Numbers verified** badge. Say what the badge does not prove: that a source supports the sentence.
+6. **Close (30 s):** limitations (heat anomalies, modelled PM2.5, short training window), and the detection-gap idea as future work.
+
+If the LLM is slow or the network is down, use the saved briefings: the demo needs no key.
 
 ## 13. Pitch lines for the teacher
 

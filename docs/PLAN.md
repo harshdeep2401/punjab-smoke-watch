@@ -18,7 +18,16 @@ Read `AGENTS.md` first. Run the phases **in order**. Each phase has tasks, inter
 | 5 | Agents: tools, Sentinel, Analyst, Verifier | 2.0 h |
 | 6 | Forecast, Watch & Briefing, Evidence pages | 1.0 h |
 | 7 | Demo cache, README, rehearsal | 0.5 h |
-| S | Stretch: Live mode, Delhi, detection-gap panel | only if time remains |
+| **Part 2** | **Audit + Response (AGENTS.md §1b, D15–D20)** | |
+| 8 | Feasibility for the new data | 1.0 h |
+| 9 | Audit data: multi-sensor FIRMS, burned area, manual CSVs | 1.5 h |
+| 10 | Audit analytics, gap ranges, Auditor agent | 2.0 h |
+| 11 | Response: harvest signal and 3-day fire-risk forecast | 2.0 h |
+| 12 | Response: allocator, 5 km grid, Dispatcher agent | 2.0 h |
+| 13 | Audit and Response Planner pages, Evidence, docs, demo | 1.5 h |
+| S | Stretch: Critic agent, Live mode, Delhi, CPCB | only if time remains |
+
+**If Part 2 runs short of time, keep this priority:** 8 → 9 (sensors + official counts first, burned area second) → 10 → 11 → 12 → 13. A minimal Part 2 is the sensor and time-of-day audit, the risk forecast, the allocator, both agents and both pages. Burned area and the grid cells are the first things to cut.
 
 ---
 
@@ -390,11 +399,304 @@ def run_daily_watch(date, top_n=3, llm=None) -> dict   # sentinel.scan → run_b
 
 ---
 
-## Stretch (in this order, only after Phase 7)
-1. **Live mode:** FIRMS NRT for the last 7 days, the forecast API for weather and AQ, and the saved final model predicts tomorrow. A sidebar toggle. It only makes sense until Nov 30.
-2. **Delhi** as a 5th city (it's a target only; keep the bbox as it is).
-3. **Detection-gap panel:** hand-entered `data/official_counts.csv` (`date,district,count`) vs FIRMS counts, with an indicative ratio range and a strong caveat. Add `official_counts` as an extra fact for the agent when it's present.
-4. CPCB ground sanity check via data.gov.in.
+# Part 2: Audit + Response
+
+Read AGENTS.md §1b and D15–D20 first. Every rule from Part 1 still applies:
+- the LLM never does the maths;
+- every new agent is an `AgentSpec` run through `run_agent`, with the orchestrator injecting date, district and RAG filters;
+- the same Verifier runs last, with a template fallback;
+- no network in tests;
+- the app runs offline from committed `data/processed/`;
+- read-only git only.
+
+## Phase 8: Feasibility for the new data
+
+Extend `scripts/feasibility.py` (or add `scripts/feasibility_part2.py`) and append a "Part 2" section to `docs/feasibility.md`. Measure; don't assume.
+
+1. **FIRMS sensors** for the bbox, 1 Nov of each year 2022–2025, DAY_RANGE=5:
+   - `VIIRS_NOAA20_SP` / `VIIRS_NOAA20_NRT`;
+   - `VIIRS_NOAA21_NRT` (NOAA-21 data starts around 2023, so find its first usable season);
+   - `MODIS_SP` / `MODIS_NRT`: the `satellite` column separates Terra from Aqua.
+
+   For each: the row count, which product (SP or NRT) covers which seasons, and the **acq_time distribution in IST** (confirm the overpass clusters: Terra ≈10:30, Aqua ≈13:30, VIIRS ≈13:30 with NOAA-20 about 50 min after S-NPP, night passes ≈01:30).
+2. **Burned area:**
+   - **(a)** Planetary Computer STAC collection `modis-64A1-061` (MCD64A1). Can we read the monthly Oct and Nov "Burn Date" layers for the Punjab tiles (h24v05/h24v06) for 2022–2025, with no key? How long does one month take?
+   - **(b)** Sentinel-2 L2A on Planetary Computer: can we compute NBR for one hotspot district (Sangrur), early October vs late November 2024, at a coarse 60–100 m resolution, in under 5 minutes?
+   - Record which works. D17 decides the default.
+3. **Official counts:** are season totals per district for 2022–2025 published (PPCB press releases, CAQM, PRSC, the IARI CREAMS bulletins)? Record the URLs. Note **how** they're counted: most official counts are also satellite-based, so they are not independent field truth. Don't enter any numbers yet.
+4. **Harvest-progress signal:** does any source give **historical daily paddy arrivals by district or mandi** for Sep–Nov 2022–2025?
+   - The data.gov.in Agmarknet API (likely current prices only).
+   - Agmarknet arrival reports.
+   - Punjab Mandi Board / Food & Civil Supplies procurement press releases.
+
+   If none can be scraped or downloaded in under 30 minutes, the fallback is the proxies in Phase 11.
+5. **Residue-management machinery:** are district-wise counts of CRM machines (balers, Super Seeders, Happy Seeders) published? Record the URL. If not, the fleet becomes a user input in the app.
+6. **Rain:** confirm that Open-Meteo archive `precipitation_sum` works at the 22 district centroids (88 calls).
+
+**Acceptance:** feasibility.md Part 2 has a table of signal × source × seasons covered × access × caveats. It also gives a go/no-go per signal and the **chosen burned-area path**.
+
+**User decision point:** show the user the table and wait for a go-ahead before Phase 9 if any of these is a no-go: MODIS, burned area or official counts.
+
+**Review checklist:** the numbers are measured, not remembered; every source has a URL and licence/terms; no keys in the logs.
+
+---
+
+## Phase 9: Audit data
+
+**`src/psw/audit/sensors.py`**
+```python
+SENSORS = {"snpp": "VIIRS_SNPP", "noaa20": "VIIRS_NOAA20", "noaa21": "VIIRS_NOAA21", "modis": "MODIS"}
+def fetch_sensor_season(sensor: str, year: int, key: str) -> pd.DataFrame   # reuse ingest.firms chunk/cache logic; SP then NRT
+def load_multisensor(seasons) -> pd.DataFrame
+    # columns: latitude, longitude, acq_date, acq_time, ist_hour, pass_label, sensor, platform (T/A for MODIS), frp, confidence, daynight, season, district
+    # pass_label from ist_hour: "morning ~10:30" | "afternoon ~13:30" | "night ~01:30" | "other"
+    # MODIS confidence is 0–100: keep >= 30 (document); VIIRS: drop 'l' as before
+```
+Output: `data/processed/fires_multisensor.parquet` (district assigned with the existing `assign_districts`). If it's over 40 MB, keep only Punjab rows and round coordinates.
+
+**`src/psw/audit/burned_area.py`** (only if Phase 8 said go)
+```python
+def mcd64_district_season(year) -> pd.DataFrame   # district, season, burned_km2 (burn dates Sep 15–Nov 30), n_pixels
+def s2_dnbr_district(district, year) -> dict | None  # optional: burned_km2_s2, threshold used, cloud_frac
+```
+Cache the raw rasters (or per-district aggregates) under `data/raw/burned/`. Output: `data/processed/burned_area.parquet`.
+
+**`src/psw/audit/official.py`**: loads `data/manual/official_counts.csv` (`season,district,count,source_url,method_note`). The user fills it in from the Phase 8 URLs; Sonnet may draft rows **only** from pages it actually opened, and must give the source URL on each row. It validates: known district names, no blanks, one source per row.
+
+Also extend weather ingest: `precipitation_sum` daily at the district centroids → `data/processed/district_weather_daily.parquet` (date, district, precip_mm, temp_mean, rh_mean, wind_speed_mean).
+
+**Tests:** fixtures for one MODIS CSV and one NOAA-20 CSV (about 20 rows each); the pass_label boundaries; the MODIS confidence filter; the official-counts validator (a bad district name fails); burned-area aggregation on a tiny synthetic raster (3×3 pixels, a known area).
+
+**Acceptance:** `pipeline audit-ingest` is cached and rerunnable, and `fires_multisensor.parquet` has every sensor available per Phase 8. Put the row counts per sensor and season in PROGRESS.md.
+
+**Review checklist:** S-NPP numbers from the multi-sensor table match `fires.parquet` for the same filter; IST conversion is right (UTC+5:30, including day rollover); MODIS confidence uses its numeric scale; manual CSV rows all have a source.
+
+---
+
+## Phase 10: Audit analytics, gap ranges, Auditor agent
+
+**`src/psw/audit/gap.py`**: pure functions, each returning a tidy DataFrame.
+```python
+def diurnal_profile(ms) -> df       # season × sensor × pass_label → count, share
+def sensor_trend(ms) -> df          # season × sensor → count, % change vs 2022 (or the sensor's first season)
+def night_share(ms) -> df           # season × district → night share (VIIRS night passes / all VIIRS)
+def burned_vs_detected(ms, ba) -> df  # district × season → detections, burned_km2, detections_per_km2, % changes
+def official_vs_satellite(ms, off) -> df  # district × season → official, snpp, ratio
+def gap_range(...) -> df            # district × season → detected_change_pct, gap_low, gap_high, methods, confidence
+```
+**Gap range (D16):** for each district-season after the base season, each available signal gives one estimate of "how much real burning changed":
+- (i) the change in burned area;
+- (ii) the change in the sensor with the most stable overpass mix (all VIIRS combined);
+- (iii) the change in night detections;
+- (iv) the change in official counts.
+
+Implied under-detection = 1 − (detection change ratio / signal change ratio), clipped to [0, 0.95]. `gap_low` / `gap_high` are the min and max across the available signals, `methods` lists them, and `confidence` is "low", "medium" or "high" depending on whether 1, 2 or 3+ signals agree in sign. With fewer than 2 signals, report "insufficient evidence" and no range. **Write this formula and its weaknesses into a curated KB note** (`kb/curated/method_detection_gap.md`).
+
+Outputs: `data/processed/audit/*.parquet` and `data/processed/audit_summary.json` (Punjab-level headline numbers per season).
+
+**RAG additions:**
+- Curated notes (`kb/curated/`), each with a real source URL, written in our own words, flagged for user review:
+  - `overpass_times.md`;
+  - `evening_burning_reports.md` (what was publicly reported in 2024–25 about burning after satellite passes, and who said it; only from sources actually opened);
+  - `mcd64a1.md` (and its known under-detection of small fields);
+  - `official_counting_method.md`;
+  - `method_detection_gap.md`.
+- Generated: `audit_{season}_{district}.md` per district-season and `audit_{season}_punjab.md`, with as_of = Dec 1 of that season.
+- Add about 6 audit queries to the retrieval eval set and re-run `kb-eval`.
+
+**`src/psw/agents/auditor.py`**: `AgentSpec(name="auditor")`.
+- **Tools** (pure Python, added to `tools.py` or a new `audit_tools.py`):
+
+  | tool | args | returns |
+  |---|---|---|
+  | `get_detection_trend` | district\|"Punjab", season | per-sensor counts and % change vs the base season |
+  | `get_diurnal_profile` | district\|"Punjab", season | counts and shares by pass_label, night share, and the night share's change vs the base |
+  | `get_burned_area_comparison` | district, season | burned_km2, detections_per_km2, % changes, or `{"error": "not available"}` |
+  | `get_official_vs_satellite` | district, season | official, snpp, ratio, source_url, or an error |
+  | `get_gap_range` | district, season | gap_low_pct, gap_high_pct, methods, confidence |
+  | `search_knowledge` | query | as before (before = Dec 1 of the season, injected) |
+
+- **Required tools:** trend, diurnal, gap range, search_knowledge.
+- **The prompt asks for an audit brief** (150–200 words) with 4 labelled parts:
+  1. *What detections say*
+  2. *What other signals say*
+  3. *Our best range and how sure we are*
+  4. *What would settle it* (e.g. field surveys, geostationary data)
+- It must say that this is triangulation, not field truth.
+- **Verifier:** the same, plus a check that the 4 labels are present. The word limit is configurable per agent (an `AgentSpec`-level `word_range`; add it if it's not there and log it as a deviation).
+- **Template:** a fixed audit paragraph from the tool results.
+- **Orchestrator:** `run_audit(district|"Punjab", season)` writes `data/processed/audits/{season}_{district}.json`, with the same record shape as briefings (mode, text, citations, sources, verification, trace).
+
+**Tests:**
+- gap_range on synthetic data: detections −90% and burned area −30% gives a gap of about 0.86; two signals disagreeing in sign gives low confidence; one signal gives "insufficient evidence";
+- clipping;
+- the auditor runs with a FakeLLM, including the label check;
+- the template passes the Verifier.
+
+**Acceptance:**
+- `pipeline audit` writes the audit tables and the Punjab audit for 2024 and 2025, plus audits for the top 5 districts of 2025.
+- Paste the Punjab gap ranges into PROGRESS.md **with their methods and confidence**.
+- If the signals say detection is *not* hiding burning, report that just as plainly.
+
+**Review checklist:** no range is reported from fewer than 2 signals; every number in the audit brief traces to a tool; curated notes cite sources that were actually opened; "ground truth" wording never claims field verification.
+
+---
+
+## Phase 11: Response, harvest signal and 3-day fire-risk forecast
+
+**`src/psw/response/harvest.py`**
+- If Phase 8 found historical mandi arrivals: `mandi_arrivals_daily(seasons) -> date, district, arrivals_tonnes`, and features `arrivals_7d`, `arrivals_cum_share` (the cumulative share of that season's total so far; **use only data up to t**, so the share is relative to the *previous* season's total).
+- **Fallback proxies** (always computed):
+  - `season_progress`: the district's cumulative detections so far ÷ its previous-season total;
+  - `days_since_first_fire` (first day with ≥3 detections);
+  - `last_season_curve_t`: the previous season's cumulative share at the same day of season;
+  - rain in the last 3 days and forecast rain over the next 3 days (in a backtest, use the archive values as a stand-in for the forecast and **label this as an optimistic assumption**).
+
+**`src/psw/response/risk.py`**
+- **Rows:** district × day in the season. **Target:** `log1p(detections in t+1..t+3)` from all VIIRS sensors, or S-NPP only if the multi-sensor data is incomplete (log the choice).
+- **Features:**
+  - counts: today, 3-day and 7-day, and the 7-day trend slope;
+  - the harvest features;
+  - rain: the last 3 days and the next 3 days;
+  - temperature, RH and wind speed;
+  - day of season, the district's share of the previous season's state total, and district as a categorical.
+- LightGBM quantile (0.1 / 0.5 / 0.9), reusing `models/train.py` helpers and conformal correction.
+- Backtest: expanding window as in D5 (test on 2024 and 2025).
+- **Baselines:**
+  - persistence: the last 3 days' detections;
+  - last-season climatology: the same 3 days last season × (this season's to-date total ÷ last season's to-date total).
+- **Metrics:**
+  - MAE on counts after back-transforming;
+  - pinball loss and 80% coverage;
+  - and above all (D20) **top-5 hit rate**: the share of the actual top-5 districts that appear in the predicted top 5 each day, averaged over days with ≥20 detections statewide;
+  - **Spearman** rank correlation across districts per day.
+- **"Likely burning" adjustment:** `likely_p50 = p50 / (1 − gap_mid)` with a band from gap_low and gap_high, where Module A gives a range for that district-season. Use the **previous** season's gap, so there is no leakage. This is shown as a separate, clearly labelled column, **never mixed into the backtest metrics.**
+- Outputs: `data/processed/risk_forecasts.parquet` (`issue_date, district, season, variant, p10, p50, p90, likely_low, likely_high, actual`) and `data/processed/risk_metrics.json`.
+
+**Tests:**
+- no leakage: features at t don't change when data after t changes, including `arrivals_cum_share` and `season_progress`;
+- the target window is exactly t+1..t+3;
+- the top-5 hit rate on a hand-made example;
+- the likely-burning adjustment uses the previous season's gap.
+
+**Acceptance:** `pipeline risk-train` writes the outputs. Paste the table (variant × MAE × top-5 hit × Spearman × coverage) into PROGRESS.md. **Report honestly** if climatology or persistence wins. The allocator still works on the best-ranking variant, and the Evidence page says which one it is.
+
+**Review checklist:** every feature is ≤ t; the previous-season normalisers never use the current season's totals; the gap adjustment is labelled and kept out of the metrics; ranking metrics skip quiet days as specified.
+
+---
+
+## Phase 12: Response, allocator, 5 km grid, Dispatcher agent
+
+**`src/psw/response/allocate.py`** (deterministic, D19)
+```python
+def allocate(risk: pd.DataFrame, units: int, k: float = 20.0,
+             min_per_district: int = 0, max_share: float = 0.25,
+             use_likely: bool = True) -> pd.DataFrame
+    # risk: district → expected 3-day burning (likely_p50 if use_likely and available, else p50)
+    # greedy: repeat `units` times → give one unit to the district with the largest marginal gain
+    #   gain(d, u) = risk_d * (exp(-u/k) - exp(-(u+1)/k))     (cover(u) = 1 - exp(-u/k))
+    #   respecting max_share * units per district and min_per_district
+    # returns: district, units, risk_used, covered_share, marginal_gain_last, reason (template string)
+def compare_to_proportional(...)   # the naive "share of last season's fires" allocation, for the Evidence page
+```
+- **Backtest of the decision** (Evidence): for each test-season day, allocate N units (e.g. 500) using the forecast, then score "expected covered burning" against the **actual** next-3-day detections. Do the same for (a) a proportional-to-last-season allocation and (b) an oracle that knows the actuals.
+- Report the forecast allocation's score as a % of the oracle, next to the proportional baseline. This is the key "does it help decisions?" number.
+
+**`src/psw/response/grid.py`**
+- A 5 km grid (EPSG:32643 UTM 43N) clipped to Punjab, with a cell id and the district each cell belongs to.
+- Per cell: detections in the last 7 days and the share of the district's last-7-day detections.
+- `hotspot_cells(district, date, top=5)` returns cells with centroids rounded to 0.01° and a label like "cell 12 (north-west Sangrur)".
+- **No village, field or farmer names** (D18).
+
+**`src/psw/agents/dispatcher.py`**: `AgentSpec(name="dispatcher")`.
+- **Tools:**
+
+  | tool | args | returns |
+  |---|---|---|
+  | `get_risk_forecast` | date | top districts with p10/p50/p90, likely_low/high, change vs the last 3 days |
+  | `get_allocation` | date | the allocation table (`units`, `max_share` and `use_likely` are **injected from the user's inputs**, not chosen by the LLM) |
+  | `get_hotspot_cells` | district, date | the top 5 cells for awareness teams |
+  | `get_rain_outlook` | district, date | rain over the last and next 3 days (rain delays burning) |
+  | `get_gap_range` | district | the reused Module A tool, for the previous season |
+  | `search_knowledge` | query | as before; add curated notes `crm_options.md` (in-situ / ex-situ options, CRM scheme, custom hiring centres, each with a source) |
+
+- **Required tools:** risk, allocation, search_knowledge.
+- **Output:** a 3-day action brief (150–200 words) for the state control room, plus an optional per-district paragraph. It covers where the units go and why, the uncertainty, the detection-gap caveat, and what to watch (rain). It must **not** mention penalties, FIRs or enforcement. Add those words to the banned list **for this agent only**.
+- Verifier, template and record as before: `data/processed/dispatch/{date}.json`.
+
+**Tests:**
+- allocator: the totals equal `units`; max_share is respected; diminishing returns spread units across districts; zero risk gets 0 units (beyond the minimum); it's deterministic.
+- decision backtest on synthetic data: oracle ≥ forecast ≥ a random baseline.
+- grid: the cell count is roughly Punjab's area ÷ 25 km²; every cell maps to a district.
+- dispatcher with FakeLLM: injected units override the LLM's; banned enforcement words are caught.
+
+**Acceptance:**
+- `pipeline dispatch --date <2025 peak − 3 days> --machines 500` writes the dispatch file with a verified brief.
+- Put the decision-backtest numbers (forecast vs proportional vs oracle) in PROGRESS.md.
+
+**Review checklist:** the LLM can't change units or constraints; there are no names below the district level; the decision backtest uses only forecasts issued before the window it is scored on; the enforcement-word ban is active.
+
+---
+
+## Phase 13: Pages, Evidence, docs, demo
+
+**`pages/5_Audit.py`: "Are fires really down?"**
+- The Punjab headline cards per season: S-NPP detections % change, all-sensor % change, night share, burned area % change (if available), and the gap range with its confidence.
+- **Charts:**
+  - detections by pass time per season (stacked bars per sensor);
+  - the night share trend;
+  - burned area vs detections (indexed to 2022 = 100);
+  - official vs satellite (if present).
+- A district table with gap ranges and a district audit brief (cached, with "Run auditor" if there's a key).
+- **Caption:** "Triangulation of satellite and official signals, not field verification."
+
+**`pages/6_Response_Planner.py`: "Where should help go in the next 3 days?"**
+- **Inputs:** the date (defaults to 3 days before the 2025 peak), the number of machines/teams, max share per district, and a toggle for planning on "likely burning" (with the gap adjustment) or on "detected only".
+- **Outputs:**
+  - a district risk map and table (p50, the 80% band, likely range);
+  - the allocation table and bar chart, which update live because the allocator is fast and deterministic;
+  - hotspot cells for a chosen district on the map (5 km squares);
+  - the dispatch brief with the verified badge, trace and sources.
+- **Caption:** "Decision support for residue-management help. Not for enforcement. No farms or farmers identified."
+
+**Evidence page:** add the fire-risk backtest table, the top-5 hit rate and Spearman, and the **decision backtest** (forecast vs proportional vs oracle). Add the audit method and its limits, and the agent reliability for the auditor and dispatcher.
+
+**Demo cache:** `demo-cache` also writes:
+- the Punjab audits for 2024 and 2025;
+- audits for the 2025 top-3 districts;
+- dispatch for 3 dates (peak − 3, peak, a late-season day) at 500 units.
+
+**Docs:**
+- **README:** the new problem framing (the gap finding), Modules A and B, the new results tables, and ethics (D18).
+- **`docs/REPORT_DATA.md`:** fill in the Part 2 `[TO FILL]` results.
+- **`Punjab_Smoke_Watch.md` §12 demo script:**
+
+  | Step | What to show | Time |
+  |---|---|---|
+  | Hook | the night-share / gap finding | 30 s |
+  | Audit page | | 60 s |
+  | Response Planner | change the machine count and watch the allocation move | 90 s |
+  | Dispatch brief | the verified badge | 45 s |
+  | Evidence | the decision backtest | 45 s |
+  | Close | limitations | 30 s |
+
+**Acceptance:** all 7 pages load with `.env` moved away; the tests pass offline; the README and REPORT_DATA are updated.
+
+**Review checklist:** no page crashes when burned area or official counts are missing; every Part 2 caption is present; the narrative numbers are computed, not typed in.
+
+---
+
+## Stretch (in this order, only after Phase 13)
+1. **Critic agent** (was item 7, below). It now reviews briefings, audits and dispatch briefs.
+2. **Season-end check ("did help work?"):** for districts that got more units, did burning (all signals) fall more than in comparable districts? It's descriptive only, and you need to say why it isn't causal.
+3. **Live mode:** FIRMS NRT for the last 7 days, the forecast API for weather and AQ, and the saved final model predicts tomorrow. A sidebar toggle. It only makes sense until Nov 30.
+4. **Delhi** as a 5th city (it's a target only; keep the bbox as it is).
+5. CPCB ground sanity check via data.gov.in.
+6. Geostationary fire data (e.g. GEO-KOMPSAT-2A or INSAT-3D) to see the whole day, if there is an accessible archive. This is the best single way to settle the detection-gap question.
+
+(The old "detection-gap panel" stretch item is now Phases 9–10, and item 8 "Comparison agent" is replaced by the Auditor's season comparisons.)
+
+### Part 1 stretch log (kept for history)
 
 ### Stretch: deeper RAG and agents (no framework, all built on `run_agent`)
 Do these in order. Each must keep the demo working: cached briefings still render, and the Verifier still runs last on any text shown as verified.
@@ -412,3 +714,9 @@ Do these in order. Each must keep the demo working: cached briefings still rende
 | Fire features don't beat no_fire | Report it honestly and explain (CAMS assimilates GFAS). The upwind contributors are still useful in briefings. |
 | District GeoJSON has no Malerkotla | Use 22 districts and state the limitation in the app and README. |
 | fastembed download blocked | The cached briefings still render. Rebuild the index on another network. |
+| Burned-area data is unreachable or too slow | D17 fallback: audit with sensors, time of day and official counts. The gap range needs ≥2 signals, otherwise "insufficient evidence". |
+| MCD64A1 misses small fields (500 m) | Say so in the KB note and on the Audit page. Its *trend* is still useful. Use S-2 for 1–2 districts as a check if it's feasible. |
+| No historical mandi arrivals | Use the Phase 11 proxies (season progress, last-season curve, rain). Say so on the page. |
+| No district CRM machine counts | The fleet size is a user input in the planner (it's a decision tool anyway). |
+| Fire-risk model loses to climatology | Report it. Allocate with the best-ranking variant and show the decision backtest for all of them. |
+| Official counts are satellite-based too | Label them "official (satellite-based)" and give them less weight in the confidence rule. |

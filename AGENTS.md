@@ -2,7 +2,7 @@
 
 Shared context for every AI session working in this repo, whichever model or tool it is. **Read this file first, then `docs/PROGRESS.md` to see where work stopped.**
 
-- Original brief: `Punjab_Smoke_Watch.md`. Where it conflicts with this file or `docs/PLAN.md`, **this file and PLAN.md win.** They add RAG and agents and cut the scope to one day.
+- Original brief: `Punjab_Smoke_Watch.md`. Where it conflicts with this file or `docs/PLAN.md`, **this file and PLAN.md win.** They add RAG and agents and cut the scope to one day. **Part 2 (§1b) redirects the project toward a real problem: audit plus response.**
 - Build plan: `docs/PLAN.md`, with phases, interfaces and acceptance criteria.
 - Progress log: `docs/PROGRESS.md`. Update it at the end of every phase.
 - Data availability: `docs/feasibility.md`, written in Phase 0.
@@ -18,9 +18,35 @@ An **agentic, RAG-grounded stubble-fire and air-quality intelligence pipeline** 
    - **Sentinel:** deterministic and rule-based. Scans every district for a date and builds a ranked watchlist.
    - **Analyst agent:** an LLM tool-calling loop. It calls data tools and `search_knowledge` (RAG), then writes a cited district briefing as JSON.
    - **Verifier:** deterministic. Checks that every number in the text appears in the tool outputs or retrieved chunks, that every citation was actually retrieved, and the length and banned content. It sends feedback to the Analyst once, then falls back to a template.
-5. **App:** Streamlit with 4 pages: Replay map, Forecast, Daily Watch & Briefing (shows the agent trace, sources and a "numbers verified" badge), and Evidence.
+5. **App:** Streamlit with 4 pages: Replay map, Forecast, Daily Watch & Briefing (shows the agent trace, sources and a "numbers verified" badge), and Evidence. Part 2 adds Audit and Response Planner pages.
 
 **Core rule: the LLM never does the maths.** Every number comes from a Python tool, and the Verifier enforces this.
+
+### 1b. Part 2 direction (from 2026-11-26): from a demo to a real problem
+
+Phases 0–7 built the platform above. Part 2 (Phases 8–13 in PLAN.md) points it at two connected problems:
+
+**Why:** our own data shows a gap. Punjab's **daytime** detections (the ≈13:30 S-NPP pass) fell 91% from 2022 to 2025 (45,305 → 3,942). **Night** detections didn't fall (82 → 96), so the night share rose from 0.2% to 2.4%. City PM2.5 didn't fall, and fire features didn't help the forecast. Public reporting since 2024 says burning may have moved outside satellite overpass times. So official "fires down 90%" claims may partly be a detection artefact, and response planning built on those counts may miss the real burning.
+
+1. **Module A, Audit ("what is really happening?"): monitoring and audits.** We **triangulate** the true scale of burning from independent signals instead of trusting one satellite pass:
+   - several sensors at different overpass times (VIIRS S-NPP, NOAA-20, NOAA-21; MODIS Terra ≈10:30 and Aqua ≈13:30);
+   - the time-of-day profile of detections;
+   - **burned area** (MODIS MCD64A1, plus Sentinel-2 dNBR if feasible);
+   - official counts (hand-entered, with sources).
+
+   The output is a **detection-gap range** per district and season, and a verified audit brief written by an **Auditor agent**.
+   - **Users:** CAQM/PPCB monitoring cells, researchers, journalists and citizens checking official claims.
+   - "Ground truth" here means the **best available triangulation, with uncertainty**. We have no field verification, and we say so.
+2. **Module B, Response ("where should help go in the next 3 days?"): decision support for authorities.** It has three parts:
+   - A **3-day district fire-risk forecast**, using recent detections, the harvest-progress signal (mandi paddy arrivals if available, otherwise proxies), rain and past seasons. It is adjusted by Module A's gap range, so it plans for *likely* burning, not just *detected* burning.
+   - A **deterministic allocator** that distributes a limited fleet of residue-management machines and awareness teams across districts and 5 km grid cells.
+   - A **Dispatcher agent** that writes a verified 3-day action brief for the district agriculture officer or state control room.
+   - **Users:** the Punjab agriculture department, district officers and cooperative machinery banks.
+   - This is **support, not enforcement:** it never identifies farmers or fields. The finest unit is a 5 km grid cell.
+
+**How they connect:** Audit → gap range → Response plans for likely burning → after the season, Audit checks whether burning fell where help went (future work).
+
+The Phase 0–7 platform stays as it is: pipeline, PM2.5 forecast, RAG, `run_agent`, Sentinel/Analyst/Verifier and the app. The new agents are new `AgentSpec`s run through `run_agent`, they use the same Verifier, and they have template fallbacks.
 
 ## 2. Model roles (who does what)
 
@@ -40,12 +66,13 @@ Implementer rules:
 - Python **3.12** managed by **uv** (`uv sync`, `uv run ...`). Package `psw` lives in `src/psw/`.
 - Data: `pandas`, `pyarrow`, `geopandas`/`shapely`, `requests`, `python-dotenv`.
 - Model: `lightgbm`, `scikit-learn` (metrics only). On macOS run `brew install libomp` if LightGBM fails to import.
-- RAG: `fastembed` (`BAAI/bge-small-en-v1.5`, runs locally on CPU) plus numpy cosine search. **No vector DB server.**
+- RAG: `fastembed` (`BAAI/bge-small-en-v1.5`, runs locally on CPU) plus numpy cosine search, and `rank-bm25` keyword search merged by reciprocal rank fusion (D13). **No vector DB server.**
 - LLM: the `openai` SDK pointed at any OpenAI-compatible endpoint, configured in `.env`:
   - Default: **Gemini free tier** via `https://generativelanguage.googleapis.com/v1beta/openai/`.
   - Alternative: **Ollama** at `http://<host>:11434/v1`. The user has a 22 GB P6000 and can serve e.g. a Qwen 14B-class model with tool support.
   - No agent framework (LangChain, CrewAI and the like). The agent loop is about 100 lines of plain Python.
 - App: `streamlit`, `pydeck` (maps), `plotly` (charts).
+- Part 2, **only if Phase 8 feasibility confirms they're needed:** `pystac-client` and `planetary-computer` (Microsoft Planetary Computer STAC, no key) and `rasterio` for MODIS MCD64A1 burned area, plus Sentinel-2 dNBR if it's feasible. Log the addition as a decision.
 - Tests: `pytest`. **No network in tests.** Use recorded fixtures in `tests/fixtures/` and a scripted fake LLM.
 
 ## 4. Repo layout
@@ -56,7 +83,7 @@ data/
   raw/            # API caches, gitignored
   geo/            # punjab_districts.geojson, committed (record its licence)
   processed/      # parquet, kb index, metrics, demo briefings, committed so a clean clone runs
-  official_counts.csv   # stretch only
+  manual/         # Part 2 hand-entered CSVs, each row with a source_url: official_counts.csv, crm_machines.csv, mandi_arrivals.csv (if no API)
 kb/
   curated/        # hand-written method/policy notes (markdown + frontmatter)
   generated/      # written by the pipeline, gitignored and rebuilt by `psw.pipeline kb`
@@ -66,8 +93,11 @@ src/psw/
   processing/  districts.py  features.py
   models/      train.py  evaluate.py
   rag/         build_kb.py  index.py
-  agents/      runtime.py  tools.py  sentinel.py  analyst.py  verifier.py  orchestrator.py  template.py
-  app/         main.py  pages/
+  agents/      runtime.py  tools.py  sentinel.py  analyst.py  planner.py  verifier.py  orchestrator.py  template.py
+               auditor.py  dispatcher.py               # Part 2 agents (AgentSpecs)
+  audit/       sensors.py  burned_area.py  official.py  gap.py      # Part 2, Module A
+  response/    harvest.py  risk.py  allocate.py  grid.py          # Part 2, Module B
+  app/         main.py  pages/   # + 5_Audit.py, 6_Response_Planner.py
 tests/  fixtures/
 docs/   PLAN.md  PROGRESS.md  feasibility.md
 ```
@@ -83,6 +113,11 @@ uv run python -m psw.pipeline train            # backtest, ablation, forecasts.p
 uv run python -m psw.pipeline kb               # generate docs + build vector index
 uv run python -m psw.pipeline brief --date 2025-11-05 [--district Sangrur]   # sentinel + agent
 uv run python -m psw.pipeline demo-cache       # precompute briefings for the demo
+# Part 2
+uv run python -m psw.pipeline audit-ingest     # extra FIRMS sensors, burned area, manual CSVs
+uv run python -m psw.pipeline audit            # diurnal profiles, sensor/burned-area comparison, gap ranges, audit briefs
+uv run python -m psw.pipeline risk-train       # 3-day district fire-risk backtest + forecasts
+uv run python -m psw.pipeline dispatch --date 2025-10-28 --machines 500 [--district Sangrur]   # allocation + dispatch brief
 uv run streamlit run src/psw/app/main.py       # app
 ```
 
@@ -112,4 +147,12 @@ uv run streamlit run src/psw/app/main.py       # app
 | D9 | Commit `data/processed/` (including demo briefings) and gitignore `data/raw/`. | The demo runs from a clean clone, offline |
 | D11 | One reusable `run_agent(AgentSpec, ...)` loop in `agents/runtime.py`. Every LLM agent is a prompt plus tools run through it. No agent framework. | New agents (Planner, Critic, Comparison) cost a prompt, not a new loop |
 | D12 | AI tools run read-only git commands only. The user runs every git command that changes anything (add, commit, push, etc.). AI tools suggest commit messages and the files to stage. | User preference |
+| D13 | Retrieval is hybrid by default: BM25 (`rank-bm25`) plus embeddings, merged by reciprocal rank fusion (k = 60). The `as_of` filter applies in every mode before ranking. `search(..., mode="embedding"\|"bm25"\|"hybrid")`. | Exact names, years and terms are weak spots for embeddings; measured on a 17-query eval set (`pipeline kb-eval`), hybrid was never worse than rank 3 and best on MRR. |
+| D14 | The Planner (`agents/planner.py`) is an optional `AgentSpec` with no tools, off by default (`use_planner` / `--plan`). It sees flag kinds, never numbers; its plan goes into the Analyst's first message and is stored in the briefing record. A failed or unusable plan never blocks a briefing. The Verifier still runs last on the Analyst's text. | One more LLM call per briefing is costly on a free tier, and a plan can steer the Analyst but cannot supply evidence. |
+| D15 | Part 2 direction: two modules. **A: Audit** (triangulate the true scale of burning, with a detection-gap range) and **B: Response** (3-day fire-risk forecast, then allocation of machines and teams, then a dispatch brief). B uses A's gap range. | Turns the platform toward a real problem: whether counts are falling because burning fell or because detection fell, and where to send help |
+| D16 | "Ground truth" = triangulation of independent signals (multi-sensor, time of day, burned area, official counts), always reported as a **range** with the method for each bound. Never a single "true" number. No field verification exists, and we say so. | Honesty; each signal has its own bias |
+| D17 | Burned area: MODIS MCD64A1 (500 m, monthly) via Planetary Computer STAC is the default. Sentinel-2 dNBR only for a few hotspot districts, if Phase 8 shows it's practical. If neither works, run the audit on sensors, time of day and official counts only, and say so. | MCD64A1 is easy to get but under-detects small fields; S2 is sharper but heavy |
+| D18 | Response is **support, not enforcement**. The smallest spatial unit is a 5 km grid cell. No field, farmer or village names. Briefs talk about machines, awareness teams and timing, never penalties. | Ethics and the brief's out-of-scope list |
+| D19 | The allocator is deterministic: greedy marginal gain with diminishing returns, cover(u) = 1 − exp(−u / k). Fleet size and per-district limits are user inputs. The Dispatcher agent explains the allocation; it never sets it. | Same rule as before: the LLM never does the maths |
+| D20 | Fire-risk target = detections in a district over the next 3 days (log1p), LightGBM quantile, the same expanding-window backtest. It is judged mainly on **ranking** (top-5 hit rate, Spearman across districts per day), because allocation needs the right order more than exact counts. | Matches the decision the user makes |
 | D10 | District boundaries: chosen in Phase 0 (see feasibility.md). Prefer 23 districts including Malerkotla; the fallback is the 2011-era 22 districts with a stated limitation. | Must verify the data |

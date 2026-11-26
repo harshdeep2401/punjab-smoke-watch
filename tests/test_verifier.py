@@ -167,3 +167,10 @@ def test_malformed_output_does_not_crash():
     for bad in ({}, {"headline": "x"}, {"briefing": 5, "headline": "x", "citations": "K012"}):
         r = verify(bad, evidence())
         assert not r.ok and r.errors
+
+
+def test_raw_tool_field_names_are_caught_but_plain_words_are_not():
+    bad = verify(briefing(text=FILLER + " The district ranked rank_in_punjab among all districts and upwind_frp_l0 was high [K012]"), evidence())
+    assert not bad.ok and any("rank_in_punjab" in e for e in bad.errors) and any("upwind_frp_l0" in e for e in bad.errors)
+    assert not verify(briefing(headline="rank_in_punjab report"), evidence()).ok
+    assert verify(briefing(text=FILLER + " Hyphenated-words, PM2.5 and p10 are fine [K012]"), evidence()).ok

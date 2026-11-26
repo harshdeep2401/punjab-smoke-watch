@@ -1,105 +1,98 @@
 {
  "district": "Sangrur",
  "date": "2025-10-31",
- "mode": "template",
- "headline": "Sangrur: 72 fire detections on 31 October",
- "briefing": "On 31 October 2025, satellites detected 72 fires in Sangrur district, releasing 421.3 MW of fire radiative power. That is 169.5% above the 7-day average of 26.7. Sangrur ranks number 1 in Punjab, which recorded 273 detections in total. The nearest city, Patiala, has a forecast median PM2.5 of 90.8 µg/m³ for 1 November 2025, with an 80% interval of 54.4 to 103.2. The median is above the national 24-hour standard of 60 µg/m³. Wind at Patiala blows from the NW (322.0°) at 8.1 km/h, with the largest upwind fire shares from Outside Punjab (23.1%) and Sangrur (22.3%). On the 2024 and 2025 test seasons the model's average error here was 10.5 µg/m³, against 10.1 for persistence, so it did not beat that simple baseline. Limitation: satellites detect heat anomalies, not stubble burning itself, and miss fires under cloud, so counts are lower bounds; PM2.5 here is modelled, not measured. [K035]",
+ "mode": "agent",
+ "headline": "Sangrur records high fire detections as Patiala air quality is forecast",
+ "briefing": "On 2025-10-31, Sangrur district recorded 72 fire detections and a total FRP of 421.3 MW, placing it at rank 1 in Punjab. The 7-day mean was 26.7, representing a change vs 7d pct of 169.5. For the nearest monitored city of Patiala, the PM2.5 forecast for the next day gives a p50 of 90.8 ug/m3, with an 80% uncertainty band ranging from a p10 of 54.4 to a p90 of 103.2 ug/m3. Today's PM2.5 value was 91.9 ug/m3. Winds at Patiala blew from the NW at 8.1 km/h, with upwind fire pressure from contributors including Outside Punjab at 23.1 percent and Sangrur at 22.3 percent. Satellite fire detections represent a lower bound due to missed fires, cloud cover, and overpass timing limitations [K109].",
  "citations": [
-  "K035"
+  "K109"
  ],
  "sources": [
   {
-   "chunk_id": "K035",
-   "title": "Limitations of this project",
-   "doc_type": "curated"
+   "chunk_id": "K109",
+   "title": "Sangrur fire season 2024",
+   "doc_type": "season_summary"
   }
  ],
  "verification": {
   "ok": true,
   "errors": [],
   "checked_numbers": [
-   72.0,
-   31.0,
-   31.0,
    2025.0,
+   10.0,
+   31.0,
    72.0,
    421.3,
-   169.5,
+   1.0,
    7.0,
    26.7,
-   1.0,
-   273.0,
+   7.0,
+   169.5,
    90.8,
-   1.0,
-   2025.0,
    80.0,
    54.4,
    103.2,
-   24.0,
-   60.0,
-   322.0,
+   91.9,
    8.1,
    23.1,
-   22.3,
-   2024.0,
-   2025.0,
-   10.5,
-   10.1
+   22.3
   ]
  },
  "trace": [
   {
-   "agent": "template",
+   "step": 1,
+   "agent": "analyst",
    "tool": "get_district_snapshot",
    "args": {
     "district": "Sangrur",
     "date": "2025-10-31"
    },
    "result_summary": "{\"district\": \"Sangrur\", \"date\": \"2025-10-31\", \"fire_count\": 72, \"frp_sum_mw\": 421.3, \"fire_count_7d_mean\": 26.7, \"change_vs_7d_pct\": 169.5, \"rank_in_punjab\": 1, \"punjab_total\": 27…",
-   "ms": 1,
-   "step": 1
+   "ms": 7
   },
   {
-   "agent": "template",
+   "step": 2,
+   "agent": "analyst",
    "tool": "get_city_forecast",
    "args": {
     "city": "Patiala",
     "date": "2025-10-31"
    },
    "result_summary": "{\"city\": \"Patiala\", \"issue_date\": \"2025-10-31\", \"target_date\": \"2025-11-01\", \"p10\": 54.4, \"p50\": 90.8, \"p90\": 103.2, \"pm25_today\": 91.9, \"persistence_p50\": 91.9, \"band_width\": 48.…",
-   "ms": 5,
-   "step": 2
+   "ms": 2
   },
   {
-   "agent": "template",
+   "step": 3,
+   "agent": "analyst",
    "tool": "get_wind_and_upwind",
    "args": {
     "city": "Patiala",
     "date": "2025-10-31"
    },
    "result_summary": "{\"city\": \"Patiala\", \"date\": \"2025-10-31\", \"wind_dir_from_deg\": 322.0, \"wind_dir_compass\": \"NW\", \"wind_speed_kmh\": 8.1, \"upwind_frp_l0\": 442.2, \"top_upwind_districts\": [{\"district\"…",
-   "ms": 48,
-   "step": 3
+   "ms": 5
   },
   {
-   "agent": "template",
+   "step": 4,
+   "agent": "analyst",
    "tool": "get_model_reliability",
    "args": {
     "city": "Patiala"
    },
    "result_summary": "{\"city\": \"Patiala\", \"test_seasons\": [2024, 2025], \"mae\": 10.5, \"coverage_80_pct\": 83.1, \"mae_persistence\": 10.1, \"mae_no_fire\": 10.0, \"n_forecasts\": 154}",
-   "ms": 0,
-   "step": 4
+   "ms": 0
   },
   {
-   "agent": "template",
+   "step": 5,
+   "agent": "analyst",
    "tool": "search_knowledge",
    "args": {
-    "doc": "limitations"
+    "query": "Sangrur 2024 season limitations satellite fire detection",
+    "before": "2025-10-31",
+    "district": "Sangrur"
    },
-   "result_summary": "{\"results\": [{\"chunk_id\": \"K035\", \"title\": \"Limitations of this project\", \"text\": \"# What to keep in mind when reading any output\\n\\n**Fires.** Satellites detect heat anomalies. T…",
-   "ms": 0,
-   "step": 5
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K109\", \"title\": \"Sangrur fire season 2024\", \"text\": \"# Sangrur: fire detections, season 2024\\n\\nIn the 2024 season (Sep 15 to Nov 30), satellite fire de…",
+   "ms": 26
   }
  ],
  "facts": {
@@ -194,17 +187,32 @@
   "search_knowledge": {
    "results": [
     {
-     "chunk_id": "K035",
-     "title": "Limitations of this project",
-     "text": "# What to keep in mind when reading any output\n\n**Fires.** Satellites detect heat anomalies. They do not know that a fire is stubble burning. They miss fires that burn between overpasses, fires under cloud, and small or short burns. A district's detection count is a lower bound. Fire dates are UTC dates that we treat as local days, so some night detections are filed one day early.\n\n**Air quality.** PM2.5 is modelled by CAMS on a coarse grid. It is not measured at street level and it is not CPCB monitor data. It already includes fire emissions as the model sees them.\n\n**Districts.** We use 22 district boundaries. Malerkotla, created in 2021, is not a separate district in our boundary data. Its area is counted in Sangrur."
+     "chunk_id": "K109",
+     "title": "Sangrur fire season 2024",
+     "text": "# Sangrur: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 1,476 fire detections in Sangrur district, with a total fire radiative power of 7,906 MW. Among the 22 districts it ranked number 1 by detections.\n\nThe busiest day was 2024-11-08, with 199 detections.\n\nCompared with the previous season: -70% compared with 2023 (5,002 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K065",
+     "title": "Sangrur fire season 2022",
+     "text": "# Sangrur: fire detections, season 2022\n\nIn the 2022 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 5,273 fire detections in Sangrur district, with a total fire radiative power of 38,039 MW. Among the 22 districts it ranked number 1 by detections.\n\nThe busiest day was 2022-11-05, with 670 detections.\n\nCompared with the previous season: no earlier season is available to compare with.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K087",
+     "title": "Sangrur fire season 2023",
+     "text": "# Sangrur: fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 5,002 fire detections in Sangrur district, with a total fire radiative power of 33,371 MW. Among the 22 districts it ranked number 1 by detections.\n\nThe busiest day was 2023-11-05, with 554 detections.\n\nCompared with the previous season: -5% compared with 2022 (5,273 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K101",
+     "title": "Ludhiana fire season 2024",
+     "text": "# Ludhiana: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 339 fire detections in Ludhiana district, with a total fire radiative power of 1,428 MW. Among the 22 districts it ranked number 12 by detections.\n\nThe busiest day was 2024-11-18, with 51 detections.\n\nCompared with the previous season: -78% compared with 2023 (1,512 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
     }
    ]
   }
  },
- "model": "template",
- "generated_at": "2026-11-25T06:59:03+00:00",
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-25T07:40:28+00:00",
  "nearest_city": "Patiala",
  "first_attempt_errors": [],
- "llm_error": "LLM error: --no-llm",
- "label": "template (LLM unavailable or failed verification)"
+ "llm_error": null,
+ "label": null
 }

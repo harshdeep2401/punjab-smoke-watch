@@ -1,6 +1,9 @@
-"""Local vector index: chunking, embedding (fastembed) and cosine search with an `as_of` filter.
+"""Local vector index: chunking, embedding (fastembed), BM25 keyword search and hybrid retrieval, all with an `as_of` filter.
 
-No vector DB. Vectors live in a .npy file and chunk metadata in a parquet file.
+No vector DB. Vectors live in a .npy file and chunk metadata in a parquet file. The BM25 index is built in memory from
+the same chunk text when first needed (about 140 chunks, so it takes milliseconds).
+
+Search modes: "embedding" (cosine), "bm25" (keywords), "hybrid" (both, merged by reciprocal rank fusion).
 """
 from __future__ import annotations
 
@@ -17,6 +20,9 @@ from psw import config
 MODEL_NAME = "BAAI/bge-small-en-v1.5"
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 DISTRICT_BOOST = 0.05
+RRF_K = 60  # reciprocal rank fusion: score = sum over rankings of 1 / (RRF_K + rank)
+MODES = ("hybrid", "embedding", "bm25")
+DEFAULT_MODE = "hybrid"
 VECTORS_FILE = "kb_vectors.npy"
 CHUNKS_FILE = "kb_chunks.parquet"
 
@@ -52,6 +58,20 @@ class FastEmbedder:
 
     def embed_query(self, text: str) -> np.ndarray:
         return np.array(list(self._get().embed([QUERY_PREFIX + text]))[0], dtype=np.float32)
+
+
+def tokenize(text: str) -> list[str]:
+    """Lower-case words and numbers. Years, FRP, p90 and district names stay whole tokens, which is what keywords need."""
+    return re.findall(r"[a-z0-9]+", text.lower())
+
+
+def rrf(rankings: list[list[int]], k: int = RRF_K) -> dict[int, float]:
+    """Reciprocal rank fusion. Each ranking is a list of item ids, best first. Returns item id -> fused score."""
+    fused: dict[int, float] = {}
+    for ranking in rankings:
+        for rank, item in enumerate(ranking, 1):
+            fused[item] = fused.get(item, 0.0) + 1.0 / (k + rank)
+    return fused
 
 
 def _normalise(m: np.ndarray) -> np.ndarray:
@@ -163,19 +183,53 @@ class KnowledgeBase:
             self._embedder = FastEmbedder()
         return self._embedder
 
+    @property
+    def bm25(self):
+        """BM25 over the same text that was embedded (title + chunk). Built once, on first use."""
+        if getattr(self, "_bm25", None) is None:
+            from rank_bm25 import BM25Okapi
+            self._bm25 = BM25Okapi([tokenize(f"{r.title}. {r.text}") for r in self.chunks.itertuples()])
+        return self._bm25
+
+    def _mask(self, before) -> np.ndarray:
+        if before is None:
+            return np.ones(len(self.chunks), dtype=bool)
+        cutoff = date.fromisoformat(before) if isinstance(before, str) else before
+        return np.array([a < cutoff for a in self._as_of])
+
     def search(self, query: str, k: int = 4, before: date | str | None = None,
-               district: str | None = None) -> list[dict]:
-        """Cosine top-k. Chunks with as_of >= `before` are excluded. A matching `district` adds +0.05 (a boost, not a filter)."""
-        scores = self.vectors @ _normalise(self.embedder.embed_query(query))[0]
-        if district:
-            scores = scores + DISTRICT_BOOST * (self.chunks["district"] == district).to_numpy()
-        mask = np.ones(len(scores), dtype=bool)
-        if before is not None:
-            cutoff = date.fromisoformat(before) if isinstance(before, str) else before
-            mask = np.array([a < cutoff for a in self._as_of])
-        idx = [i for i in np.argsort(-scores) if mask[i]][:k]
+               district: str | None = None, mode: str = DEFAULT_MODE) -> list[dict]:
+        """Top-k chunks. Chunks with as_of >= `before` are excluded in every mode, before ranking.
+
+        embedding: cosine similarity; a matching `district` adds +0.05 (a boost, not a filter).
+        bm25:      keyword score; chunks sharing no word with the query are not returned.
+        hybrid:    reciprocal rank fusion of the two rankings (the district boost applies to the embedding side only).
+        `score` is the cosine, the BM25 score or the fused score, depending on the mode, so compare scores within a mode only.
+        """
+        if mode not in MODES:
+            raise ValueError(f"mode must be one of {MODES}, got '{mode}'")
+        mask = self._mask(before)
+        rankings: list[list[int]] = []
+        scores: dict[str, np.ndarray] = {}
+        if mode in ("embedding", "hybrid"):
+            dense = self.vectors @ _normalise(self.embedder.embed_query(query))[0]
+            if district:
+                dense = dense + DISTRICT_BOOST * (self.chunks["district"] == district).to_numpy()
+            scores["embedding"] = dense
+            rankings.append([int(i) for i in np.argsort(-dense, kind="stable") if mask[i]])
+        if mode in ("bm25", "hybrid"):
+            kw = np.asarray(self.bm25.get_scores(tokenize(query)), dtype=float)
+            scores["bm25"] = kw
+            rankings.append([int(i) for i in np.argsort(-kw, kind="stable") if mask[i] and kw[i] > 0])
+        if mode == "hybrid":
+            fused = rrf(rankings)
+            idx = sorted(fused, key=lambda i: (-fused[i], i))[:k]
+            score = {i: fused[i] for i in idx}
+        else:
+            idx = rankings[0][:k]
+            score = {i: float(scores[mode][i]) for i in idx}
         out = []
         for i in idx:
             r = self.chunks.iloc[i]
-            out.append({**{c: (None if pd.isna(r[c]) else r[c]) for c in self.chunks.columns}, "score": float(scores[i])})
+            out.append({**{c: (None if pd.isna(r[c]) else r[c]) for c in self.chunks.columns}, "score": float(score[i])})
         return out

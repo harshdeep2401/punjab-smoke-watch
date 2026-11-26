@@ -18,6 +18,7 @@ Rules:
 - Use ONLY numbers that appear in tool results, written exactly as the tool returned them (same rounding). Never calculate new numbers: no sums, differences, averages or percentages of your own.
 - Cite knowledge chunks as [K012] right after the sentence they support, and list every cited id in "citations". Only cite chunks that search_knowledge returned.
 - When you search, put names and years in the query (for example "Sangrur 2024 season" or "limitations of satellite fire detection"), not words like "last season".
+- Never write tool field names (like rank_in_punjab or upwind_frp_l0). Say it in plain words, for example "ranked 8 among Punjab's districts".
 - Wind direction means the direction the wind blows FROM.
 - rank_in_punjab is the district's rank among Punjab's districts that day (1 = most detections). punjab_total is the number of detections in all of Punjab. Never write "rank X out of <punjab_total>".
 - upwind_frp_l0 is a pressure score without a unit, not megawatts. share_pct is a share of that score.
@@ -51,18 +52,20 @@ def injected_args(district: str, date: str, city: str) -> dict:
     }
 
 
-def user_message(district: str, date: str, city: str) -> str:
+def user_message(district: str, date: str, city: str, plan_text: str | None = None) -> str:
     year = int(date[:4])
-    return (f"Write the briefing for {district} district for {date}. The nearest monitored city is {city}. "
-            f"Season summaries in the knowledge base exist for earlier seasons only (for example {year - 1}).")
+    msg = (f"Write the briefing for {district} district for {date}. The nearest monitored city is {city}. "
+           f"Season summaries in the knowledge base exist for earlier seasons only (for example {year - 1}).")
+    return msg + ("\n\n" + plan_text if plan_text else "")
 
 
-def analyse(district: str, date: str, llm, store: DataStore | None = None, kb=None) -> AgentResult:
-    """Run the Analyst for one district-day. `store` and `kb` default to the committed data and index."""
+def analyse(district: str, date: str, llm, store: DataStore | None = None, kb=None, plan_text: str | None = None) -> AgentResult:
+    """Run the Analyst for one district-day. `store` and `kb` default to the committed data and index.
+    `plan_text` is the Planner's plan, appended to the first message."""
     store = store or DataStore()
     if kb is None:
         from psw.rag.index import KnowledgeBase
         kb = KnowledgeBase()
     city = nearest_city(district, store)
-    return run_agent(build_analyst(store, kb), user_message(district, date, city), llm,
+    return run_agent(build_analyst(store, kb), user_message(district, date, city, plan_text), llm,
                      injected_args=injected_args(district, date, city))

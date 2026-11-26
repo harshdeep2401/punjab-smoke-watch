@@ -1,0 +1,694 @@
+{
+ "k": 3,
+ "n": 17,
+ "modes": {
+  "hybrid": {
+   "hit_at_k": 17,
+   "hit_at_1": 16,
+   "mrr": 0.9705882352941176,
+   "items": [
+    {
+     "query": "why do satellites miss some fires",
+     "kind": "meaning",
+     "expected": [
+      "firms_detection"
+     ],
+     "rank": 2,
+     "got": [
+      "limitations",
+      "firms_detection",
+      "crop_residue_context"
+     ]
+    },
+    {
+     "query": "is the PM2.5 reading from a street monitor or from a model",
+     "kind": "meaning",
+     "expected": [
+      "cams_pm25"
+     ],
+     "rank": 1,
+     "got": [
+      "cams_pm25",
+      "how_to_read_forecast",
+      "model_card"
+     ]
+    },
+    {
+     "query": "what does the 80% prediction interval mean",
+     "kind": "meaning",
+     "expected": [
+      "how_to_read_forecast"
+     ],
+     "rank": 1,
+     "got": [
+      "how_to_read_forecast",
+      "how_to_read_forecast",
+      "how_to_read_forecast"
+     ]
+    },
+    {
+     "query": "why do farmers burn paddy straw before wheat sowing",
+     "kind": "meaning",
+     "expected": [
+      "crop_residue_context"
+     ],
+     "rank": 1,
+     "got": [
+      "crop_residue_context",
+      "crop_residue_context",
+      "crop_residue_context"
+     ]
+    },
+    {
+     "query": "does the forecast model beat just assuming tomorrow equals today",
+     "kind": "meaning",
+     "expected": [
+      "model_card",
+      "how_to_read_forecast"
+     ],
+     "rank": 1,
+     "got": [
+      "how_to_read_forecast",
+      "model_card",
+      "model_card"
+     ]
+    },
+    {
+     "query": "which emergency measures apply when air quality gets severe",
+     "kind": "meaning",
+     "expected": [
+      "grap"
+     ],
+     "rank": 1,
+     "got": [
+      "grap",
+      "standards_pm25",
+      "grap"
+     ]
+    },
+    {
+     "query": "how is wind direction turned into a fire pressure score for a city",
+     "kind": "meaning",
+     "expected": [
+      "method_upwind_pressure"
+     ],
+     "rank": 1,
+     "got": [
+      "method_upwind_pressure",
+      "method_upwind_pressure",
+      "method_upwind_pressure"
+     ]
+    },
+    {
+     "query": "what is the legal 24 hour limit for PM2.5 in India",
+     "kind": "meaning",
+     "expected": [
+      "standards_pm25"
+     ],
+     "rank": 1,
+     "got": [
+      "standards_pm25",
+      "city_season_2023_Ludhiana",
+      "city_season_2022_Ludhiana"
+     ]
+    },
+    {
+     "query": "why do we only have four seasons of data",
+     "kind": "meaning",
+     "expected": [
+      "limitations",
+      "cams_pm25"
+     ],
+     "rank": 1,
+     "got": [
+      "limitations",
+      "model_card",
+      "crop_residue_context"
+     ]
+    },
+    {
+     "query": "GFAS biomass burning emissions",
+     "kind": "keyword",
+     "expected": [
+      "cams_pm25"
+     ],
+     "rank": 1,
+     "got": [
+      "cams_pm25",
+      "limitations",
+      "model_card"
+     ]
+    },
+    {
+     "query": "Happy Seeder",
+     "kind": "keyword",
+     "expected": [
+      "crop_residue_context"
+     ],
+     "rank": 1,
+     "got": [
+      "crop_residue_context",
+      "model_card",
+      "model_card"
+     ]
+    },
+    {
+     "query": "Sangrur fire detections season 2023",
+     "kind": "keyword",
+     "expected": [
+      "season_2023_Sangrur"
+     ],
+     "rank": 1,
+     "got": [
+      "season_2023_Sangrur",
+      "season_2024_Sangrur",
+      "season_2022_Sangrur"
+     ]
+    },
+    {
+     "query": "Tarn Taran 2024 season",
+     "kind": "keyword",
+     "expected": [
+      "season_2024_Tarn Taran"
+     ],
+     "rank": 1,
+     "got": [
+      "season_2024_Tarn Taran",
+      "season_2022_Tarn Taran",
+      "season_2025_Tarn Taran"
+     ]
+    },
+    {
+     "query": "Moga 2022 busiest day",
+     "kind": "keyword",
+     "expected": [
+      "season_2022_Moga"
+     ],
+     "rank": 1,
+     "got": [
+      "season_2022_Moga",
+      "season_2025_Moga",
+      "season_2023_Moga"
+     ]
+    },
+    {
+     "query": "Patiala PM2.5 days above 60 in 2025",
+     "kind": "keyword",
+     "expected": [
+      "city_season_2025_Patiala"
+     ],
+     "rank": 1,
+     "got": [
+      "city_season_2025_Patiala",
+      "city_season_2022_Patiala",
+      "city_season_2023_Patiala"
+     ]
+    },
+    {
+     "query": "Bathinda PM2.5 season 2022",
+     "kind": "keyword",
+     "expected": [
+      "city_season_2022_Bathinda"
+     ],
+     "rank": 1,
+     "got": [
+      "city_season_2022_Bathinda",
+      "city_season_2025_Bathinda",
+      "city_season_2023_Bathinda"
+     ]
+    },
+    {
+     "query": "Sangrur 2024 season",
+     "kind": "filtered",
+     "expected": [
+      "season_2024_Sangrur"
+     ],
+     "rank": 1,
+     "got": [
+      "season_2024_Sangrur",
+      "season_2022_Sangrur",
+      "season_2023_Sangrur"
+     ]
+    }
+   ]
+  },
+  "embedding": {
+   "hit_at_k": 17,
+   "hit_at_1": 15,
+   "mrr": 0.9313725490196079,
+   "items": [
+    {
+     "query": "why do satellites miss some fires",
+     "kind": "meaning",
+     "expected": [
+      "firms_detection"
+     ],
+     "rank": 1,
+     "got": [
+      "firms_detection",
+      "limitations",
+      "firms_detection"
+     ]
+    },
+    {
+     "query": "is the PM2.5 reading from a street monitor or from a model",
+     "kind": "meaning",
+     "expected": [
+      "cams_pm25"
+     ],
+     "rank": 1,
+     "got": [
+      "cams_pm25",
+      "cams_pm25",
+      "cams_pm25"
+     ]
+    },
+    {
+     "query": "what does the 80% prediction interval mean",
+     "kind": "meaning",
+     "expected": [
+      "how_to_read_forecast"
+     ],
+     "rank": 1,
+     "got": [
+      "how_to_read_forecast",
+      "how_to_read_forecast",
+      "how_to_read_forecast"
+     ]
+    },
+    {
+     "query": "why do farmers burn paddy straw before wheat sowing",
+     "kind": "meaning",
+     "expected": [
+      "crop_residue_context"
+     ],
+     "rank": 1,
+     "got": [
+      "crop_residue_context",
+      "crop_residue_context",
+      "crop_residue_context"
+     ]
+    },
+    {
+     "query": "does the forecast model beat just assuming tomorrow equals today",
+     "kind": "meaning",
+     "expected": [
+      "model_card",
+      "how_to_read_forecast"
+     ],
+     "rank": 1,
+     "got": [
+      "how_to_read_forecast",
+      "model_card",
+      "model_card"
+     ]
+    },
+    {
+     "query": "which emergency measures apply when air quality gets severe",
+     "kind": "meaning",
+     "expected": [
+      "grap"
+     ],
+     "rank": 1,
+     "got": [
+      "grap",
+      "method_upwind_pressure",
+      "grap"
+     ]
+    },
+    {
+     "query": "how is wind direction turned into a fire pressure score for a city",
+     "kind": "meaning",
+     "expected": [
+      "method_upwind_pressure"
+     ],
+     "rank": 1,
+     "got": [
+      "method_upwind_pressure",
+      "method_upwind_pressure",
+      "method_upwind_pressure"
+     ]
+    },
+    {
+     "query": "what is the legal 24 hour limit for PM2.5 in India",
+     "kind": "meaning",
+     "expected": [
+      "standards_pm25"
+     ],
+     "rank": 1,
+     "got": [
+      "standards_pm25",
+      "city_season_2025_Ludhiana",
+      "city_season_2022_Ludhiana"
+     ]
+    },
+    {
+     "query": "why do we only have four seasons of data",
+     "kind": "meaning",
+     "expected": [
+      "limitations",
+      "cams_pm25"
+     ],
+     "rank": 1,
+     "got": [
+      "limitations",
+      "limitations",
+      "crop_residue_context"
+     ]
+    },
+    {
+     "query": "GFAS biomass burning emissions",
+     "kind": "keyword",
+     "expected": [
+      "cams_pm25"
+     ],
+     "rank": 1,
+     "got": [
+      "cams_pm25",
+      "limitations",
+      "season_2023_Mansa"
+     ]
+    },
+    {
+     "query": "Happy Seeder",
+     "kind": "keyword",
+     "expected": [
+      "crop_residue_context"
+     ],
+     "rank": 3,
+     "got": [
+      "model_card",
+      "model_card",
+      "crop_residue_context"
+     ]
+    },
+    {
+     "query": "Sangrur fire detections season 2023",
+     "kind": "keyword",
+     "expected": [
+      "season_2023_Sangrur"
+     ],
+     "rank": 1,
+     "got": [
+      "season_2023_Sangrur",
+      "season_2022_Sangrur",
+      "season_2024_Sangrur"
+     ]
+    },
+    {
+     "query": "Tarn Taran 2024 season",
+     "kind": "keyword",
+     "expected": [
+      "season_2024_Tarn Taran"
+     ],
+     "rank": 1,
+     "got": [
+      "season_2024_Tarn Taran",
+      "season_2022_Tarn Taran",
+      "season_2025_Tarn Taran"
+     ]
+    },
+    {
+     "query": "Moga 2022 busiest day",
+     "kind": "keyword",
+     "expected": [
+      "season_2022_Moga"
+     ],
+     "rank": 1,
+     "got": [
+      "season_2022_Moga",
+      "season_2025_Moga",
+      "season_2024_Moga"
+     ]
+    },
+    {
+     "query": "Patiala PM2.5 days above 60 in 2025",
+     "kind": "keyword",
+     "expected": [
+      "city_season_2025_Patiala"
+     ],
+     "rank": 1,
+     "got": [
+      "city_season_2025_Patiala",
+      "city_season_2022_Patiala",
+      "city_season_2024_Patiala"
+     ]
+    },
+    {
+     "query": "Bathinda PM2.5 season 2022",
+     "kind": "keyword",
+     "expected": [
+      "city_season_2022_Bathinda"
+     ],
+     "rank": 2,
+     "got": [
+      "city_season_2025_Bathinda",
+      "city_season_2022_Bathinda",
+      "city_season_2024_Bathinda"
+     ]
+    },
+    {
+     "query": "Sangrur 2024 season",
+     "kind": "filtered",
+     "expected": [
+      "season_2024_Sangrur"
+     ],
+     "rank": 1,
+     "got": [
+      "season_2024_Sangrur",
+      "season_2022_Sangrur",
+      "season_2023_Sangrur"
+     ]
+    }
+   ]
+  },
+  "bm25": {
+   "hit_at_k": 16,
+   "hit_at_1": 15,
+   "mrr": 0.9117647058823529,
+   "items": [
+    {
+     "query": "why do satellites miss some fires",
+     "kind": "meaning",
+     "expected": [
+      "firms_detection"
+     ],
+     "rank": null,
+     "got": [
+      "limitations",
+      "crop_residue_context",
+      "grap"
+     ]
+    },
+    {
+     "query": "is the PM2.5 reading from a street monitor or from a model",
+     "kind": "meaning",
+     "expected": [
+      "cams_pm25"
+     ],
+     "rank": 2,
+     "got": [
+      "how_to_read_forecast",
+      "cams_pm25",
+      "model_card"
+     ]
+    },
+    {
+     "query": "what does the 80% prediction interval mean",
+     "kind": "meaning",
+     "expected": [
+      "how_to_read_forecast"
+     ],
+     "rank": 1,
+     "got": [
+      "how_to_read_forecast",
+      "crop_residue_context",
+      "grap"
+     ]
+    },
+    {
+     "query": "why do farmers burn paddy straw before wheat sowing",
+     "kind": "meaning",
+     "expected": [
+      "crop_residue_context"
+     ],
+     "rank": 1,
+     "got": [
+      "crop_residue_context",
+      "crop_residue_context",
+      "crop_residue_context"
+     ]
+    },
+    {
+     "query": "does the forecast model beat just assuming tomorrow equals today",
+     "kind": "meaning",
+     "expected": [
+      "model_card",
+      "how_to_read_forecast"
+     ],
+     "rank": 1,
+     "got": [
+      "model_card",
+      "how_to_read_forecast",
+      "model_card"
+     ]
+    },
+    {
+     "query": "which emergency measures apply when air quality gets severe",
+     "kind": "meaning",
+     "expected": [
+      "grap"
+     ],
+     "rank": 1,
+     "got": [
+      "grap",
+      "standards_pm25",
+      "cams_pm25"
+     ]
+    },
+    {
+     "query": "how is wind direction turned into a fire pressure score for a city",
+     "kind": "meaning",
+     "expected": [
+      "method_upwind_pressure"
+     ],
+     "rank": 1,
+     "got": [
+      "method_upwind_pressure",
+      "method_upwind_pressure",
+      "method_upwind_pressure"
+     ]
+    },
+    {
+     "query": "what is the legal 24 hour limit for PM2.5 in India",
+     "kind": "meaning",
+     "expected": [
+      "standards_pm25"
+     ],
+     "rank": 1,
+     "got": [
+      "standards_pm25",
+      "cams_pm25",
+      "cams_pm25"
+     ]
+    },
+    {
+     "query": "why do we only have four seasons of data",
+     "kind": "meaning",
+     "expected": [
+      "limitations",
+      "cams_pm25"
+     ],
+     "rank": 1,
+     "got": [
+      "limitations",
+      "crop_residue_context",
+      "grap"
+     ]
+    },
+    {
+     "query": "GFAS biomass burning emissions",
+     "kind": "keyword",
+     "expected": [
+      "cams_pm25"
+     ],
+     "rank": 1,
+     "got": [
+      "cams_pm25",
+      "limitations",
+      "firms_detection"
+     ]
+    },
+    {
+     "query": "Happy Seeder",
+     "kind": "keyword",
+     "expected": [
+      "crop_residue_context"
+     ],
+     "rank": 1,
+     "got": [
+      "crop_residue_context"
+     ]
+    },
+    {
+     "query": "Sangrur fire detections season 2023",
+     "kind": "keyword",
+     "expected": [
+      "season_2023_Sangrur"
+     ],
+     "rank": 1,
+     "got": [
+      "season_2023_Sangrur",
+      "season_2024_Sangrur",
+      "season_2025_Sangrur"
+     ]
+    },
+    {
+     "query": "Tarn Taran 2024 season",
+     "kind": "keyword",
+     "expected": [
+      "season_2024_Tarn Taran"
+     ],
+     "rank": 1,
+     "got": [
+      "season_2024_Tarn Taran",
+      "season_2025_Tarn Taran",
+      "season_2022_Tarn Taran"
+     ]
+    },
+    {
+     "query": "Moga 2022 busiest day",
+     "kind": "keyword",
+     "expected": [
+      "season_2022_Moga"
+     ],
+     "rank": 1,
+     "got": [
+      "season_2022_Moga",
+      "season_2023_Moga",
+      "season_2025_Moga"
+     ]
+    },
+    {
+     "query": "Patiala PM2.5 days above 60 in 2025",
+     "kind": "keyword",
+     "expected": [
+      "city_season_2025_Patiala"
+     ],
+     "rank": 1,
+     "got": [
+      "city_season_2025_Patiala",
+      "city_season_2022_Patiala",
+      "city_season_2023_Patiala"
+     ]
+    },
+    {
+     "query": "Bathinda PM2.5 season 2022",
+     "kind": "keyword",
+     "expected": [
+      "city_season_2022_Bathinda"
+     ],
+     "rank": 1,
+     "got": [
+      "city_season_2022_Bathinda",
+      "city_season_2023_Bathinda",
+      "city_season_2024_Bathinda"
+     ]
+    },
+    {
+     "query": "Sangrur 2024 season",
+     "kind": "filtered",
+     "expected": [
+      "season_2024_Sangrur"
+     ],
+     "rank": 1,
+     "got": [
+      "season_2024_Sangrur",
+      "season_2022_Sangrur",
+      "season_2023_Sangrur"
+     ]
+    }
+   ]
+  }
+ }
+}

@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from psw.agents import analyst, tools
+from psw.agents.demo import load_demo
 from psw.app.common import get_kb, get_store, load_district_daily, scan_watchlist
 from psw.app.helpers import badge, cached_districts, explain_numbers, find_briefing, peak_day, retrieved_chunks
 from psw.llm import LLM, LLMError
@@ -16,10 +17,14 @@ st.title("Daily Watch & Briefing")
 daily = load_district_daily()
 all_days = pd.to_datetime(daily["date"])
 lo, hi = all_days.min().date(), all_days.max().date()
-default_day = peak_day(daily)
+demo = load_demo() or {}
+default_day = Date.fromisoformat(demo["peak"]) if demo.get("peak") else peak_day(daily)
 
 day = st.sidebar.date_input("Date", value=default_day, min_value=lo, max_value=hi, format="YYYY-MM-DD")
-st.sidebar.caption(f"Default is the busiest day of the latest season ({default_day.isoformat()}).")
+if demo.get("peak"):
+    st.sidebar.caption(f"Demo dates with saved briefings: peak {demo['peak']}, moderate {demo['moderate']}, early {demo['early']}.")
+else:
+    st.sidebar.caption(f"Default is the busiest day of the latest season ({default_day.isoformat()}).")
 date = day.isoformat() if isinstance(day, Date) else str(day)
 
 # ---------- Sentinel ----------
@@ -65,11 +70,15 @@ def _label(d: str) -> str:
     return f"{d}  ({'flagged' if d in flag_set else 'not flagged'}{', briefing saved' if d in have else ''})"
 
 
-district = st.selectbox("District", order, format_func=_label, key=f"district_{date}")
+want = demo.get("default_district")
+district = st.selectbox("District", order, index=order.index(want) if want in order else 0, format_func=_label,
+                        key=f"district_{date}")
 rec = find_briefing(date, district)
 
 
 def run_agent_button(label: str) -> None:
+    use_planner = st.checkbox("Plan first (one extra LLM call)", key=f"plan_{label}",
+                              help="A Planner agent writes a short plan that the Analyst follows. The Verifier still checks the text.")
     if not st.button(label, help="Calls the LLM configured in .env. Saves the result to data/processed/briefings/."):
         return
     try:
@@ -81,7 +90,7 @@ def run_agent_button(label: str) -> None:
     from psw.agents.orchestrator import run_briefing
     with st.spinner(f"Running the agent for {district} on {date} (about a minute on a free tier)…"):
         try:
-            run_briefing(district, date, llm=llm, store=get_store(), kb=get_kb())
+            run_briefing(district, date, llm=llm, store=get_store(), kb=get_kb(), use_planner=use_planner)
         except Exception as e:  # noqa: BLE001 - the page must not crash on a provider or data problem
             st.error(f"The run failed: {type(e).__name__}: {e}")
             return
@@ -112,6 +121,17 @@ else:
     with right:
         t_trace, t_src, t_facts, t_ver = st.tabs(["Agent trace", "Sources", "Facts JSON", "Verifier report"])
         with t_trace:
+            if rec.get("plan"):
+                st.markdown("**Plan** (written by the Planner agent before the Analyst ran)")
+                for i, step in enumerate(rec["plan"]["steps"], 1):
+                    st.markdown(f"{i}. {step}")
+                if rec["plan"].get("questions_to_answer"):
+                    st.markdown("**Questions the briefing should answer**")
+                    for q in rec["plan"]["questions_to_answer"]:
+                        st.markdown(f"- {q}")
+                st.caption("The plan is guidance, not evidence. Numbers still come only from tools, and the Verifier checks the text.")
+            elif rec.get("planner_error"):
+                st.caption(f"The Planner was asked to run but produced no usable plan ({rec['planner_error']}), so the Analyst ran without one.")
             if rec["trace"]:
                 tr = pd.DataFrame(rec["trace"])
                 tr["args"] = tr["args"].map(lambda a: json.dumps(a, ensure_ascii=False))
@@ -150,6 +170,9 @@ with st.expander("How the agent works"):
         "Sentinel (rules, no LLM)  ->  ranked watchlist\n"
         "        |\n"
         "        v   top flagged district\n"
+        "(optional) Planner (LLM, no tools)  ->  a short plan from the flag kinds, passed to the Analyst\n"
+        "        |\n"
+        "        v\n"
         "Analyst (LLM + tools)  ->  calls data tools and search_knowledge, writes JSON {headline, briefing, citations}\n"
         "        |\n"
         "        v\n"

@@ -140,3 +140,61 @@ def test_watch_page_without_llm_and_with_unknown_date(monkeypatch):
     if btn:
         btn[0].click().run()
         assert not at.exception and any("No LLM is configured" in w.value for w in at.warning)
+
+
+# ---------- retrieval eval on the Evidence page ----------
+
+def _report(hybrid_ranks, emb_ranks, bm25_ranks):
+    def mode(ranks):
+        items = [{"query": f"q{i}", "kind": "meaning", "expected": ["d"], "rank": r, "got": []} for i, r in enumerate(ranks)]
+        return {"hit_at_k": sum(r is not None for r in ranks), "hit_at_1": sum(r == 1 for r in ranks),
+                "mrr": sum(1 / r for r in ranks if r) / len(ranks), "items": items}
+    return {"k": 3, "n": len(hybrid_ranks), "modes": {"hybrid": mode(hybrid_ranks), "embedding": mode(emb_ranks), "bm25": mode(bm25_ranks)}}
+
+
+def test_retrieval_text_says_when_the_set_cannot_separate_the_methods():
+    rep = _report([1, 1, 2], [1, 2, 2], [None, 1, 1])
+    text = " ".join(helpers.interpret_retrieval(rep))
+    assert "too easy" in text and "higher on 1 of 3 queries and lower on 0" in text and "q0" in text  # BM25's miss is named
+    tbl = helpers.retrieval_frame(rep)
+    assert list(tbl["hit@3"]) == ["3 / 3", "3 / 3", "2 / 3"]
+    q = helpers.retrieval_queries(rep)
+    assert list(q["BM25 only"]) == ["-", 1, 1] and list(q["hybrid (RRF)"]) == [1, 1, 2]
+
+
+def test_retrieval_text_changes_when_the_methods_differ():
+    text = " ".join(helpers.interpret_retrieval(_report([1, 1, 1], [1, None, 2], [1, 1, None])))
+    assert "too easy" not in text and "hit@3: hybrid 3, embeddings 2, BM25 2 out of 3" in text
+
+
+def test_retrieval_report_loading_is_safe(tmp_path):
+    assert helpers.load_retrieval_report(tmp_path) is None
+    (tmp_path / "retrieval_eval.json").write_text("{broken")
+    assert helpers.load_retrieval_report(tmp_path) is None
+
+
+# ---------- planner display on the Watch page ----------
+
+@needs_data
+def test_watch_page_shows_the_plan_and_survives_old_records_without_one(monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    for k in ("LLM_API_KEY", "LLM_BASE_URL", "LLM_MODEL"):
+        monkeypatch.setattr(config, k, "")
+    real = helpers.find_briefing("2025-10-31", "Ludhiana")
+    assert real is not None and "plan" not in real  # a record written before the Planner existed
+    page = str(config.ROOT / "src/psw/app/pages/3_Watch_and_Briefing.py")
+
+    at = AppTest.from_file(page, default_timeout=60).run()
+    assert not at.exception and not any("Plan" in m.value for m in at.markdown)  # old record: no plan block, no crash
+
+    planned = {**real, "plan": {"steps": ["Get the snapshot.", "Search the 2024 season."], "questions_to_answer": ["Is it a spike?"]}}
+    monkeypatch.setattr(helpers, "find_briefing", lambda d, dist, root=None: planned)
+    at = AppTest.from_file(page, default_timeout=60).run()
+    assert not at.exception
+    text = " ".join(m.value for m in at.markdown)
+    assert "written by the Planner agent" in text and "Search the 2024 season." in text and "Is it a spike?" in text
+
+    failed = {**real, "planner_error": "LLM error: rate limited"}
+    monkeypatch.setattr(helpers, "find_briefing", lambda d, dist, root=None: failed)
+    at = AppTest.from_file(page, default_timeout=60).run()
+    assert not at.exception and any("produced no usable plan" in c.value for c in at.caption)

@@ -114,8 +114,8 @@ def test_no_before_returns_everything(kb):
 
 
 def test_district_boost_reorders_but_does_not_filter(kb):
-    plain = kb.search("fire detections 2024 season", k=5)
-    boosted = kb.search("fire detections 2024 season", k=5, district="Moga")
+    plain = kb.search("fire detections 2024 season", k=5, mode="embedding")
+    boosted = kb.search("fire detections 2024 season", k=5, district="Moga", mode="embedding")
     assert len(boosted) == len(plain) == 5  # nothing excluded
     score = {r["doc_id"]: r["score"] for r in plain}
     bscore = {r["doc_id"]: r["score"] for r in boosted}
@@ -195,3 +195,117 @@ def test_generate_docs_roundtrip_through_load_docs(processed, tmp_path):
     # regenerating replaces old files instead of piling up
     (out / "stale.md").write_text("old")
     assert len(build_kb.generate_docs(processed, out)) == 7 and not (out / "stale.md").exists()
+
+
+# ---------- hybrid retrieval: BM25 + embeddings + reciprocal rank fusion ----------
+
+MODES = index.MODES
+
+
+def test_tokenize_keeps_years_and_numbers_whole():
+    assert index.tokenize("Moga 2024: p90 > 60 µg/m3, FRP.") == ["moga", "2024", "p90", "60", "g", "m3", "frp"]
+
+
+def test_rrf_scores_and_order():
+    fused = index.rrf([[1, 2], [2, 3]], k=60)
+    assert fused[1] == pytest.approx(1 / 61)
+    assert fused[2] == pytest.approx(1 / 62 + 1 / 61)  # ranked 2nd in one list and 1st in the other
+    assert fused[3] == pytest.approx(1 / 62)
+    assert max(fused, key=fused.get) == 2
+    assert index.rrf([]) == {} and index.rrf([[]]) == {}
+
+
+class FlatEmbedder:
+    """Every text gets the same vector, so embedding search cannot tell chunks apart. Only keywords can."""
+    def embed_passages(self, texts):
+        return np.ones((len(texts), 8), dtype=np.float32)
+
+    def embed_query(self, text):
+        return np.ones(8, dtype=np.float32)
+
+
+@pytest.fixture
+def flat_kb(tmp_path):
+    docs = [doc(f"d{i}", f"Ordinary text number {i} about weather and wind.") for i in range(5)]
+    docs.append(doc("rare", "A note about the zebrafish experiment."))
+    docs.append(doc("rare_future", "The zebrafish experiment results.", as_of="2026-01-01"))
+    index.build_index(docs, embedder=FlatEmbedder(), out_dir=tmp_path)
+    return KnowledgeBase(tmp_path, embedder=FlatEmbedder())
+
+
+def test_bm25_finds_an_exact_keyword_that_embeddings_cannot(flat_kb):
+    assert flat_kb.search("zebrafish", k=1, mode="bm25")[0]["doc_id"] in ("rare", "rare_future")
+    emb = [r["doc_id"] for r in flat_kb.search("zebrafish", k=3, mode="embedding")]
+    assert "rare" not in emb  # all vectors tie, so the embedding ranking is just the index order
+    assert flat_kb.search("zebrafish", k=1, before="2025-01-01", mode="hybrid")[0]["doc_id"] == "rare"
+
+
+def test_bm25_returns_nothing_for_words_not_in_the_corpus(flat_kb):
+    assert flat_kb.search("xylophone", k=5, mode="bm25") == []
+    assert len(flat_kb.search("xylophone", k=5, mode="hybrid")) == 5  # hybrid falls back to the embedding ranking
+
+
+@pytest.mark.parametrize("mode", MODES)
+def test_as_of_filter_holds_in_every_mode(flat_kb, mode):
+    res = flat_kb.search("zebrafish experiment", k=10, before="2025-12-31", mode=mode)
+    assert res and "rare_future" not in {r["doc_id"] for r in res}
+    assert all(r["as_of"] < "2025-12-31" for r in res)
+
+
+@pytest.mark.parametrize("mode", MODES)
+def test_every_mode_returns_k_results_with_scores_and_columns(kb, mode):
+    res = kb.search("Sangrur fire detections 2024 season", k=3, mode=mode)
+    assert 1 <= len(res) <= 3
+    assert all("score" in r and "chunk_id" in r and "doc_id" in r for r in res)
+    assert [r["score"] for r in res] == sorted((r["score"] for r in res), reverse=True)
+
+
+def test_hybrid_is_the_default_and_unknown_modes_fail(kb):
+    assert index.DEFAULT_MODE == "hybrid"
+    assert kb.search("satellites miss fires", k=3) == kb.search("satellites miss fires", k=3, mode="hybrid")
+    with pytest.raises(ValueError, match="mode must be one of"):
+        kb.search("x", mode="dense")
+
+
+def test_hybrid_score_is_a_fused_rank_score(kb):
+    top = kb.search("satellites miss fires cloud", k=1, mode="hybrid")[0]
+    assert top["score"] <= 2 / (index.RRF_K + 1) + 1e-9  # at most rank 1 in both lists
+
+
+# ---------- retrieval evaluation ----------
+
+def test_evaluate_counts_hits_and_ranks(kb):
+    from psw.rag import evaluate
+    items = [{"query": "why do satellites miss fires", "expected": ["firms"]},
+             {"query": "Moga fire detections 2024 season", "expected": ["season_2024_Moga"], "before": "2025-01-01"},
+             {"query": "graded response action plan", "expected": ["season_2024_Moga"]}]  # deliberately wrong
+    rep = evaluate.evaluate(kb, items, k=3)
+    assert rep["n"] == 3 and rep["k"] == 3 and set(rep["modes"]) == set(MODES)
+    for mode in MODES:
+        m = rep["modes"][mode]
+        assert m["items"][0]["rank"] == 1 and m["items"][2]["rank"] != 1
+        assert m["hit_at_1"] >= 1 and m["hit_at_k"] >= m["hit_at_1"]
+        assert 0 < m["mrr"] <= 1 and m["mrr"] == pytest.approx(sum(1 / r["rank"] for r in m["items"] if r["rank"]) / 3)
+
+
+def test_load_eval_rejects_bad_items(tmp_path):
+    from psw.rag import evaluate
+    (tmp_path / "e.json").write_text('[{"query": "x", "expected": []}]')
+    with pytest.raises(ValueError, match="bad eval item"):
+        evaluate.load_eval(tmp_path / "e.json")
+
+
+def test_committed_eval_set_is_valid_against_the_committed_index():
+    from psw import config
+    from psw.rag import evaluate
+    chunks_path = config.PROCESSED / index.CHUNKS_FILE
+    if not chunks_path.exists():
+        pytest.skip("index not built")
+    docs = set(pd.read_parquet(chunks_path)["doc_id"])
+    items = evaluate.load_eval()
+    assert len(items) >= 15
+    for it in items:
+        assert set(it["expected"]) <= docs, it
+        if it.get("before"):
+            date.fromisoformat(it["before"])
+    assert {it.get("kind") for it in items} >= {"meaning", "keyword"}

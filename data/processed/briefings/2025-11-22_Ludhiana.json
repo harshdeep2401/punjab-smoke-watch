@@ -1,0 +1,224 @@
+{
+ "district": "Ludhiana",
+ "date": "2025-11-22",
+ "mode": "agent",
+ "headline": "Ludhiana records 1 fire detection with PM2.5 forecast expected tomorrow",
+ "briefing": "On 2025-11-22, Ludhiana district recorded 1 fire detection and ranked 3 among Punjab's districts, while Punjab total reached 8. The total fire radiative power was 2.2 MW. Satellite fire detections represent a lower bound due to potential cloud cover, missed fires, or overpass timing [K101]. Winds blew from the WNW at 3.8 km/h, and upwind fire activity showed an upwind pressure score of 27.0. For the nearest monitored city, Ludhiana, today's PM2.5 level was 158.8 ug/m3. The next-day PM2.5 forecast is 130.3 ug/m3, with an 80% uncertainty interval ranging from a p10 of 102.7 ug/m3 to a p90 of 170.6 ug/m3. CAMS models PM2.5 on a coarse grid rather than providing street-level measurements [K035]. Model reliability testing shows an 80% interval coverage of 87.7% across test seasons.",
+ "citations": [
+  "K101",
+  "K035"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K101",
+   "title": "Ludhiana fire season 2024",
+   "doc_type": "season_summary"
+  },
+  {
+   "chunk_id": "K035",
+   "title": "Limitations of this project",
+   "doc_type": "curated"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   1.0,
+   2025.0,
+   11.0,
+   22.0,
+   1.0,
+   3.0,
+   8.0,
+   2.2,
+   3.8,
+   27.0,
+   158.8,
+   130.3,
+   80.0,
+   102.7,
+   170.6,
+   80.0,
+   87.7
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "analyst",
+   "tool": "get_district_snapshot",
+   "args": {
+    "date": "2025-11-22",
+    "district": "Ludhiana"
+   },
+   "result_summary": "{\"district\": \"Ludhiana\", \"date\": \"2025-11-22\", \"fire_count\": 1, \"frp_sum_mw\": 2.2, \"fire_count_7d_mean\": 2.7, \"change_vs_7d_pct\": -63.2, \"rank_in_punjab\": 3, \"punjab_total\": 8, \"l…",
+   "ms": 44
+  },
+  {
+   "step": 2,
+   "agent": "analyst",
+   "tool": "get_city_forecast",
+   "args": {
+    "city": "Ludhiana",
+    "date": "2025-11-22"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"issue_date\": \"2025-11-22\", \"target_date\": \"2025-11-23\", \"p10\": 102.7, \"p50\": 130.3, \"p90\": 170.6, \"pm25_today\": 158.8, \"persistence_p50\": 158.8, \"band_width\"…",
+   "ms": 2
+  },
+  {
+   "step": 3,
+   "agent": "analyst",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "city": "Ludhiana",
+    "date": "2025-11-22"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"date\": \"2025-11-22\", \"wind_dir_from_deg\": 300.6, \"wind_dir_compass\": \"WNW\", \"wind_speed_kmh\": 3.8, \"upwind_frp_l0\": 27.0, \"top_upwind_districts\": [{\"district…",
+   "ms": 15
+  },
+  {
+   "step": 4,
+   "agent": "analyst",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Ludhiana"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"test_seasons\": [2024, 2025], \"mae\": 11.0, \"coverage_80_pct\": 87.7, \"mae_persistence\": 10.3, \"mae_no_fire\": 10.8, \"n_forecasts\": 154}",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "k": 4,
+    "query": "Ludhiana limitations model reliability satellite fire detection",
+    "before": "2025-11-22",
+    "district": "Ludhiana"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K101\", \"title\": \"Ludhiana fire season 2024\", \"text\": \"# Ludhiana: fire detections, season 2024\\n\\nIn the 2024 season (Sep 15 to Nov 30), satellite fire …",
+   "ms": 583
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "Ludhiana",
+   "date": "2025-11-22",
+   "fire_count": 1,
+   "frp_sum_mw": 2.2,
+   "fire_count_7d_mean": 2.7,
+   "change_vs_7d_pct": -63.2,
+   "rank_in_punjab": 3,
+   "punjab_total": 8,
+   "last_7_days": [
+    {
+     "date": "2025-11-16",
+     "count": 8
+    },
+    {
+     "date": "2025-11-17",
+     "count": 5
+    },
+    {
+     "date": "2025-11-18",
+     "count": 0
+    },
+    {
+     "date": "2025-11-19",
+     "count": 0
+    },
+    {
+     "date": "2025-11-20",
+     "count": 4
+    },
+    {
+     "date": "2025-11-21",
+     "count": 1
+    },
+    {
+     "date": "2025-11-22",
+     "count": 1
+    }
+   ],
+   "nearest_city": "Ludhiana",
+   "data_as_of": "2025-11-22"
+  },
+  "get_city_forecast": {
+   "city": "Ludhiana",
+   "issue_date": "2025-11-22",
+   "target_date": "2025-11-23",
+   "p10": 102.7,
+   "p50": 130.3,
+   "p90": 170.6,
+   "pm25_today": 158.8,
+   "persistence_p50": 158.8,
+   "band_width": 67.9,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Ludhiana",
+   "date": "2025-11-22",
+   "wind_dir_from_deg": 300.6,
+   "wind_dir_compass": "WNW",
+   "wind_speed_kmh": 3.8,
+   "upwind_frp_l0": 27.0,
+   "top_upwind_districts": [
+    {
+     "district": "Outside Punjab",
+     "share_pct": 82.2
+    },
+    {
+     "district": "Ferozepur",
+     "share_pct": 8.6
+    },
+    {
+     "district": "Gurdaspur",
+     "share_pct": 4.1
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Ludhiana",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 11.0,
+   "coverage_80_pct": 87.7,
+   "mae_persistence": 10.3,
+   "mae_no_fire": 10.8,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K101",
+     "title": "Ludhiana fire season 2024",
+     "text": "# Ludhiana: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 339 fire detections in Ludhiana district, with a total fire radiative power of 1,428 MW. Among the 22 districts it ranked number 12 by detections.\n\nThe busiest day was 2024-11-18, with 51 detections.\n\nCompared with the previous season: -78% compared with 2023 (1,512 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K079",
+     "title": "Ludhiana fire season 2023",
+     "text": "# Ludhiana: fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 1,512 fire detections in Ludhiana district, with a total fire radiative power of 9,174 MW. Among the 22 districts it ranked number 10 by detections.\n\nThe busiest day was 2023-11-05, with 167 detections.\n\nCompared with the previous season: -34% compared with 2022 (2,302 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K057",
+     "title": "Ludhiana fire season 2022",
+     "text": "# Ludhiana: fire detections, season 2022\n\nIn the 2022 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 2,302 fire detections in Ludhiana district, with a total fire radiative power of 13,997 MW. Among the 22 districts it ranked number 11 by detections.\n\nThe busiest day was 2022-11-11, with 205 detections.\n\nCompared with the previous season: no earlier season is available to compare with.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K035",
+     "title": "Limitations of this project",
+     "text": "# What to keep in mind when reading any output\n\n**Fires.** Satellites detect heat anomalies. They do not know that a fire is stubble burning. They miss fires that burn between overpasses, fires under cloud, and small or short burns. A district's detection count is a lower bound. Fire dates are UTC dates that we treat as local days, so some night detections are filed one day early.\n\n**Air quality.** PM2.5 is modelled by CAMS on a coarse grid. It is not measured at street level and it is not CPCB monitor data. It already includes fire emissions as the model sees them.\n\n**Districts.** We use 22 district boundaries. Malerkotla, created in 2021, is not a separate district in our boundary data. Its area is counted in Sangrur."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-25T07:51:55+00:00",
+ "nearest_city": "Ludhiana",
+ "first_attempt_errors": [],
+ "llm_error": null,
+ "label": null
+}

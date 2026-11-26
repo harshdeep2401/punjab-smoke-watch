@@ -5,8 +5,8 @@ import streamlit as st
 
 from psw import config
 from psw.app.common import CREDITS, LIMITATIONS, load_metrics
-from psw.app.helpers import (VARIANT_LABEL, VARIANTS, by_city_frame, importance_frame, interpret, metrics_frame,
-                             reliability)
+from psw.app.helpers import (VARIANT_LABEL, VARIANTS, by_city_frame, importance_frame, interpret, interpret_retrieval,
+                             load_retrieval_report, metrics_frame, reliability, retrieval_frame, retrieval_queries)
 
 st.set_page_config(page_title="Evidence", layout="wide")
 st.title("Evidence")
@@ -75,6 +75,20 @@ for line in interpret(m):
     st.markdown(f"- {line}")
 st.caption("Feature importance describes the final model trained on all seasons. It shows what the model used, "
            "not what causes PM2.5. Settings were not tuned on the test seasons.")
+
+# ---------- retrieval ----------
+st.header("Retrieval: embeddings, keywords and hybrid")
+rep_ = load_retrieval_report()
+if rep_ is None:
+    st.info("No retrieval evaluation found. Run `uv run python -m psw.pipeline kb-eval`.")
+else:
+    st.write("The knowledge base is searched with embeddings (meaning), BM25 (exact words) and a hybrid of both merged by "
+             "reciprocal rank fusion. Every mode applies the same `as_of` filter, so none of them can see the future.")
+    st.dataframe(retrieval_frame(rep_).style.format({"MRR": "{:.2f}"}), hide_index=True, width="stretch")
+    for line in interpret_retrieval(rep_):
+        st.markdown(f"- {line}")
+    with st.expander("Rank of the right document, per query (1 = best, - = not in the top 3)"):
+        st.dataframe(retrieval_queries(rep_), hide_index=True, width="stretch")
 
 # ---------- agent reliability ----------
 st.header("Agent reliability")

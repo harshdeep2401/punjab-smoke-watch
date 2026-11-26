@@ -2,7 +2,18 @@
 
 Update this file at the end of every phase. Newest notes go at the top of each section.
 
-**Current phase:** 7 (Phase 6 done, awaiting user commit and review)
+**Current phase:** Part 1 (0–7) done, plus Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). **Part 2 (Audit + Response) planned on 2026-11-26. Next: Phase 8** (see AGENTS.md §1b and PLAN.md Part 2).
+
+**Part 2 motivating finding** (Opus, from `fires.parquet`, S-NPP, Indian Punjab):
+
+| Season | Day detections | Night detections | Night share |
+|---|---|---|---|
+| 2022 | 45,305 | 82 | 0.2% |
+| 2023 | 30,300 | 90 | 0.3% |
+| 2024 | 8,530 | 142 | 1.6% |
+| 2025 | 3,942 | 96 | 2.4% |
+
+Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections didn't. The night counts are small, so this is a lead, not proof. Phase 10 tests it.
 
 ## Phase checklist
 - [x] Phase 0: Setup and feasibility
@@ -12,8 +23,15 @@ Update this file at the end of every phase. Newest notes go at the top of each s
 - [x] Phase 4: RAG knowledge base
 - [x] Phase 5: Agents (tools, Sentinel, Analyst, Verifier)
 - [x] Phase 6: Forecast, Watch & Briefing, Evidence pages
-- [ ] Phase 7: Demo cache, README, rehearsal
-- [ ] Stretch
+- [x] Phase 7: Demo cache, README, rehearsal (screenshots and the clean-clone check are yours, see below)
+- [x] Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). Item 7 (Critic) moved to Part 2 stretch 1. Item 8 (Comparison) superseded by the Auditor. Old item 3 (detection-gap panel) superseded by Phases 9–10.
+- [ ] Phase 8: Feasibility for the new data (**user decision point** at the end)
+- [ ] Phase 9: Audit data (multi-sensor FIRMS, burned area, manual CSVs, district rain)
+- [ ] Phase 10: Audit analytics, gap ranges, Auditor agent
+- [ ] Phase 11: Harvest signal and 3-day fire-risk forecast
+- [ ] Phase 12: Allocator, 5 km grid, Dispatcher agent
+- [ ] Phase 13: Audit and Response Planner pages, Evidence, docs, demo
+- [ ] Part 2 stretch
 
 ## Results (fill in during the phases)
 - Ingest (Phase 1): fires 139,419 rows after dropping 6,707 low-confidence (2022: 59,162; 2023: 41,962; 2024: 21,812; 2025: 16,483). Daily PM2.5 and weather: 1,472 rows each (4 cities × 92 days × 4 seasons), 0 NaN. First run about 3 min, cached rerun about 1 s.
@@ -38,7 +56,19 @@ Update this file at the end of every phase. Newest notes go at the top of each s
 - App (Phase 6): 145 tests pass offline (15 new in `tests/test_app.py`: helpers on synthetic data, plus a Streamlit `AppTest` run of all 5 pages and of the Watch page's no-LLM and off-season paths). Acceptance run with `.env` moved to `.env.bak`: all 5 pages load with 0 exceptions, and the headless server health check returns 200. **I could not look at the rendered pages** (no browser), so check the layout by eye.
 - Evidence page, read from the real `metrics.json` (all text is computed, none typed in): 616 forecasts per variant (4 cities × 154 days; the earlier "n = 608" above was a typo), lowest MAE is persistence (11.20), fire features did not help (11.94 vs 11.88), the model's 80% band covers 84.4% and persistence's 76.9%. Agent reliability table: demo set 4 of 4 verified (3 agent, 1 template), sampled run 12 of 12 verified (12 agent).
 
+- Demo cache (Phase 7): demo dates chosen by rule from the 2025 season: peak 2025-10-31 (273 detections in Punjab), moderate 2025-10-26 (closest to half the peak total among days with a fire-driven flag), early 2025-10-18 (the first day with a fire-driven flag). `demo-cache` wrote 8 briefings in `briefings/` and 3 watch files, all by the agent and all verified. Peak day: Tarn Taran, Bathinda, Moga, Ludhiana, Sangrur. One run of the final `demo-cache` made 8 LLM calls on `gemini-3.5-flash-lite` (about 36 s).
+- Verifier change (Phase 7): reading the demo briefings found "the district ranked rank_in_punjab" (a raw tool field name in the text, no number, so it passed). The Verifier now flags snake_case field names, and the Analyst prompt says not to write them. Scanning every saved briefing found 2 offenders (this one and `sample_run/.../2025-11-27_Jalandhar.json`, which said `punjab_total`). I deleted both and regenerated them; both pass now. The sampled run is again **12 of 12 verified, 12 by the agent**, but it needed this fix, so the earlier "12/12" was true only under the weaker Verifier.
+- Definition of done: backtest table has all three variants on 2 test seasons (yes); 12 sampled briefings pass (yes, 12/12, agent 12 / template 0); RAG `as_of` test exists (`tests/test_rag.py`); README credits sources and lists limitations (yes); secret scan of `git log -p` for `key=`-style assignments with a long value printed nothing, and `.env` is not tracked (yes); **clean-clone run: not done by me, see below**.
+
+- Hybrid retrieval (stretch 5), 17-query eval, k = 3, real bge model: hit@3 hybrid 17/17, embeddings 17/17, BM25 16/17. hit@1 16 / 15 / 15. MRR 0.971 / 0.931 / 0.912. Per query, hybrid ranked the right doc higher than embeddings on 2 (a rare exact term, "Happy Seeder", 3 to 1; "Bathinda PM2.5 season 2022", 2 to 1) and lower on 1 ("why do satellites miss some fires", 1 to 2, because BM25 has no stemming and found nothing for "satellites" vs "satellite"). **At hit@3 this set cannot separate the methods (embeddings are already perfect), and 17 queries written by us after reading the corpus is a sanity check, not a benchmark.** I did not tune queries or the tokenizer after seeing the results.
+- Live check with hybrid on (`gemini-3.5-flash-lite`, Ludhiana 2025-10-31, written to a scratch folder): `agent_revised`, verified. The revision was triggered by the new raw-field-name check (`share_pct`), not by retrieval.
+
+- Planner (stretch 6), live checks on `gemini-3.5-flash-lite`, scratch folders only (nothing in `data/processed/` changed): 4 briefings with the planner on, all verified, 3 agent and 1 agent_revised (a 13-word headline, not the plan). For Bathinda 2025-11-20, flagged only for `smog_risk` (4 detections), the plan put the forecast and the wind first and the briefing led with them, as the prompt asks. **I did not measure whether plans improve the briefings** (no A/B on quality, only 4 runs), and the Verifier pass rate was not re-measured with the planner on. It adds one LLM call per briefing, about 1.1k prompt and 0.3k completion tokens.
+- Planner: the first real run produced no usable plan once (reason not recorded, because the error text was vague). Two later calls with the same input gave good plans. I made the cleaner allow the Verifier's constants (7-day, 80%, p10/p50/p90, 24-hour), since the tool descriptions in the prompt contain "7-day" and the model repeats it, and I made the failure reason specific (`planner_error` now says why). A plan with no usable steps is still possible and is simply skipped.
+
 ## Deviations from PLAN.md
+- Stretch 6: new `agents/planner.py` (`build_planner`, `make_plan`, `clean_plan`, `plan_text`, `flag_kinds`). PLAN says the plan shows at the top of the Agent trace tab: done, as a block above the table when `plan` is in the record. The Planner also appears as the first row of the trace (agent `planner`, tool `plan`). `BriefingRecord` has two new fields, `plan` and `planner_error`; old saved briefings lack them and the page handles that. `run_briefing`, `run_daily_watch` and `build_demo_cache` take `use_planner` (default False); the CLI flag is `--plan` on `brief` and `demo-cache`; the app's Run agent / Regenerate button has a "Plan first" checkbox. `analyst.analyse` and `user_message` take an optional `plan_text`. `reuse=True` returns a saved briefing even if it has no plan, so use `--force` to add plans to the demo set.
+- Planner input: it gets the **kinds** of Sentinel flag (spike, high_count, smog_risk), not their text, so no number can enter the plan from there. PLAN did not say what the Planner sees.
 - D10 fallback applied: 22 districts, no Malerkotla (neither source has it). Source is geoBoundaries (ODbL), not udit-001, because the latter has no licence file.
 - Weather archive lag measured at 1 day, not ~5 as PLAN.md assumed.
 - `SEASONS = [2022..2025]`, not including 2026, because FIRMS NRT for 2026 stops around Nov 2.
@@ -69,6 +99,15 @@ Update this file at the end of every phase. Newest notes go at the top of each s
 - Phase 4: `pipeline kb` regenerates `kb/generated/` (deleting old files) and rebuilds the index. `pipeline all` now runs ingest, process, train, kb.
 - Phase 4: the model card is generated from `metrics.json` with conditional wording ("did not improve" / "did not beat"), so it states the negative result as it is. Its "possible reasons" are marked "not tested here".
 - Phase 4: `data/processed/kb_*` should be committed. `kb/generated/` is gitignored (rebuilt by `pipeline kb`).
+- Stretch 5: new dependency `rank-bm25` (in `pyproject.toml` and `uv.lock`). `KnowledgeBase.search` got `mode` ("hybrid" default, "embedding", "bm25"); `score` means cosine, BM25 or fused RRF score by mode. BM25 uses the same text as the embeddings (title + chunk), a plain `[a-z0-9]+` tokenizer, no stemming, and returns nothing for chunks sharing no word with the query. The district boost applies to the embedding side only. The BM25 index is built in memory on first use, so no new committed file besides the eval report.
+- Stretch 5: the default retrieval changed from embeddings to hybrid, so the Analyst's `search_knowledge` now uses it. The saved briefings were written with embeddings and are unchanged. `search_knowledge` for the LLM has no `mode` argument.
+- Stretch 5: new `rag/evaluate.py`, `tests/fixtures/retrieval_eval.json` (17 queries: 9 meaning, 7 keyword, 1 with the `before` and `district` filters), `pipeline kb-eval` (writes `data/processed/retrieval_eval.json`), and an Evidence-page section whose wording is computed from the report. The old district-boost test was pinned to `mode="embedding"`, because it checks cosine arithmetic.
+- Phase 7: new `agents/demo.py` (`pick_demo_dates`, `build_demo_cache`) and `data/processed/demo.json`. `run_briefing` / `run_daily_watch` got `reuse=True`, which returns a saved briefing only if the agent wrote it and it verified (templates are redone). `demo-cache` uses it, `--force` turns it off.
+- Phase 7: the plan says the early-season demo day is "early-season", but before about 2025-10-15 the Sentinel flags nothing, so a daily watch would brief nobody. "Early" is the first day with a fire-driven flag (2025-10-18), and each of the moderate and early days has only 1 flagged district. So those two days show a one-row watchlist.
+- Phase 7: the Watch page opens on `demo.json`'s peak date and Ludhiana (falls back to the computed peak day if the file is missing). The Forecast page already defaulted to Ludhiana. The sidebar lists the three demo dates.
+- Phase 7: **no screenshots.** Headless Chrome only captured Streamlit's loading skeleton (the page renders over a websocket), so I deleted the blank images. `docs/screenshots/` does not exist.
+- Phase 7: brief §12 (demo script) was rewritten. The old step 4 said to show that "the model beats persistence and removing fire features makes it worse". That is the opposite of the result, so the new step 4 presents the negative result. The README states it in the same way.
+- Phase 7: the app (all 5 pages) was run with `lightgbm`, `fastembed`, `sklearn` and `openai` blocked from importing, and with `.env` absent: 0 exceptions. So a clean clone needs none of them to run the demo (`libomp` is only for `train`).
 - Phase 6: new `psw/app/helpers.py` holds the pure logic (no Streamlit): peak day, finding saved briefings, badge, the Verifier number report, backtest tables, `interpret(metrics)` (the Evidence text, which changes wording with the result), and the reliability table. `common.py` gained cached loaders (`get_store`, `get_kb`, `load_forecasts`, `load_metrics`, `scan_watchlist`).
 - Phase 6: the Watch page always runs the Sentinel live (offline, fast) and does **not** read `watch/{date}.json`. It marks the districts that have a saved briefing. Any date in the data can be picked. Outside the test seasons there is no forecast, so the page says so.
 - Phase 6: the page looks for a saved briefing in `briefings/` first, then `sample_run/briefings/`. The Evidence reliability table covers both folders separately ("demo briefings", "sampled run"), since the 12-briefing sample lives in `sample_run/`, not `briefings/` as PLAN.md assumed.
@@ -92,6 +131,12 @@ Update this file at the end of every phase. Newest notes go at the top of each s
 ## Open questions / user actions needed
 - User (Phase 3): decide whether the negative result is acceptable for the demo. Plan: the Evidence page shows it as is. Say if you want an extra experiment (not tuned on test seasons) before Phase 4.
 - User (Phase 2): run `uv run streamlit run src/psw/app/main.py`, open Replay Map, and check that it looks right and Play works.
+- User (Stretch 6): the committed demo briefings were written **without** the planner, so the Plan block does not show in the app yet. To show it, run `uv run python -m psw.pipeline brief --date 2025-10-31 --district Ludhiana --plan` (overwrites that one saved briefing; about 3 LLM calls), or `demo-cache --plan --force` for the whole set. Read the result first: I have no evidence yet that plans make briefings better.
+- User (Phase 7): **take the screenshots** (home, Replay map, Forecast, Watch & Briefing on 2025-10-31 with the Ludhiana briefing, Evidence) into `docs/screenshots/` if you want them in the README or slides. I could not.
+- User (Phase 7): **check a clean clone** (needs your last commit to include `data/processed/`): `git clone . /tmp/psw-check && cd /tmp/psw-check && uv sync && uv run streamlit run src/psw/app/main.py` with no `.env`. Click through all four pages and the Ludhiana briefing.
+- User (Phase 7): read the Ludhiana and the two Tarn Taran demo briefings (`data/processed/briefings/2025-10-31_Ludhiana.json`, `2025-10-18_...`, `2025-10-26_...`) as a reader. They pass the Verifier; I read them and found no wrong figures, but the Verifier cannot judge the wording. One says "rank 1 in Punjab out of a total state count of 42", which is clumsy but correct.
+- User (Phase 7): `briefings/2025-10-23_Sangrur.json` is an old test run (agent_revised, verified) that is not part of the demo set. Keep it or delete it. It counts in the reliability table.
+- User (Phase 7): the demo briefings come from two models: the peak-day Tarn Taran, Bathinda and Moga from `gemini-3.5-flash`, the rest from `gemini-3.5-flash-lite`. Run `uv run python -m psw.pipeline demo-cache --force` if you want one model throughout (it spends free-tier quota).
 - User (Phase 6): run `uv run streamlit run src/psw/app/main.py` and look at Forecast, Watch & Briefing and Evidence. Things I could not see: the Plotly band and the "NAAQS 24 h" label, the green best-value highlighting, the layout of the two columns, and whether the briefing text reads well with `[K103]` citations.
 - User (Phase 6): the Evidence page tells the reader the Verifier does not check that a source supports a sentence, and that Sentinel flags can come from `smog_risk` alone. Say if you want that wording changed.
 - User (Phase 6): decide what to commit under `data/processed/`. The page now reads both `briefings/` (4 files) and `sample_run/briefings/` (12 files). If you commit only `briefings/`, the reliability table shows one row. Phase 7 `demo-cache` should decide the final set.

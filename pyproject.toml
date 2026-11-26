@@ -19,6 +19,7 @@ dependencies = [
     "streamlit",
     "pydeck",
     "plotly",
+    "rank-bm25>=0.2.2",
 ]
 
 [dependency-groups]

@@ -1,0 +1,216 @@
+{
+ "district": "Ludhiana",
+ "date": "2025-10-31",
+ "mode": "agent",
+ "headline": "Ludhiana Fire Detections Rise as PM2.5 Forecast Nears 81.9 µg/m3",
+ "briefing": "On 2025-10-31, satellite monitoring recorded 11 fire detections in Ludhiana district, with a total fire radiative power of 41.2 MW. The district ranked 8 in Punjab, where the total reached 273 detections. Winds blew from the northwest at 6.1 km/h, with upwind fire pressure coming primarily from Outside Punjab at 61.0% and Tarn Taran at 17.5%. For the next day, the PM2.5 forecast for Ludhiana city centres around a p50 value of 81.9 µg/m3, with an 80% uncertainty band ranging from a p10 of 53.6 to a p90 of 102.5 µg/m3. Today's value stood at 81.5 µg/m3. Satellite fire detections represent a lower bound due to missed fires, cloud cover, and overpass timing limitations [K101].",
+ "citations": [
+  "K101"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K101",
+   "title": "Ludhiana fire season 2024",
+   "doc_type": "season_summary"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   81.9,
+   2025.0,
+   10.0,
+   31.0,
+   11.0,
+   41.2,
+   8.0,
+   273.0,
+   6.1,
+   61.0,
+   17.5,
+   81.9,
+   80.0,
+   53.6,
+   102.5,
+   81.5
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "analyst",
+   "tool": "get_district_snapshot",
+   "args": {
+    "district": "Ludhiana",
+    "date": "2025-10-31"
+   },
+   "result_summary": "{\"district\": \"Ludhiana\", \"date\": \"2025-10-31\", \"fire_count\": 11, \"frp_sum_mw\": 41.2, \"fire_count_7d_mean\": 4.3, \"change_vs_7d_pct\": 156.7, \"rank_in_punjab\": 8, \"punjab_total\": 273…",
+   "ms": 5
+  },
+  {
+   "step": 2,
+   "agent": "analyst",
+   "tool": "get_city_forecast",
+   "args": {
+    "date": "2025-10-31",
+    "city": "Ludhiana"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"issue_date\": \"2025-10-31\", \"target_date\": \"2025-11-01\", \"p10\": 53.6, \"p50\": 81.9, \"p90\": 102.5, \"pm25_today\": 81.5, \"persistence_p50\": 81.5, \"band_width\": 48…",
+   "ms": 2
+  },
+  {
+   "step": 3,
+   "agent": "analyst",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "city": "Ludhiana",
+    "date": "2025-10-31"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"date\": \"2025-10-31\", \"wind_dir_from_deg\": 321.1, \"wind_dir_compass\": \"NW\", \"wind_speed_kmh\": 6.1, \"upwind_frp_l0\": 551.7, \"top_upwind_districts\": [{\"district…",
+   "ms": 4
+  },
+  {
+   "step": 4,
+   "agent": "analyst",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Ludhiana"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"test_seasons\": [2024, 2025], \"mae\": 11.0, \"coverage_80_pct\": 87.7, \"mae_persistence\": 10.3, \"mae_no_fire\": 10.8, \"n_forecasts\": 154}",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "Ludhiana limitations satellite fire detection 2024",
+    "before": "2025-10-31",
+    "district": "Ludhiana"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K101\", \"title\": \"Ludhiana fire season 2024\", \"text\": \"# Ludhiana: fire detections, season 2024\\n\\nIn the 2024 season (Sep 15 to Nov 30), satellite fire …",
+   "ms": 23
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "Ludhiana",
+   "date": "2025-10-31",
+   "fire_count": 11,
+   "frp_sum_mw": 41.2,
+   "fire_count_7d_mean": 4.3,
+   "change_vs_7d_pct": 156.7,
+   "rank_in_punjab": 8,
+   "punjab_total": 273,
+   "last_7_days": [
+    {
+     "date": "2025-10-25",
+     "count": 3
+    },
+    {
+     "date": "2025-10-26",
+     "count": 4
+    },
+    {
+     "date": "2025-10-27",
+     "count": 0
+    },
+    {
+     "date": "2025-10-28",
+     "count": 5
+    },
+    {
+     "date": "2025-10-29",
+     "count": 5
+    },
+    {
+     "date": "2025-10-30",
+     "count": 2
+    },
+    {
+     "date": "2025-10-31",
+     "count": 11
+    }
+   ],
+   "nearest_city": "Ludhiana",
+   "data_as_of": "2025-10-31"
+  },
+  "get_city_forecast": {
+   "city": "Ludhiana",
+   "issue_date": "2025-10-31",
+   "target_date": "2025-11-01",
+   "p10": 53.6,
+   "p50": 81.9,
+   "p90": 102.5,
+   "pm25_today": 81.5,
+   "persistence_p50": 81.5,
+   "band_width": 48.9,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Ludhiana",
+   "date": "2025-10-31",
+   "wind_dir_from_deg": 321.1,
+   "wind_dir_compass": "NW",
+   "wind_speed_kmh": 6.1,
+   "upwind_frp_l0": 551.7,
+   "top_upwind_districts": [
+    {
+     "district": "Outside Punjab",
+     "share_pct": 61.0
+    },
+    {
+     "district": "Tarn Taran",
+     "share_pct": 17.5
+    },
+    {
+     "district": "Ferozepur",
+     "share_pct": 5.7
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Ludhiana",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 11.0,
+   "coverage_80_pct": 87.7,
+   "mae_persistence": 10.3,
+   "mae_no_fire": 10.8,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K101",
+     "title": "Ludhiana fire season 2024",
+     "text": "# Ludhiana: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 339 fire detections in Ludhiana district, with a total fire radiative power of 1,428 MW. Among the 22 districts it ranked number 12 by detections.\n\nThe busiest day was 2024-11-18, with 51 detections.\n\nCompared with the previous season: -78% compared with 2023 (1,512 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K079",
+     "title": "Ludhiana fire season 2023",
+     "text": "# Ludhiana: fire detections, season 2023\n\nIn the 2023 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 1,512 fire detections in Ludhiana district, with a total fire radiative power of 9,174 MW. Among the 22 districts it ranked number 10 by detections.\n\nThe busiest day was 2023-11-05, with 167 detections.\n\nCompared with the previous season: -34% compared with 2022 (2,302 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K057",
+     "title": "Ludhiana fire season 2022",
+     "text": "# Ludhiana: fire detections, season 2022\n\nIn the 2022 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 2,302 fire detections in Ludhiana district, with a total fire radiative power of 13,997 MW. Among the 22 districts it ranked number 11 by detections.\n\nThe busiest day was 2022-11-11, with 205 detections.\n\nCompared with the previous season: no earlier season is available to compare with.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K110",
+     "title": "Sri Muktsar Sahib fire season 2024",
+     "text": "# Sri Muktsar Sahib: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 657 fire detections in Sri Muktsar Sahib district, with a total fire radiative power of 3,814 MW. Among the 22 districts it ranked number 5 by detections.\n\nThe busiest day was 2024-11-18, with 197 detections.\n\nCompared with the previous season: -50% compared with 2023 (1,320 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-25T07:40:19+00:00",
+ "nearest_city": "Ludhiana",
+ "first_attempt_errors": [],
+ "llm_error": null,
+ "label": null
+}

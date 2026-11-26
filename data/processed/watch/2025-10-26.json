@@ -1,0 +1,262 @@
+{
+ "date": "2025-10-26",
+ "generated_at": "2026-11-25T07:41:19+00:00",
+ "n_flagged": 1,
+ "top_n": 3,
+ "watchlist": [
+  {
+   "district": "Tarn Taran",
+   "date": "2025-10-26",
+   "fire_count": 31,
+   "fire_count_7d_mean": 15.0,
+   "ratio": 2.1,
+   "nearest_city": "Amritsar",
+   "nearest_city_p90": 106.7,
+   "flags": [
+    "spike: 31 detections vs a 7-day mean of 15.0 (threshold 30.0)",
+    "high_count: rank 1 in Punjab with 31 detections (top 3 and at least 30)"
+   ],
+   "priority_score": 20
+  },
+  {
+   "district": "Sri Muktsar Sahib",
+   "date": "2025-10-26",
+   "fire_count": 12,
+   "fire_count_7d_mean": 2.6,
+   "ratio": 4.7,
+   "nearest_city": "Bathinda",
+   "nearest_city_p90": 114.7,
+   "flags": [],
+   "priority_score": 7
+  },
+  {
+   "district": "Bathinda",
+   "date": "2025-10-26",
+   "fire_count": 10,
+   "fire_count_7d_mean": 3.4,
+   "ratio": 2.9,
+   "nearest_city": "Bathinda",
+   "nearest_city_p90": 114.7,
+   "flags": [],
+   "priority_score": 13
+  },
+  {
+   "district": "Fazilka",
+   "date": "2025-10-26",
+   "fire_count": 9,
+   "fire_count_7d_mean": 4.6,
+   "ratio": 2.0,
+   "nearest_city": "Bathinda",
+   "nearest_city_p90": 114.7,
+   "flags": [],
+   "priority_score": 20
+  },
+  {
+   "district": "Barnala",
+   "date": "2025-10-26",
+   "fire_count": 1,
+   "fire_count_7d_mean": 0.1,
+   "ratio": 7.0,
+   "nearest_city": "Bathinda",
+   "nearest_city_p90": 114.7,
+   "flags": [],
+   "priority_score": 20
+  },
+  {
+   "district": "Amritsar",
+   "date": "2025-10-26",
+   "fire_count": 13,
+   "fire_count_7d_mean": 7.9,
+   "ratio": 1.7,
+   "nearest_city": "Amritsar",
+   "nearest_city_p90": 106.7,
+   "flags": [],
+   "priority_score": 23
+  },
+  {
+   "district": "Gurdaspur",
+   "date": "2025-10-26",
+   "fire_count": 10,
+   "fire_count_7d_mean": 4.3,
+   "ratio": 2.3,
+   "nearest_city": "Amritsar",
+   "nearest_city_p90": 106.7,
+   "flags": [],
+   "priority_score": 23
+  },
+  {
+   "district": "Sangrur",
+   "date": "2025-10-26",
+   "fire_count": 13,
+   "fire_count_7d_mean": 4.7,
+   "ratio": 2.8,
+   "nearest_city": "Patiala",
+   "nearest_city_p90": 105.7,
+   "flags": [],
+   "priority_score": 24
+  },
+  {
+   "district": "Faridkot",
+   "date": "2025-10-26",
+   "fire_count": 3,
+   "fire_count_7d_mean": 1.9,
+   "ratio": 1.6,
+   "nearest_city": "Bathinda",
+   "nearest_city_p90": 114.7,
+   "flags": [],
+   "priority_score": 27
+  },
+  {
+   "district": "Fatehgarh Sahib",
+   "date": "2025-10-26",
+   "fire_count": 6,
+   "fire_count_7d_mean": 1.9,
+   "ratio": 3.2,
+   "nearest_city": "Patiala",
+   "nearest_city_p90": 105.7,
+   "flags": [],
+   "priority_score": 28
+  },
+  {
+   "district": "Ludhiana",
+   "date": "2025-10-26",
+   "fire_count": 4,
+   "fire_count_7d_mean": 1.1,
+   "ratio": 3.5,
+   "nearest_city": "Ludhiana",
+   "nearest_city_p90": 105.3,
+   "flags": [],
+   "priority_score": 31
+  },
+  {
+   "district": "Moga",
+   "date": "2025-10-26",
+   "fire_count": 2,
+   "fire_count_7d_mean": 1.3,
+   "ratio": 1.6,
+   "nearest_city": "Bathinda",
+   "nearest_city_p90": 114.7,
+   "flags": [],
+   "priority_score": 31
+  },
+  {
+   "district": "Ferozepur",
+   "date": "2025-10-26",
+   "fire_count": 6,
+   "fire_count_7d_mean": 4.9,
+   "ratio": 1.2,
+   "nearest_city": "Amritsar",
+   "nearest_city_p90": 106.7,
+   "flags": [],
+   "priority_score": 33
+  },
+  {
+   "district": "Kapurthala",
+   "date": "2025-10-26",
+   "fire_count": 4,
+   "fire_count_7d_mean": 3.1,
+   "ratio": 1.3,
+   "nearest_city": "Amritsar",
+   "nearest_city_p90": 106.7,
+   "flags": [],
+   "priority_score": 34
+  },
+  {
+   "district": "Hoshiarpur",
+   "date": "2025-10-26",
+   "fire_count": 2,
+   "fire_count_7d_mean": 0.6,
+   "ratio": 3.5,
+   "nearest_city": "Ludhiana",
+   "nearest_city_p90": 105.3,
+   "flags": [],
+   "priority_score": 36
+  },
+  {
+   "district": "Jalandhar",
+   "date": "2025-10-26",
+   "fire_count": 3,
+   "fire_count_7d_mean": 1.1,
+   "ratio": 2.6,
+   "nearest_city": "Ludhiana",
+   "nearest_city_p90": 105.3,
+   "flags": [],
+   "priority_score": 39
+  },
+  {
+   "district": "Mansa",
+   "date": "2025-10-26",
+   "fire_count": 1,
+   "fire_count_7d_mean": 1.6,
+   "ratio": 0.6,
+   "nearest_city": "Bathinda",
+   "nearest_city_p90": 114.7,
+   "flags": [],
+   "priority_score": 39
+  },
+  {
+   "district": "SBS Nagar (Nawanshahr)",
+   "date": "2025-10-26",
+   "fire_count": 1,
+   "fire_count_7d_mean": 0.3,
+   "ratio": 3.5,
+   "nearest_city": "Ludhiana",
+   "nearest_city_p90": 105.3,
+   "flags": [],
+   "priority_score": 39
+  },
+  {
+   "district": "Patiala",
+   "date": "2025-10-26",
+   "fire_count": 3,
+   "fire_count_7d_mean": 4.4,
+   "ratio": 0.7,
+   "nearest_city": "Patiala",
+   "nearest_city_p90": 105.7,
+   "flags": [],
+   "priority_score": 45
+  },
+  {
+   "district": "SAS Nagar (Mohali)",
+   "date": "2025-10-26",
+   "fire_count": 2,
+   "fire_count_7d_mean": 1.7,
+   "ratio": 1.2,
+   "nearest_city": "Patiala",
+   "nearest_city_p90": 105.7,
+   "flags": [],
+   "priority_score": 47
+  },
+  {
+   "district": "Pathankot",
+   "date": "2025-10-26",
+   "fire_count": 0,
+   "fire_count_7d_mean": 0.0,
+   "ratio": null,
+   "nearest_city": "Amritsar",
+   "nearest_city_p90": 106.7,
+   "flags": [],
+   "priority_score": 50
+  },
+  {
+   "district": "Rupnagar",
+   "date": "2025-10-26",
+   "fire_count": 0,
+   "fire_count_7d_mean": 0.0,
+   "ratio": null,
+   "nearest_city": "Ludhiana",
+   "nearest_city_p90": 105.3,
+   "flags": [],
+   "priority_score": 60
+  }
+ ],
+ "briefings": [
+  {
+   "district": "Tarn Taran",
+   "mode": "agent",
+   "headline": "Tarn Taran Leads Punjab in Stubble Fire Detections on October 26",
+   "verified": true,
+   "file": "2025-10-26_Tarn_Taran.json"
+  }
+ ]
+}

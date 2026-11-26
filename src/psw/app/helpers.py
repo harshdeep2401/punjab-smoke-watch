@@ -219,3 +219,60 @@ def reliability(root: Path | None = None) -> pd.DataFrame:
                      "mean words": sum(words) / len(words),
                      "models": ", ".join(sorted({str(r.get("model")) for r in recs if r.get("mode") != "template"})) or "none"})
     return pd.DataFrame(rows)
+
+
+# ---------- retrieval eval (hybrid search) ----------
+
+RETRIEVAL_LABEL = {"hybrid": "hybrid (RRF)", "embedding": "embeddings only", "bm25": "BM25 only"}
+
+
+def load_retrieval_report(root: Path | None = None) -> dict | None:
+    try:
+        return json.loads((Path(root or config.PROCESSED) / "retrieval_eval.json").read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def retrieval_frame(rep: dict) -> pd.DataFrame:
+    k, n = rep["k"], rep["n"]
+    return pd.DataFrame([{"retrieval": RETRIEVAL_LABEL.get(m, m), f"hit@{k}": f"{v['hit_at_k']} / {n}", "hit@1": f"{v['hit_at_1']} / {n}",
+                          "MRR": v["mrr"]} for m, v in rep["modes"].items()])
+
+
+def retrieval_queries(rep: dict) -> pd.DataFrame:
+    """One row per query with the rank of the first right chunk in each mode ('-' = not in the top k)."""
+    modes = list(rep["modes"])
+    first = rep["modes"][modes[0]]["items"]
+    rows = []
+    for i, it in enumerate(first):
+        row = {"query": it["query"], "kind": it["kind"], "expected": ", ".join(it["expected"])}
+        for m in modes:
+            r = rep["modes"][m]["items"][i]["rank"]
+            row[RETRIEVAL_LABEL.get(m, m)] = "-" if r is None else r
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def interpret_retrieval(rep: dict) -> list[str]:
+    """What the retrieval eval does and does not show, from the report's own numbers."""
+    k, n, ms = rep["k"], rep["n"], rep["modes"]
+    h, e, b = ms["hybrid"], ms["embedding"], ms["bm25"]
+    out = [f"{n} queries, each with the document that should come back. A query is a hit at {k} if any of the top {k} chunks is from that document."]
+    if h["hit_at_k"] == e["hit_at_k"] == n:
+        out.append(f"**This set is too easy to separate the methods at hit@{k}:** embeddings alone already find the right document for all {n} queries. "
+                   f"The differences show only at hit@1 (hybrid {h['hit_at_1']}, embeddings {e['hit_at_1']}, BM25 {b['hit_at_1']}) and in MRR "
+                   f"({h['mrr']:.2f}, {e['mrr']:.2f}, {b['mrr']:.2f}).")
+    else:
+        out.append(f"hit@{k}: hybrid {h['hit_at_k']}, embeddings {e['hit_at_k']}, BM25 {b['hit_at_k']} out of {n}.")
+    better = [i for i, (x, y) in enumerate(zip(h["items"], e["items"]))
+              if (x["rank"] or 99) < (y["rank"] or 99)]
+    worse = [i for i, (x, y) in enumerate(zip(h["items"], e["items"]))
+             if (x["rank"] or 99) > (y["rank"] or 99)]
+    out.append(f"Against embeddings alone, hybrid ranked the right document higher on {len(better)} of {n} queries and lower on {len(worse)}.")
+    missed = [x["query"] for x in b["items"] if x["rank"] is None]
+    if missed:
+        out.append("BM25 alone missed " + "; ".join(f"“{q}”" for q in missed) + ". It matches whole words only, with no stemming, "
+                   "so a paraphrase that shares no exact word gets nothing from it.")
+    out.append(f"The queries were written by us after reading the corpus and there are only {n}, so treat this as a sanity check, not a benchmark. "
+               "Keyword search is expected to matter most for exact names, years and terms, which is why the Analyst is told to put them in its queries.")
+    return out

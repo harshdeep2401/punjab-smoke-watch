@@ -72,11 +72,35 @@ def cmd_kb(_args) -> None:
     print(f"generated {len(paths)} docs; indexed {len(docs)} docs into {len(table)} chunks ({size / 1e6:.2f} MB)")
 
 
+def cmd_kb_eval(_args) -> None:
+    import json
+
+    from psw.rag import evaluate
+    from psw.rag.index import KnowledgeBase
+
+    items = evaluate.load_eval()
+    report = evaluate.evaluate(KnowledgeBase(), items, k=3)
+    (config.PROCESSED / evaluate.REPORT_FILE).write_text(json.dumps(report, indent=1))
+    print(f"retrieval eval: {report['n']} queries, hit@{report['k']} (hit@1)")
+    for mode, m in report["modes"].items():
+        print(f"  {mode:10s} {m['hit_at_k']:2d}/{report['n']}  ({m['hit_at_1']:2d})")
+        for r in m["items"]:
+            if r["rank"] is None:
+                print(f"      miss: {r['query']!r} wanted {r['expected']} got {r['got']}")
+    print(f"Saved data/processed/{evaluate.REPORT_FILE}")
+
+
 def _print_briefing(rec) -> None:
     v = rec.verification
     print(f"\n[{rec.mode}] {rec.district} {rec.date} | model {rec.model} | verified {v['ok']} "
           f"({len(v['checked_numbers'])} numbers checked) | tools: {[t['tool'] for t in rec.trace]}")
     print(f"  {rec.headline}\n  {rec.briefing}")
+    plan = getattr(rec, "plan", None)
+    if plan:
+        print("  plan:", " | ".join(plan["steps"]))
+        print("  questions:", " | ".join(plan.get("questions_to_answer", [])))
+    elif getattr(rec, "planner_error", None):
+        print("  planner: no plan,", rec.planner_error)
     if rec.first_attempt_errors:
         print("  first draft errors:", rec.first_attempt_errors)
     if rec.llm_error:
@@ -135,7 +159,7 @@ def cmd_brief(args) -> None:
             if rec is not None:
                 print("    (reusing the saved agent briefing)", flush=True)
             else:  # new, or the earlier try fell back to the template (for example a rate limit): try again
-                rec = orchestrator.run_briefing(dist, d, llm=llm, store=store, kb=kb, root=root)
+                rec = orchestrator.run_briefing(dist, d, llm=llm, store=store, kb=kb, root=root, use_planner=args.plan)
             print(f"    -> {rec.mode}, verified={rec.verification['ok']}" + (f", llm: {rec.llm_error}" if rec.llm_error else ""))
             recs.append(rec)
         modes = Counter(r.mode for r in recs)
@@ -154,9 +178,9 @@ def cmd_brief(args) -> None:
     if not args.date:
         raise SystemExit("--date YYYY-MM-DD is required (or use --sample N)")
     if args.district:
-        _print_briefing(orchestrator.run_briefing(args.district, args.date, llm=llm, store=store, kb=kb))
+        _print_briefing(orchestrator.run_briefing(args.district, args.date, llm=llm, store=store, kb=kb, use_planner=args.plan))
         return
-    watch = orchestrator.run_daily_watch(args.date, top_n=args.top_n, llm=llm, store=store, kb=kb)
+    watch = orchestrator.run_daily_watch(args.date, top_n=args.top_n, llm=llm, store=store, kb=kb, use_planner=args.plan)
     print(f"Daily watch {args.date}: {watch['n_flagged']} districts flagged, briefing the top {len(watch['briefings'])}")
     for r in watch["watchlist"][:max(args.top_n, 6)]:
         print(f"  {r['district']:26s} {r['fire_count']:4d} fires (7d mean {r['fire_count_7d_mean']:6.1f})  "
@@ -175,10 +199,21 @@ def _load(path):
     return NS(**json.loads(path.read_text()))
 
 
-def _later(phase: int):
-    def run(_args) -> None:
-        raise SystemExit(f"Not implemented yet (Phase {phase}).")
-    return run
+def cmd_demo_cache(args) -> None:
+    from psw.agents import demo
+    from psw.agents.tools import DataStore
+    from psw.llm import LLM, LLMError
+    from psw.rag.index import KnowledgeBase
+
+    try:
+        llm = LLM.from_env()
+        print(f"LLM: {llm.model}")
+    except LLMError as e:
+        llm = None
+        print(f"No LLM ({e}); briefings that are not already saved will use the template.")
+    out = demo.build_demo_cache(llm=llm, store=DataStore(), kb=KnowledgeBase(), top_n=args.top_n, force=args.force, use_planner=args.plan)
+    bad = [x for v in out["briefed"].values() for x in v if not x.endswith(("agent", "agent_revised"))]
+    print(f"Saved data/processed/demo.json. Not written by the agent: {bad or 'none'}")
 
 
 COMMANDS = {
@@ -186,8 +221,9 @@ COMMANDS = {
     "process": cmd_process,
     "train": cmd_train,
     "kb": cmd_kb,
+    "kb-eval": cmd_kb_eval,
     "brief": cmd_brief,
-    "demo-cache": _later(7),
+    "demo-cache": cmd_demo_cache,
 }
 
 
@@ -206,6 +242,8 @@ def main() -> None:
     p.add_argument("--district")
     p.add_argument("--sample", type=int, help="brief N sampled flagged district-days in the test seasons and report the pass rate")
     p.add_argument("--top-n", type=int, default=3, help="daily watch: how many flagged districts to brief")
+    p.add_argument("--plan", action="store_true", help="brief / demo-cache: run the Planner first (one extra LLM call per briefing)")
+    p.add_argument("--force", action="store_true", help="demo-cache: regenerate briefings that are already saved")
     p.add_argument("--no-llm", action="store_true", help="brief: skip the LLM and use the template fallback")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")

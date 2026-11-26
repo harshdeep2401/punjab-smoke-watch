@@ -18,6 +18,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from psw import config
 
 ISO_DATE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
+FIELD_NAME = re.compile(r"\b[a-z]+(?:_[a-z0-9]+)+\b")  # raw tool field names such as rank_in_punjab or upwind_frp_l0
 CITATION = re.compile(r"\[?\bK\d{3}\b\]?")
 INLINE_CITATION = re.compile(r"\[(K\d{3})\]")
 # digits not glued to a letter, digit or '.', so PM2.5, PM10, p10, K012, NO2 and N95 are not numbers
@@ -158,6 +159,8 @@ def verify(briefing: dict, evidence: Evidence) -> VerifyResult:
             m = re.search(pattern, s, re.I)
             if m:
                 errors.append(f"banned content in {label} ({why}): '{m.group(0)}'")
+        for name in dict.fromkeys(FIELD_NAME.findall(s)):
+            errors.append(f"raw field name in {label}: '{name}' (write it in plain words)")
         m = re.search(config.BANNED_NAME_PATTERN, s)
         if m:
             errors.append(f"banned content in {label} (personal name): '{m.group(0)}'")

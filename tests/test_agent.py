@@ -150,3 +150,139 @@ def test_watch_with_no_flagged_districts_briefs_nobody(store, kb, tmp_path, monk
     monkeypatch.setattr(orchestrator.sentinel, "scan", lambda d, s: [{"district": "Sangrur", "flags": [], "priority_score": 3}])
     watch = orchestrator.run_daily_watch(DAY, llm=FakeLLM([]), store=store, kb=kb, root=tmp_path)
     assert watch["briefings"] == [] and watch["n_flagged"] == 0
+
+
+# ---------- Phase 7: demo cache ----------
+
+def test_reuse_keeps_a_verified_agent_briefing_and_redoes_a_template(store, kb, tmp_path):
+    run(store, kb, [four_calls(), final(good_draft(store))], tmp_path)  # saves an agent briefing
+    again = orchestrator.run_briefing(DISTRICT, DAY, llm=FakeLLM([]), store=store, kb=kb, root=tmp_path, reuse=True)
+    assert again.mode == "agent" and again.model == "fake-llm"  # the empty script proves no LLM call was made
+    # a template briefing is not reusable: it is regenerated
+    path = orchestrator.briefing_path(DAY, DISTRICT, tmp_path)
+    saved = json.loads(path.read_text())
+    path.write_text(json.dumps({**saved, "mode": "template"}))
+    redone = orchestrator.run_briefing(DISTRICT, DAY, llm=FakeLLM([four_calls(), final(good_draft(store))]), store=store, kb=kb,
+                                       root=tmp_path, reuse=True)
+    assert redone.mode == "agent"
+    path.write_text("{broken")  # a corrupt file is ignored, not fatal
+    assert orchestrator.load_reusable(DISTRICT, DAY, tmp_path) is None
+
+
+def test_demo_dates_follow_the_rules(store):
+    from psw.agents import demo
+    d = demo.pick_demo_dates(store)
+    assert d["peak"] == "2025-10-31"
+    dd = store.district_daily
+    totals = dd[dd["season"] == 2025].groupby("date")["fire_count"].sum()
+    assert totals[d["peak"]] == totals.max()
+    assert totals[d["moderate"]] < totals[d["peak"]]
+    for day in d.values():  # each demo date has something to brief
+        assert any(r["flags"] for r in orchestrator.sentinel.scan(day, store))
+
+
+def test_build_demo_cache_writes_everything_with_the_template(store, kb, tmp_path):
+    from psw.agents import demo
+    out = demo.build_demo_cache(llm=FakeLLM([LLMError("down")] * 20), store=store, kb=kb, root=tmp_path, top_n=1, log=lambda *_: None)
+    assert out["default_district"] == "Ludhiana" and out["season"] == 2025
+    assert demo.load_demo(tmp_path)["peak"] == out["peak"]
+    peak = out["peak"]
+    assert (tmp_path / "briefings" / f"{peak}_Ludhiana.json").exists() and (tmp_path / "briefings" / f"{peak}_Sangrur.json").exists()
+    for day in {out["peak"], out["moderate"], out["early"]}:
+        assert (tmp_path / "watch" / f"{day}.json").exists()
+    assert demo.load_demo(tmp_path / "nowhere") is None
+
+
+# ---------- stretch: Planner ----------
+
+from psw.agents import planner  # noqa: E402
+
+PLAN = {"steps": ["Get the district snapshot for the date.", "Read the forecast and the wind for the nearest city.",
+                  "Search the 2024 season summary for this district.", "Mention one limitation of satellite detection."],
+        "questions_to_answer": ["How active were fires compared with recent days?", "What does the forecast band say?"]}
+
+
+def run_with_planner(store, kb, script, tmp_path, **kw):
+    llm = FakeLLM(script)
+    return orchestrator.run_briefing(DISTRICT, DAY, llm=llm, store=store, kb=kb, root=tmp_path, use_planner=True, **kw), llm
+
+
+def test_clean_plan_keeps_years_and_dates_and_drops_numbers_and_field_names():
+    raw = {"steps": ["Search the 2024 season summary.", "Check fires on 2025-10-31.", "Quote 49 detections.",
+                     "Use rank_in_punjab here.", "", 7, "Mention p90 and the 80 percent band"],
+           "questions_to_answer": ["Is the forecast above 60?", "What is the wind direction?"]}
+    plan = planner.clean_plan(raw)
+    assert plan["steps"] == ["Search the 2024 season summary.", "Check fires on 2025-10-31.", "Mention p90 and the 80 percent band"]
+    assert plan["questions_to_answer"] == ["What is the wind direction?"]  # "above 60" is dropped, constants like 80 and 7 are allowed
+    assert planner.clean_plan({"steps": ["Look at the 7-day trend."]})["steps"] == ["Look at the 7-day trend."]
+
+
+def test_clean_plan_limits_and_rejects_unusable_plans():
+    many = {"steps": [f"Step {chr(97 + i)}" for i in range(9)], "questions_to_answer": [f"Why {chr(97 + i)}?" for i in range(9)]}
+    plan = planner.clean_plan(many)
+    assert len(plan["steps"]) == planner.MAX_STEPS and len(plan["questions_to_answer"]) == planner.MAX_QUESTIONS
+    assert planner.clean_plan({"steps": "do things"}) is None and planner.clean_plan({"steps": []}) is None
+    assert planner.clean_plan(["x"]) is None and planner.clean_plan({"steps": ["Quote 12 fires"]}) is None
+    assert planner.clean_plan({"steps": ["ok" + "x" * 500]})["steps"][0].__len__() == planner.MAX_CHARS
+
+
+def test_planner_spec_has_no_tools_and_its_prompt_lists_the_analyst_tools():
+    spec = planner.build_planner()
+    assert spec.name == "planner" and spec.tools == [] and spec.json_output
+    for name in analyst.REQUIRED_TOOLS:
+        assert name in spec.system_prompt
+    assert not any(ch.isdigit() for ch in planner.user_message("Sangrur", "x", "Ludhiana", ["spike"]).replace("x", ""))
+
+
+def test_flag_kinds_come_from_the_sentinel(store):
+    kinds = planner.flag_kinds(store, "Tarn Taran", DAY)
+    assert kinds and set(kinds) <= {"spike", "high_count", "smog_risk"}
+    assert planner.flag_kinds(store, "Nowhere", DAY) == []
+
+
+def test_the_plan_reaches_the_analyst_and_the_record(store, kb, tmp_path):
+    rec, llm = run_with_planner(store, kb, [final(PLAN), four_calls(), final(good_draft(store))], tmp_path)
+    assert rec.mode == "agent" and rec.verification["ok"] and rec.plan == PLAN and rec.planner_error is None
+    assert not llm.calls[0]["tools"] and "plan a short district briefing" in llm.calls[0]["messages"][0]["content"]
+    assert llm.calls[0]["messages"][-1]["content"].count("Sentinel flags") == 1
+    analyst_msg = llm.calls[1]["messages"][-1]["content"]
+    assert "Write the briefing for Sangrur" in analyst_msg and "1. Get the district snapshot" in analyst_msg
+    assert "How active were fires" in analyst_msg and "not evidence" in analyst_msg
+    assert [t["agent"] for t in rec.trace][:2] == ["planner", "analyst"] and rec.trace[0]["tool"] == "plan"
+    assert [t["step"] for t in rec.trace] == list(range(1, len(rec.trace) + 1))
+    saved = json.loads((tmp_path / "briefings" / f"{DAY}_{DISTRICT}.json").read_text())
+    assert saved["plan"]["steps"][0] == PLAN["steps"][0]
+
+
+def test_a_planner_failure_never_blocks_the_briefing(store, kb, tmp_path):
+    rec, _ = run_with_planner(store, kb, [LLMError("rate limited"), four_calls(), final(good_draft(store))], tmp_path)
+    assert rec.mode == "agent" and rec.plan is None and "rate limited" in rec.planner_error
+    rec, llm = run_with_planner(store, kb, [final({"steps": ["Quote 12 fires"]}), four_calls(), final(good_draft(store))], tmp_path)
+    assert rec.mode == "agent" and rec.plan is None and "all 1 steps were dropped" in rec.planner_error
+    assert "planner wrote this plan" not in llm.calls[1]["messages"][-1]["content"]
+
+
+def test_reject_reasons_are_specific():
+    assert "JSON object" in planner.reject_reason(["x"]) and "no list of steps" in planner.reject_reason({"steps": "go"})
+    assert "all 2 steps were dropped" in planner.reject_reason({"steps": ["Quote 12 fires", "Use rank_in_punjab"]})
+
+
+def test_the_planner_is_off_by_default_and_the_verifier_still_runs_last(store, kb, tmp_path):
+    rec, llm = run(store, kb, [four_calls(), final(good_draft(store))], tmp_path)
+    assert rec.plan is None and rec.planner_error is None and len(llm.calls) == 2
+    # a plan does not excuse an invented number: the draft fails, is revised once, and the revision is checked again
+    rec, _ = run_with_planner(store, kb, [final(PLAN), four_calls(), final(bad_draft(store)), final(good_draft(store))], tmp_path)
+    assert rec.mode == "agent_revised" and rec.first_attempt_errors and rec.plan == PLAN
+
+
+def test_a_plan_survives_a_template_fallback(store, kb, tmp_path):
+    rec, _ = run_with_planner(store, kb, [final(PLAN), LLMError("down")], tmp_path)
+    assert rec.mode == "template" and rec.verification["ok"] and rec.plan == PLAN
+    assert rec.trace[0]["agent"] == "planner" and rec.trace[-1]["agent"] == "template"
+
+
+def test_daily_watch_passes_use_planner_through(store, kb, tmp_path):
+    watch = orchestrator.run_daily_watch(DAY, top_n=1, llm=FakeLLM([final(PLAN), LLMError("down")]), store=store, kb=kb,
+                                         root=tmp_path, use_planner=True)
+    rec = json.loads((tmp_path / "briefings" / watch["briefings"][0]["file"]).read_text())
+    assert rec["plan"] == PLAN and rec["mode"] == "template"
