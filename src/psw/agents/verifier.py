@@ -283,3 +283,273 @@ def verify_audit(briefing: dict, evidence: Evidence, gap: dict | None = None,
             if m:
                 errors.append(f"banned content ({why}): '{m.group(0)}'")
     return VerifyResult(ok=not errors, errors=errors, checked_numbers=base.checked_numbers)
+
+
+# ---------- dispatch briefs: where help goes, so allocation figures and names fail closed ----------
+
+# The only ways a unit figure may be written. {d} is a district, matched just before.
+BRACKET_FORM = re.compile(r"\s*\(\s*(\d[\d,]*)\s+units?\s*\)", re.I)
+MOVE_FORM = re.compile(r"\s+from\s+(\d[\d,]*)\s+units?\s+to\s+(\d[\d,]*)\s+units?\b", re.I)
+_N = r"(\d[\d,]*)"
+TOTAL_FORMS = [  # (which total, pattern). Each states a figure for the whole plan, never for one district.
+    ("cap", rf"limit per district(?:\s+is|\s+of|\s+set at|,)?\s+{_N}\s+units?\b"),
+    ("cap", rf"limit of\s+{_N}\s+units? per district\b"),
+    ("cap", rf"no district (?:may|can|will) (?:take|get|receive) more than\s+{_N}\s+units?\b"),
+    ("fleet", rf"\bof\s+{_N}\s+units?,"),
+    ("fleet", rf"\bof the\s+{_N}\s+units?\b"),
+    ("fleet", rf"\bnone of the\s+{_N}\s+units?\b"),
+    ("fleet", rf"{_N}\s+units? (?:are|were) available\b"),
+    ("fleet", rf"{_N}\s+units? across (?:Punjab|the state)\b"),
+    ("unplaced", rf"{_N}\s+units? (?:are|were|is) (?:not placed|unplaced)\b"),
+    ("placed", rf"{_N}\s+units? (?:are|were) placed\b"),
+    ("others", rf"other(?:\s+\d+)? districts[^.;]{{0,30}}?\bshare\s+{_N}\s+units?\b"),
+]
+TOTAL_FORMS = [(name, re.compile(p, re.I)) for name, p in TOTAL_FORMS]
+UNIT_WORD = re.compile(r"\bunits?\b", re.I)
+ALLOCATING = re.compile(r"\b(gets?|receives?|allocat\w*|assign\w*|deploy\w*|sends?|sent|moves?|moved|shift\w*|shares?"
+                        r"|takes?|machines?|teams?)\b", re.I)
+SPELLED = re.compile(r"\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy"
+                     r"|eighty|ninety|hundred|dozen)\b[-\w ]{0,12}?\b(units?|machines?|teams?)\b", re.I)
+# numbers that say what they are, so they cannot be read as an allocation
+MONTHS = "January|February|March|April|May|June|July|August|September|October|November|December"
+LABELLED = [re.compile(p, re.I) for p in (
+    r"\bcell\s+\d+", r"\d[\d,.]*\s*(?:%|percent\b|mm\b)", r"\d+(?:\s*(?:to|-|–)\s*\d+)?[\s-]*days?\b",
+    r"\d[\d,]*\s+(?:forecast\s+|satellite\s+|fire\s+)?detections?\b", rf"\b\d{{1,2}}\s+(?:{MONTHS})(?:\s+\d{{4}})?",
+    r"\b\d{4}-\d{2}-\d{2}\b")]
+NOT_A_COUNT = re.compile(r"not\s+(a\s+)?(count|measure|number)", re.I)
+UNCERTAIN = re.compile(r"uncertain|\bbetween\b|80%", re.I)  # not "range": the gap range is something else
+
+
+@dataclass
+class Plan:
+    """What the code decided, for checking what the brief says about it."""
+    units: dict[str, int]  # district -> units
+    detected_units: dict[str, int]  # district -> units without the likely-burning adjustment
+    totals: dict[str, int]  # fleet, placed, unplaced, cap (limit per district), others (the rest share these)
+    use_likely: bool
+    most_moved: str | None = None  # the district the adjustment moves most, if it moves any
+    confidence: str | None = None  # of the gap range behind the biggest move (likely planning only)
+    words: frozenset[str] = frozenset()  # words seen in lower case in our own texts: capitalised, they are not names
+
+
+def _names(district: str) -> list[str]:
+    short = district.split(" (")[0]
+    return [district] if short == district else [district, short]
+
+
+def _mentions(text: str, districts) -> list[tuple[int, int, str]]:
+    """(start, end, district) for every district named in the text."""
+    found = {}
+    for d in districts:
+        for name in _names(d):
+            for m in re.finditer(rf"\b{re.escape(name)}(?![A-Za-z])", text):
+                if m.start() not in found or m.end() > found[m.start()][0]:
+                    found[m.start()] = (m.end(), d)
+    return sorted((start, end, d) for start, (end, d) in found.items())
+
+
+def _number(raw: str) -> int:
+    return int(raw.replace(",", ""))
+
+
+def _approved_units(sentence: str, plan: Plan) -> tuple[list[tuple[int, int]], list[str]]:
+    """(spans of the unit figures written in an approved form, errors for forms whose figure is wrong)."""
+    spans, errors = [], []
+    for _, end, d in _mentions(sentence, plan.units):
+        if m := BRACKET_FORM.match(sentence, end):
+            spans.append(m.span())
+            if _number(m.group(1)) != plan.units[d]:
+                errors.append(f"{d} gets {plan.units[d]} units, not {_number(m.group(1))}")
+        elif m := MOVE_FORM.match(sentence, end):
+            spans.append(m.span())
+            said = (_number(m.group(1)), _number(m.group(2)))
+            right = (plan.detected_units[d], plan.units[d])
+            if said != right:
+                errors.append(f"{d} moves from {right[0]} units to {right[1]} units, not from {said[0]} to {said[1]}")
+    for name, pattern in TOTAL_FORMS:
+        for m in pattern.finditer(sentence):
+            if any(a <= m.start(1) < b for a, b in spans):
+                continue
+            spans.append(m.span())
+            if _number(m.group(1)) != plan.totals[name]:
+                errors.append(f"'{m.group(0)}' is wrong: that figure is {plan.totals[name]}")
+    return spans, errors
+
+
+def _bare_numbers(sentence: str, covered: list[tuple[int, int]]) -> list[str]:
+    """Numbers that are neither part of an approved unit form nor labelled as something else."""
+    covered = covered + [m.span() for p in LABELLED for m in p.finditer(sentence)]
+    return [m.group(1) for m in NUMBER.finditer(sentence) if not any(a <= m.start(1) < b for a, b in covered)]
+
+
+# a figure written straight after a district ("Sangrur, 57", "Sangrur at 57") reads as its allocation
+BESIDE = r"[\s,:;=–-]*(?:(?:at|with|gets?)\s+)?"
+
+
+def unit_errors(text: str, plan: Plan, where_part: str = "") -> list[str]:
+    """Allocation figures fail closed. A unit figure may be written only as "District (N units)", "District from X units
+    to Y units", or one of the TOTAL_FORMS, and each is checked. In a sentence that talks about units, machines, teams
+    or who gets what (and everywhere in `where_part`), any other unlabelled number is rejected, and so is one written
+    straight after a district's name.
+
+    What is left: a bare figure outside `where_part`, away from any district name, in a sentence with no such word.
+    """
+    errors = []
+    where = {" ".join(s.split()) for s in sentences(CITATION.sub(" ", where_part))}
+    for sentence in sentences(CITATION.sub(" ", text)):
+        sentence = " ".join(sentence.split())
+        spans, wrong = _approved_units(sentence, plan)
+        errors += wrong
+        if m := SPELLED.search(sentence):
+            errors.append(f"write unit figures in digits, in an approved form: '{m.group(0)}'")
+        in_where = any(sentence in w or w in sentence for w in where)
+        suspect = []
+        if in_where or UNIT_WORD.search(sentence) or ALLOCATING.search(sentence):
+            suspect = _bare_numbers(sentence, spans)
+        else:
+            bare = _bare_numbers(sentence, spans)
+            for _, end, _d in _mentions(sentence, plan.units):
+                m = re.compile(BESIDE + r"(\d[\d,.]*\d|\d)").match(sentence, end)
+                if m and m.group(1) in bare:
+                    suspect.append(m.group(1))
+        for raw in suspect:
+            errors.append(f"the figure {raw} could be read as an allocation: move it to a sentence that says what it counts, "
+                          "or write units as 'District (N units)', 'District from N units to M units' or 'The limit per "
+                          "district is N units'")
+    return list(dict.fromkeys(errors))
+
+
+# ---------- names: nothing below a district (D18) ----------
+
+BELOW_DISTRICT = re.compile(r"\b(villages?|tehsils?|panchayats?|sarpanch\w*|gaon|pind|khasra|mohalla)\b", re.I)
+PROPER_NOUNS = frozenset(("punjab india delhi viirs modis firms noaa nasa npp snpp caqm ppcb crm grap cams naaqs national "
+                          "green tribunal crop residue management custom hiring centre centres happy super seeder "
+                          "mohali ropar muktsar nawanshahr january february march april may june july august september "
+                          "october november december").split())
+# ordinary words that can open a sentence, so the check does not depend on them appearing in lower case elsewhere
+ORDINARY = frozenset(("a an the of in on at to for from by with without and or but if as it its this that these those they "
+                      "their there here what where why how who when which each every all no none not some most more less "
+                      "fewer other others only also then than so while after before during both either since because "
+                      "is are was were be been being has have had do does did can could may might should would will must "
+                      "we our you one dispatch brief plan units unit district districts check recompute awareness teams "
+                      "machines machine rain likely forecast these overall however meanwhile finally first second next "
+                      "today daily recheck confirm start use keep send note watch limit almost visit go focus prioritise "
+                  "prioritize begin place move stage monitor ensure coordinate").split())
+WORD = re.compile(r"[A-Za-z]+")
+
+
+def lowercase_words(texts) -> frozenset[str]:
+    """Words that appear written in lower case. A place or person's name does not."""
+    found: set[str] = set()
+    for text in texts:
+        found.update(w for w in WORD.findall(URL.sub(" ", str(text))) if w.islower())
+    return frozenset(found)
+
+
+def name_errors(text: str, plan: Plan) -> list[str]:
+    """No village, field or farmer names. A capitalised word is accepted only if it is part of a district's name, one of
+    the PROPER_NOUNS, or an ordinary word (ORDINARY, or seen in lower case in `plan.words`).
+
+    What is left: a name that is also an ordinary word, or one written in lower case without "village" or the like.
+    """
+    errors = [f"name nothing below a district: '{m.group(0)}'" for m in BELOW_DISTRICT.finditer(text)]
+    if any(c.isalpha() and not c.isascii() for c in text):
+        errors.append("write in English letters only: names in other scripts cannot be checked")
+    rest = CITATION.sub(" ", text)
+    for district in plan.units:
+        for name in _names(district) + [district.replace("(", "").replace(")", "")]:
+            rest = rest.replace(name, " ")
+    known = ORDINARY | PROPER_NOUNS | plan.words
+    for word in WORD.findall(rest):
+        if len(word) > 1 and word[0].isupper() and word.lower() not in known:
+            errors.append(f"'{word}' looks like a name: name only districts and cells (no village, field or farmer names)")
+    return list(dict.fromkeys(errors))
+
+
+def _dispatch_banned(label: str, s: str) -> list[str]:
+    errors = []
+    for patterns, flags in ((config.DISPATCH_BANNED_PATTERNS, re.I), (config.DISPATCH_BANNED_CASE_SENSITIVE, 0)):
+        for pattern, why in patterns:
+            m = re.search(pattern, s, flags)
+            if m:
+                errors.append(f"banned content in {label} (no {why}; this is support, not enforcement): '{m.group(0)}'")
+    return errors
+
+
+RAIN_AHEAD = re.compile(r"(?=.*(\brain|\bmm\b))(?=.*\bnext\b)", re.I | re.S)
+
+
+def _archive_rain_errors(text: str) -> list[str]:
+    """Rain "over the next 3 days" is observed archive data standing in for a forecast: the sentence must say so."""
+    for sentence in sentences(text):
+        if RAIN_AHEAD.match(sentence) and not re.search(r"archive|stand(s|ing)? in", sentence, re.I):
+            return ["say in the same sentence that rain for the next 3 days comes from the weather archive, standing in "
+                    "for a forecast"]
+    return []
+
+
+def _where_part(text: str) -> str:
+    """The "Where the units go" part: everything before "Why:"."""
+    return re.split(r"\bwhy\s*:", text, flags=re.I)[0] if re.search(r"where the units go\s*:", text, re.I) else ""
+
+
+def _dispatch_content_errors(text: str, plan: Plan) -> list[str]:
+    errors = [f"missing the part labelled '{label}:'" for label in config.DISPATCH_LABELS
+              if f"{label.lower()}:" not in text.lower()]
+    placed = {d: n for d, n in plan.units.items() if n > 0}
+    if placed:
+        top = max(placed, key=lambda d: (placed[d], d))
+        leaders = [d for d, n in placed.items() if n == placed[top]]
+        if not _mentions(text, leaders):
+            errors.append(f"name the district that gets the most units: {top}")
+        watch = re.split(r"what to watch\s*:", text, flags=re.I)
+        if len(watch) > 1 and not _mentions(watch[-1], leaders):
+            errors.append(f"'What to watch' must be about {top}, the district with the most units: its rain and cells")
+    if "detection gap" not in text.lower():
+        errors.append("state the detection-gap caveat, using the words 'detection gap'")
+    if plan.use_likely and not NOT_A_COUNT.search(text):
+        errors.append("say that likely burning is not a count of fires")
+    if plan.use_likely and plan.most_moved and not _mentions(text, [plan.most_moved]):
+        errors.append(f"name the district the adjustment moves most: {plan.most_moved}")
+    if plan.use_likely and plan.confidence:
+        conf = plan.confidence
+        stated = re.compile(rf"confidence[^.]{{0,40}}\b{conf}\b|\b{conf}\b[^.]{{0,15}}confidence", re.I)
+        if not any(stated.search(s) for s in sentences(text)) or re.search(r"high confidence", text, re.I):
+            about = plan.most_moved or "the leading district"
+            errors.append(f"state that the gap range behind {about} has {conf} confidence")
+    if plan.use_likely and re.search(r"expected burning", text, re.I):
+        errors.append("do not write 'expected burning': call the adjusted figure 'likely burning'")
+    if not re.search(r"\brain", text, re.I):
+        errors.append("say what to watch, including rain")
+    if not UNCERTAIN.search(text):
+        errors.append("say how uncertain the forecast is")
+    return errors
+
+
+def verify_dispatch(briefing: dict, evidence: Evidence, plan: Plan, district: str | None = None,
+                    word_range: tuple[int, int] = config.DISPATCH_WORDS) -> VerifyResult:
+    """The shared checks, plus: the four parts, no enforcement talk, units beside the right district, the detection-gap
+    caveat, rain and uncertainty. `district`: a paragraph about it is then required (`district_paragraph`)."""
+    base = verify(briefing, evidence, word_range=word_range)
+    errors, checked = list(base.errors), list(base.checked_numbers)
+    d = briefing if isinstance(briefing, dict) else {}
+    headline, text, paragraph = d.get("headline"), d.get("briefing"), d.get("district_paragraph")
+    if _is_text(headline):
+        errors += _dispatch_banned("headline", headline) + unit_errors(headline, plan, headline) + name_errors(headline, plan)
+    if _is_text(text):
+        errors += _dispatch_banned("briefing", text) + _dispatch_content_errors(text, plan)
+        errors += unit_errors(text, plan, _where_part(text)) + name_errors(text, plan) + _archive_rain_errors(text)
+    if district:
+        if not _is_text(paragraph):
+            errors.append(f"district_paragraph about {district} is missing")
+        else:
+            part = verify({"headline": district, "briefing": paragraph, "citations": d.get("citations")}, evidence,
+                          word_range=config.DISTRICT_PARAGRAPH_WORDS)
+            checked += part.checked_numbers
+            found = [e for e in part.errors if "citation" not in e]  # the brief's citations are checked above
+            found += _dispatch_banned("paragraph", paragraph) + unit_errors(paragraph, plan)
+            found += name_errors(paragraph, plan) + _archive_rain_errors(paragraph)
+            errors += [f"district paragraph: {e}" for e in found]
+    elif _is_text(paragraph):
+        errors.append("no district_paragraph was asked for")
+    return VerifyResult(ok=not errors, errors=list(dict.fromkeys(errors)), checked_numbers=checked)

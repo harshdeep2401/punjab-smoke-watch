@@ -35,6 +35,8 @@ Report only real problems, each with one of these types:
 
 For audit briefs: the signals are satellite and official data with no field verification. The detection gap is a fall in counts per burned km², not a count of unseen fires. Treat as overclaims: that farmers are hiding fires; that official numbers are wrong; stating how much burning really happened as fact; that the signals prove burning moved to other hours; any wording that implies field verification or ground truth. Suggesting field checks as future work is not a problem.
 
+For dispatch briefs (where residue-management help should go): treat as overclaims that machines will prevent fires; that "likely burning" is observed or counted burning; that a cell shows where burning will be.
+
 If deleting, reordering or rewording can fix the problems, return the whole corrected brief text in "suggested_text". In it:
 - never add a number, a date, a citation id or a new fact, and never change a minus sign;
 - fix an unsupported citation by removing that [K012] marker. Never move a marker to another sentence. Keep at least one citation;

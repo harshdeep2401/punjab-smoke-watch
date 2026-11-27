@@ -61,6 +61,17 @@ AUDIT_BANNED_PATTERNS = [
     (r"\bnever (call|say|claim|present|cite) (it|the|that|a)\b|\bdo not copy\b", "an instruction copied into the brief"),
     (r"\[(?!K\d{3}\])[^\]\n]{0,20}\]", "a bracketed marker that is not a citation"),
 ]
+# Phase 12: dispatch briefs
+DISPATCH_WORDS = (150, 200)
+DISTRICT_PARAGRAPH_WORDS = (40, 80)
+DISPATCH_LABELS = ("Where the units go", "Why", "How sure we are", "What to watch")
+# the Dispatcher only (D18: support, not enforcement)
+DISPATCH_BANNED_PATTERNS = [
+    (r"\bpenalt\w*|\bpenali[sz]\w*|\bfined\b|\bfines\b|\bfine\b(?![- ](particle|particulate|grain))", "penalties"),
+    (r"\benforc\w*|\bprosecut\w*|\bpolice\b|\barrest\w*|\bpunish\w*|\blegal action\b|\bchallans?\b|\bred entr\w*"
+     r"|\bsurveillance\b|\braids?\b", "enforcement"),
+]
+DISPATCH_BANNED_CASE_SENSITIVE = [(r"\bFIRs?\b", "police reports")]  # "fir" in lower case is a tree
 # numbers that may appear without being in a tool result: "7-day", "80% interval", p10/p50/p90, "24-hour"
 VERIFY_CONSTANTS = (7, 80, 10, 50, 90, 24)
 BANNED_PATTERNS = [  # (regex, why). Matched case-insensitively except the name rule, which needs a capital letter.

@@ -4,8 +4,8 @@
  "modes": {
   "hybrid": {
    "hit_at_k": 23,
-   "hit_at_1": 21,
-   "mrr": 0.9565217391304348,
+   "hit_at_1": 20,
+   "mrr": 0.9347826086956522,
    "items": [
     {
      "query": "why do satellites miss some fires",
@@ -17,7 +17,7 @@
      "got": [
       "limitations",
       "firms_detection",
-      "crop_residue_context"
+      "evening_burning_study"
      ]
     },
     {
@@ -56,7 +56,7 @@
      "got": [
       "crop_residue_context",
       "crop_residue_context",
-      "crop_residue_context"
+      "crm_options"
      ]
     },
     {
@@ -148,8 +148,8 @@
      "rank": 1,
      "got": [
       "crop_residue_context",
-      "model_card",
-      "model_card"
+      "crm_options",
+      "crm_options"
      ]
     },
     {
@@ -238,10 +238,10 @@
       "evening_burning_study",
       "evening_burning_debate"
      ],
-     "rank": 1,
+     "rank": 2,
      "got": [
-      "evening_burning_debate",
       "overpass_times",
+      "evening_burning_debate",
       "firms_detection"
      ]
     },
@@ -313,9 +313,9 @@
    ]
   },
   "embedding": {
-   "hit_at_k": 23,
+   "hit_at_k": 22,
    "hit_at_1": 21,
-   "mrr": 0.9492753623188406,
+   "mrr": 0.9347826086956522,
    "items": [
     {
      "query": "why do satellites miss some fires",
@@ -366,7 +366,7 @@
      "got": [
       "crop_residue_context",
       "crop_residue_context",
-      "crop_residue_context"
+      "crm_options"
      ]
     },
     {
@@ -455,11 +455,11 @@
      "expected": [
       "crop_residue_context"
      ],
-     "rank": 3,
+     "rank": null,
      "got": [
+      "crm_options",
       "model_card",
-      "model_card",
-      "crop_residue_context"
+      "model_card"
      ]
     },
     {
@@ -623,9 +623,9 @@
    ]
   },
   "bm25": {
-   "hit_at_k": 21,
+   "hit_at_k": 20,
    "hit_at_1": 17,
-   "mrr": 0.8115942028985508,
+   "mrr": 0.7971014492753623,
    "items": [
     {
      "query": "why do satellites miss some fires",
@@ -637,7 +637,7 @@
      "got": [
       "crop_residue_context",
       "limitations",
-      "crop_residue_context"
+      "crm_options"
      ]
     },
     {
@@ -676,7 +676,7 @@
      "got": [
       "crop_residue_context",
       "crop_residue_context",
-      "crop_residue_context"
+      "crm_options"
      ]
     },
     {
@@ -767,7 +767,8 @@
      ],
      "rank": 1,
      "got": [
-      "crop_residue_context"
+      "crop_residue_context",
+      "crm_options"
      ]
     },
     {
@@ -856,11 +857,11 @@
       "evening_burning_study",
       "evening_burning_debate"
      ],
-     "rank": 3,
+     "rank": null,
      "got": [
       "overpass_times",
-      "crop_residue_context",
-      "evening_burning_debate"
+      "crm_options",
+      "crop_residue_context"
      ]
     },
     {

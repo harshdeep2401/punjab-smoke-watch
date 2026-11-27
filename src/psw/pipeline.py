@@ -456,6 +456,47 @@ def _decision_backtest() -> None:
     print(f"Saved data/processed/{DECISION_FILE}")
 
 
+def cmd_dispatch(args) -> None:
+    from psw.agents import orchestrator
+    from psw.agents.dispatch_tools import ResponseStore
+    from psw.rag.index import KnowledgeBase
+
+    if not args.date:
+        raise SystemExit("--date YYYY-MM-DD is required")
+    try:
+        rec = orchestrator.run_dispatch(
+            args.date, units=args.machines, max_share=args.max_share, use_likely=not args.detected_only,
+            district=args.district, llm=_llm_or_template(args.no_llm), store=ResponseStore(), kb=KnowledgeBase(),
+            reuse=not args.force, use_critic=not args.no_critic)
+    except ValueError as e:
+        raise SystemExit(str(e))
+    _print_dispatch(rec)
+    print(f"Saved data/processed/dispatch/{rec.date}.json")
+
+
+def _print_dispatch(rec) -> None:
+    v = rec.verification
+    basis = "likely burning" if rec.use_likely else "forecast detections"
+    print(f"\n[{rec.mode}] dispatch {rec.date} | {rec.units} units on {basis} | model {rec.model} | verified {v['ok']} "
+          f"({len(v['checked_numbers'])} numbers checked) | tools: {[t['tool'] for t in rec.trace]}")
+    print(f"  {rec.headline}\n{rec.briefing}")
+    if rec.district_paragraph:
+        print(f"\n  {rec.district}: {rec.district_paragraph}")
+    print("\n  allocation:", ", ".join(f"{r['district']} {r['units']}" for r in rec.allocation if r["units"] > 0)[:400])
+    if rec.moved:
+        print("  moved by the likely adjustment:", ", ".join(
+            f"{m['district']} {m['units_without_adjustment']}->{m['units_with_adjustment']}" for m in rec.moved[:6]))
+    _print_critic(rec)
+    if rec.first_attempt_errors:
+        print("  first draft errors:", rec.first_attempt_errors)
+    if rec.revision_errors:
+        print("  revision errors:", rec.revision_errors)
+    if rec.llm_error:
+        print("  llm:", rec.llm_error)
+    if v["errors"]:
+        print("  VERIFY ERRORS:", v["errors"])
+
+
 COMMANDS = {
     "ingest": cmd_ingest,
     "process": cmd_process,
@@ -467,6 +508,7 @@ COMMANDS = {
     "audit-ingest": cmd_audit_ingest,
     "audit": cmd_audit,
     "risk-train": cmd_risk_train,
+    "dispatch": cmd_dispatch,
 }
 
 
@@ -489,9 +531,13 @@ def main() -> None:
     p.add_argument("--tables-only", action="store_true", help="audit: write the tables and summary, no briefs")
     p.add_argument("--plan", action="store_true", help="brief / demo-cache / audit: run the Planner first (one extra LLM call each)")
     p.add_argument("--critic", action="store_true", help="brief: have the Critic read each briefing (one extra LLM call each)")
-    p.add_argument("--no-critic", action="store_true", help="audit: skip the Critic (it is on by default for audits)")
-    p.add_argument("--force", action="store_true", help="demo-cache / audit: regenerate what is already saved")
-    p.add_argument("--no-llm", action="store_true", help="brief / audit: skip the LLM and use the template fallback")
+    p.add_argument("--no-critic", action="store_true", help="audit / dispatch: skip the Critic (it is on by default)")
+    p.add_argument("--force", action="store_true", help="demo-cache / audit / dispatch: regenerate what is already saved")
+    p.add_argument("--no-llm", action="store_true", help="brief / audit / dispatch: skip the LLM and use the template fallback")
+    p.add_argument("--machines", type=int, default=500, help="dispatch: units available (machines or teams)")
+    p.add_argument("--max-share", type=float, default=0.25, help="dispatch: most one district may take, as a share")
+    p.add_argument("--detected-only", action="store_true",
+                   help="dispatch: plan on forecast detections, without the likely-burning adjustment")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     COMMANDS[args.command](args)

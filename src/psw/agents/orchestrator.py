@@ -3,8 +3,10 @@
     run_briefing   one district-day. mode is "agent", "agent_revised" or "template".
     run_daily_watch   Sentinel scan, then a briefing for the top flagged districts.
     run_audit   one district (or Punjab) and season: Auditor -> Verifier -> (one revision) -> template fallback.
+    run_dispatch   one issue date: allocation (code) -> Dispatcher -> Verifier -> (one revision) -> template fallback.
 
-With use_critic, the Critic reads an agent-written draft after the Verifier (default on for audits, off for briefings).
+With use_critic, the Critic reads an agent-written draft after the Verifier (on by default for audits and dispatches, off
+for briefings).
 A rewrite is used only if it passes the Verifier again; the mode then ends in "+critic".
 
 Whatever the LLM does (errors, bad JSON, invented numbers), the result is a briefing that passed the Verifier.
@@ -20,11 +22,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from psw import config
-from psw.agents import analyst, audit_template, audit_tools, auditor, critic, planner, sentinel, template, tools
+from psw.agents import (analyst, audit_template, audit_tools, auditor, critic, dispatch_template, dispatch_tools,
+                        dispatcher, planner, sentinel, template, tools)
 from psw.agents.audit_tools import AuditStore
+from psw.agents.dispatch_tools import ResponseStore, Settings
 from psw.agents.runtime import AgentResult, run_agent
 from psw.agents.tools import DataStore, nearest_city
-from psw.agents.verifier import Evidence, verify, verify_audit
+from psw.agents.verifier import Evidence, lowercase_words, verify, verify_audit, verify_dispatch
 from psw.llm import LLM, LLMError
 
 log = logging.getLogger(__name__)
@@ -480,4 +484,173 @@ def run_audit(district: str, season: int, llm=None, store: AuditStore | None = N
     )
     if save:
         _write_json(audit_path(season, district, root), record.to_dict())
+    return record
+
+
+# ---------- Part 2: dispatch ----------
+
+DISPATCH_CAVEAT = ("Decision support for residue-management help. Not for enforcement. No farms or farmers identified. "
+                   "The split was computed by a fixed rule, and what one unit achieves is an assumption.")
+
+
+@dataclass
+class DispatchRecord:
+    date: str
+    units: int
+    max_share: float
+    use_likely: bool
+    district: str | None  # the district that has its own paragraph, if one was asked for
+    variant: str  # which forecast variant was allocated on
+    mode: str  # agent | agent_revised | template
+    headline: str
+    briefing: str
+    district_paragraph: str | None
+    citations: list[str]
+    sources: list[dict]
+    verification: dict
+    trace: list[dict]
+    facts: dict
+    allocation: list[dict]  # computed by code, whatever the text says
+    detected_only: list[dict]  # the same fleet without the likely-burning adjustment
+    moved: list[dict]  # districts the adjustment moves, largest first
+    units_not_placed: int
+    model: str
+    generated_at: str
+    caveat: str = DISPATCH_CAVEAT
+    first_attempt_errors: list[str] = field(default_factory=list)
+    revision_errors: list[str] = field(default_factory=list)
+    llm_error: str | None = None
+    label: str | None = None
+    critic: dict | None = None
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+def dispatch_path(date: str, root: Path | None = None) -> Path:
+    return Path(root or config.PROCESSED) / "dispatch" / f"{date}.json"
+
+
+def load_reusable_dispatch(date: str, settings: Settings, district: str | None, root: Path | None = None
+                           ) -> DispatchRecord | None:
+    """A saved agent-written, verified dispatch for exactly these inputs."""
+    try:
+        d = json.loads(dispatch_path(date, root).read_text())
+        same = (d["units"], d["max_share"], d["use_likely"], d["district"]) == (
+            settings.units, settings.max_share, settings.use_likely, district)
+        ok = critic.base_mode(d["mode"]) in ("agent", "agent_revised") and d["verification"]["ok"]
+        names = DispatchRecord.__dataclass_fields__
+        return DispatchRecord(**{k: v for k, v in d.items() if k in names}) if same and ok else None
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        return None
+
+
+def _dispatch_check(allocation: dispatch_tools.Allocation, day: str, district: str | None, kb):
+    # words our own texts write in lower case; capitalised in a brief, they are ordinary words and not names
+    own = lowercase_words([dispatcher.SYSTEM_PROMPT, *dispatch_template.PADDING, *kb.chunks["text"]])
+
+    def check(draft, found: list[dict]):
+        evidence = Evidence.from_tool_results(found, dates=[day])
+        words = own | lowercase_words(json.dumps(r["result"], ensure_ascii=False, default=str) for r in found)
+        return verify_dispatch(draft, evidence, allocation.plan(words), district=district)
+    return check
+
+
+def _dispatch_template_facts(store: ResponseStore, kb, day: str, settings: Settings,
+                             district: str | None) -> tuple[dict, list[dict], list[dict]]:
+    t = dispatch_tools
+    s = (settings.units, settings.max_share, settings.use_likely)
+    allocation = t.get_allocation(store, day, *s, district=district)
+    leader = allocation["districts"][0]["district"] if allocation["districts"] else \
+        t.get_risk_forecast(store, day, settings.use_likely)["top_districts"][0]["district"]
+    season = t.as_date(day).year - 1
+    moves = allocation.get("moved_by_the_likely_adjustment") or []
+    about = moves[0]["district"] if moves else t.STATE
+    calls = [
+        ("risk", "get_risk_forecast", {"date": day, "district": district},
+         lambda: t.get_risk_forecast(store, day, settings.use_likely, district)),
+        ("allocation", "get_allocation", {"date": day, "units": settings.units}, lambda: allocation),
+        ("gap", "get_gap_range", {"district": about, "season": season}, lambda: t.get_gap_range(store, about, season)),
+        ("rain", "get_rain_outlook", {"district": leader, "date": day}, lambda: t.get_rain_outlook(store, leader, day)),
+        ("hotspots", "get_hotspot_cells", {"district": leader, "date": day}, lambda: t.get_hotspot_cells(store, leader, day)),
+        ("method", "search_knowledge", {"doc": audit_template.METHOD_DOC}, lambda: audit_template.method_chunks(kb)),
+    ]
+    if district:
+        calls += [
+            ("district_rain", "get_rain_outlook", {"district": district, "date": day},
+             lambda: t.get_rain_outlook(store, district, day)),
+            ("district_hotspots", "get_hotspot_cells", {"district": district, "date": day},
+             lambda: t.get_hotspot_cells(store, district, day)),
+        ]
+    return _template_calls(calls)
+
+
+def run_dispatch(date, units: int = 500, max_share: float = 0.25, use_likely: bool = True, district: str | None = None,
+                 llm=None, store: ResponseStore | None = None, kb=None, root: Path | None = None, save: bool = True,
+                 reuse: bool = False, use_critic: bool = True) -> DispatchRecord:
+    """The 3-day dispatch issued on `date`. The allocation is computed by code; the Dispatcher only explains it.
+
+    Never raises because of the LLM; raises ValueError for a date without a forecast, an unknown district or bad
+    settings. `district` asks for an extra paragraph about it.
+    """
+    date, settings = str(date), Settings(int(units), float(max_share), bool(use_likely))
+    if reuse and (saved := load_reusable_dispatch(date, settings, district, root)) is not None:
+        return saved
+    store = store or ResponseStore()
+    store.check(date, district)
+    allocation = dispatch_tools.plan_allocation(store, date, settings)
+    if kb is None:
+        from psw.rag.index import KnowledgeBase
+        kb = KnowledgeBase()
+
+    llm_error: str | None = None
+    if llm is None:
+        try:
+            llm = LLM.from_env()
+        except LLMError as e:
+            llm_error = str(e)
+
+    check = _dispatch_check(allocation, date, district, kb)
+    att = Attempt(llm_error=llm_error)
+    if llm is not None:
+        spec = dispatcher.build_dispatcher(store, kb)
+        injected = dispatcher.injected_args(date, settings)
+        message = dispatcher.user_message(date, settings, district)
+        att = _draft_and_verify(
+            llm,
+            first=lambda: run_agent(spec, message, llm, injected_args=injected),
+            revise=lambda prompt, history: run_agent(spec, prompt, llm, injected_args=injected, history=history),
+            check=check, revise_prompt=dispatcher.REVISE_PROMPT, what=f"dispatch {date}")
+
+    mode, draft, verdict, results, trace = att.mode, att.draft, att.verdict, att.results, list(att.trace)
+    review_info = None
+    if mode is not None and use_critic:
+        mode, draft, verdict, review_info = _criticise(
+            llm, "dispatch", mode, draft, verdict, kb, trace, check=lambda d: check(d, att.results),
+            word_range=config.DISPATCH_WORDS)
+
+    if mode is None:
+        tfacts, results, ttrace = _dispatch_template_facts(store, kb, date, settings, district)
+        draft = dispatch_template.render(tfacts)
+        verdict = check(draft, results)
+        if not verdict.ok:
+            log.error("template dispatch for %s failed verification: %s", date, verdict.errors)
+        mode, trace = "template", trace + ttrace
+
+    citations = [c for c in draft.get("citations", []) if isinstance(c, str)]
+    record = DispatchRecord(
+        date=date, units=settings.units, max_share=settings.max_share, use_likely=settings.use_likely, district=district,
+        variant=store.variant, mode=mode, headline=draft["headline"], briefing=draft["briefing"],
+        district_paragraph=draft.get("district_paragraph"), citations=citations, sources=_sources(citations, kb),
+        verification={"ok": verdict.ok, "errors": verdict.errors, "checked_numbers": verdict.checked_numbers},
+        trace=_renumber(trace), facts=_facts(results), allocation=allocation.table.to_dict("records"),
+        detected_only=allocation.detected.to_dict("records"), moved=allocation.moves(top=len(allocation.table)),
+        units_not_placed=settings.units - allocation.placed,
+        model=getattr(llm, "model", "none") if mode != "template" else "template",
+        generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        first_attempt_errors=att.first_errors, revision_errors=att.revision_errors, llm_error=att.llm_error,
+        label=draft.get("label") if mode == "template" else None, critic=review_info,
+    )
+    if save:
+        _write_json(dispatch_path(date, root), record.to_dict())
     return record
