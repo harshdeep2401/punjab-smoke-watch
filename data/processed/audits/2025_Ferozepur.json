@@ -1,0 +1,290 @@
+{
+ "district": "Ferozepur",
+ "season": 2025,
+ "mode": "agent_revised",
+ "headline": "Ferozepur Audit: Satellite Detections Fall Faster Than Burned Area",
+ "briefing": "What detections say: VIIRS S-NPP recorded 302 detections, down 90.4% from 2022. VIIRS NOAA-20 recorded 328 detections, down 89.6% from 2022. VIIRS NOAA-21 recorded 320 detections, down 87.0% from 2023. MODIS recorded 237 detections, down 70.7% from 2022. Night detections were 0, and night detections in one district are too few to show a change in timing.\n\nWhat other signals say: MODIS burned area was 702.7 km², down 22.7% from 2022. The official count was 548, down 87.2% from 2022. The official count is satellite-based too, so it is not an independent check.\n\nOur best range and how sure we are: The fall in counts per burned km² was 79.1% to 87.6% [K423]. Confidence is low [K425]. Counts fell more than burned area. The range leaves out the error of the MODIS burned-area product, which is unknown and is the largest uncertainty [K426].\n\nWhat would settle it: Ground checks and a geostationary satellite watching all day would help. Three possible explanations exist: burning moved outside pass times, fires became smaller or cooler, or burned-area sensitivity changed [K426]. This is triangulation, not field verification [K426].",
+ "citations": [
+  "K423",
+  "K425",
+  "K426"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K423",
+   "title": "How this project estimates the detection gap, and its weaknesses",
+   "doc_type": "curated"
+  },
+  {
+   "chunk_id": "K425",
+   "title": "How this project estimates the detection gap, and its weaknesses",
+   "doc_type": "curated"
+  },
+  {
+   "chunk_id": "K426",
+   "title": "How this project estimates the detection gap, and its weaknesses",
+   "doc_type": "curated"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   302.0,
+   90.4,
+   2022.0,
+   328.0,
+   89.6,
+   2022.0,
+   320.0,
+   87.0,
+   2023.0,
+   237.0,
+   70.7,
+   2022.0,
+   0.0,
+   702.7,
+   22.7,
+   2022.0,
+   548.0,
+   87.2,
+   2022.0,
+   79.1,
+   87.6
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "auditor",
+   "tool": "get_detection_trend",
+   "args": {
+    "district": "Ferozepur",
+    "season": 2025
+   },
+   "result_summary": "{\"district\": \"Ferozepur\", \"season\": 2025, \"sensors\": [{\"satellite\": \"VIIRS S-NPP\", \"detections\": 302, \"base_season\": 2022, \"change_vs_base_pct\": -90.4, \"change_in_words\": \"down 90…",
+   "ms": 10
+  },
+  {
+   "step": 2,
+   "agent": "auditor",
+   "tool": "get_diurnal_profile",
+   "args": {
+    "season": 2025,
+    "district": "Ferozepur"
+   },
+   "result_summary": "{\"district\": \"Ferozepur\", \"season\": 2025, \"base_season\": 2022, \"snpp_night_detections\": 0, \"base_snpp_night_detections\": 0, \"warning\": \"night detections in one district are too fe…",
+   "ms": 1
+  },
+  {
+   "step": 3,
+   "agent": "auditor",
+   "tool": "get_burned_area_comparison",
+   "args": {
+    "season": 2025,
+    "district": "Ferozepur"
+   },
+   "result_summary": "{\"district\": \"Ferozepur\", \"season\": 2025, \"base_season\": 2022, \"product\": \"MODIS burned area (MCD64A1), low confidence in cropland\", \"burned_km2\": 702.7, \"snpp_detections\": 302, \"…",
+   "ms": 0
+  },
+  {
+   "step": 4,
+   "agent": "auditor",
+   "tool": "get_official_vs_satellite",
+   "args": {
+    "season": 2025,
+    "district": "Ferozepur"
+   },
+   "result_summary": "{\"district\": \"Ferozepur\", \"season\": 2025, \"official_count\": 548, \"snpp_detections\": 302, \"official_to_snpp_ratio\": 1.81, \"source_url\": \"https://ppcb.punjab.gov.in/media/documents/…",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "auditor",
+   "tool": "get_gap_range",
+   "args": {
+    "season": 2025,
+    "district": "Ferozepur"
+   },
+   "result_summary": "{\"district\": \"Ferozepur\", \"season\": 2025, \"what_the_gap_is\": \"the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed\", \"detect…",
+   "ms": 0
+  },
+  {
+   "step": 6,
+   "agent": "auditor",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "how the detection gap is calculated and its weaknesses",
+    "k": 4,
+    "before": "2025-12-01",
+    "district": "Ferozepur",
+    "place": "Ferozepur"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K426\", \"title\": \"How this project estimates the detection gap, and its weaknesses\", \"text\": \"# Weaknesses\\n\\nThe range does not include the error of the…",
+   "ms": 38
+  },
+  {
+   "step": 7,
+   "agent": "critic",
+   "tool": "review",
+   "args": {
+    "brief_type": "audit",
+    "chunks": [
+     "K423",
+     "K425",
+     "K426"
+    ]
+   },
+   "result_summary": "1 issue(s), rewrite rejected",
+   "ms": 3945
+  }
+ ],
+ "facts": {
+  "get_detection_trend": {
+   "district": "Ferozepur",
+   "season": 2025,
+   "sensors": [
+    {
+     "satellite": "VIIRS S-NPP",
+     "detections": 302,
+     "base_season": 2022,
+     "change_vs_base_pct": -90.4,
+     "change_in_words": "down 90.4% from 2022"
+    },
+    {
+     "satellite": "VIIRS NOAA-20",
+     "detections": 328,
+     "base_season": 2022,
+     "change_vs_base_pct": -89.6,
+     "change_in_words": "down 89.6% from 2022"
+    },
+    {
+     "satellite": "VIIRS NOAA-21",
+     "detections": 320,
+     "base_season": 2023,
+     "change_vs_base_pct": -87.0,
+     "change_in_words": "down 87.0% from 2023"
+    },
+    {
+     "satellite": "MODIS (Terra and Aqua)",
+     "detections": 237,
+     "base_season": 2022,
+     "change_vs_base_pct": -70.7,
+     "change_in_words": "down 70.7% from 2022"
+    }
+   ],
+   "note": "NOAA-20 and NOAA-21 pass at about the same time as S-NPP, so they are a robustness check and not an independent look. MODIS passes at other times."
+  },
+  "get_diurnal_profile": {
+   "district": "Ferozepur",
+   "season": 2025,
+   "base_season": 2022,
+   "snpp_night_detections": 0,
+   "base_snpp_night_detections": 0,
+   "warning": "night detections in one district are too few to show a change in timing"
+  },
+  "get_burned_area_comparison": {
+   "district": "Ferozepur",
+   "season": 2025,
+   "base_season": 2022,
+   "product": "MODIS burned area (MCD64A1), low confidence in cropland",
+   "burned_km2": 702.7,
+   "snpp_detections": 302,
+   "detections_per_burned_km2": 0.43,
+   "burned_change_vs_base_pct": -22.7,
+   "detections_change_vs_base_pct": -90.4,
+   "per_km2_change_vs_base_pct": -87.6,
+   "burned_change_in_words": "down 22.7% from 2022",
+   "detections_change_in_words": "down 90.4% from 2022"
+  },
+  "get_official_vs_satellite": {
+   "district": "Ferozepur",
+   "season": 2025,
+   "official_count": 548,
+   "snpp_detections": 302,
+   "official_to_snpp_ratio": 1.81,
+   "source_url": "https://ppcb.punjab.gov.in/media/documents/CAQM_ATR_30.11.2025.pdf",
+   "how_counted": "Cumulative fire incidents as per ISRO protocol (satellite) as on 30 Nov 2025; the table states no start date",
+   "note": "The official count is satellite-based too, so it is not an independent check.",
+   "base_season": 2022,
+   "base_official_count": 4295,
+   "official_change_vs_base_pct": -87.2,
+   "official_change_in_words": "down 87.2% from 2022"
+  },
+  "get_gap_range": {
+   "district": "Ferozepur",
+   "season": 2025,
+   "what_the_gap_is": "the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed",
+   "detected_change_pct": -90.4,
+   "reference_change_pct": -22.7,
+   "changes_are_for": "S-NPP detections against 2022",
+   "changes_in_words": "counts fell 90.4% and burned area fell 22.7%",
+   "gap_low_pct": 79.1,
+   "gap_high_pct": 87.6,
+   "methods": "S-NPP detections against burned area, base season 2022; official counts against burned area, base season 2022; S-NPP detections against burned area, base season 2023; official counts against burned area, base season 2023",
+   "confidence": "low",
+   "direction": "counts fell more than burned area",
+   "reason": null,
+   "timing_evidence": "Punjab-wide only. Night share of S-NPP detections: 2.4% (95% interval 2.0% to 2.9%) in 2025 against 0.2% (0.1% to 0.2%) in 2022: supports a shift in timing. MODIS change relative to the S-NPP change since 2022: 3.25 times (rule: at least 1.5): supports a shift in timing. MODIS passes at other times (Terra in the morning, Aqua drifting later in the afternoon), which is a confound.",
+   "other_explanations": "A fall in detections per burned area fits three explanations: burning moved outside satellite pass times, fires became smaller or cooler, or the sensitivity of the burned-area product changed.",
+   "caveat": "The range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification."
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K426",
+     "title": "How this project estimates the detection gap, and its weaknesses",
+     "text": "# Weaknesses\n\nThe range does not include the error of the burned-area product, which is unknown and is the largest uncertainty. A fall in detections per burned area fits three explanations: burning moved outside pass times, fires became smaller or cooler, or the burned-area product's sensitivity changed. The timing indicators speak only to the first. There is no field verification. This is triangulation, not ground truth."
+    },
+    {
+     "chunk_id": "K423",
+     "title": "How this project estimates the detection gap, and its weaknesses",
+     "text": "# What the gap measures\n\nThe detection gap is the fall in fire counts per burned square kilometre since a base season: one minus the ratio of (count divided by burned area) now to (count divided by burned area) in the base season. In plain words it compares how far counts fell with how far burned area fell. It is a relative loss of detection since the base season. It is not the share of burning that is missed, because the base season's own miss rate is unknown."
+    },
+    {
+     "chunk_id": "K425",
+     "title": "How this project estimates the detection gap, and its weaknesses",
+     "text": "# Range, thresholds and confidence\n\nThere is one estimate for each count series and base season (2022 or 2023), and the range runs from the lowest to the highest. Nothing is clipped, so a negative value means burned area fell more than counts. A pair is used only if burned area is at least 50 km² in both seasons and the base count is at least 100; otherwise the result is \"insufficient evidence\". Confidence is never high. Punjab is medium only if the lowest estimate is at least 0.25 and both timing indicators support a shift. Districts are low at most."
+    },
+    {
+     "chunk_id": "K226",
+     "title": "Ferozepur burning audit, season 2023",
+     "text": "## Detection gap\n\nThe gap (the fall in counts per burned km²; a negative value is a rise) is 21% to 24% (confidence low; counts fell more than burned area). Methods: S-NPP detections against burned area, base season 2022; official counts against burned area, base season 2022.\n\nThe range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Season window Sep 15 to Nov 30."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-27T12:14:28+00:00",
+ "caveat": "The range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification.",
+ "first_attempt_errors": [
+  "word count 201 outside 150-200",
+  "[K226] is the 2023 audit: it cannot support a sentence that is not about 2023"
+ ],
+ "revision_errors": [],
+ "llm_error": null,
+ "label": null,
+ "plan": null,
+ "planner_error": null,
+ "critic": {
+  "ok": false,
+  "issues": [
+   {
+    "type": "unsupported_citation",
+    "sentence": "Our best range and how sure we are: The fall in counts per burned km² was 79.1% to 87.6% [K423].",
+    "note": "K423 does not contain the range numbers",
+    "by": "critic"
+   }
+  ],
+  "rewrite_used": false,
+  "error": null,
+  "rewrite_rejected": [
+   "it moves a citation to another sentence: K425"
+  ],
+  "original_briefing": null,
+  "warning": "⚠️ Critic: citation may not support sentence"
+ },
+ "manual_edits": [
+  "2026-11-27: removed the citation [K426] after 'Counts fell more than burned area' (the note explains the method and does not state Ferozepur's result; the result itself comes from get_gap_range)."
+ ]
+}

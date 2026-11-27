@@ -85,6 +85,9 @@ uv run python -m psw.pipeline demo-cache   # briefings for the three demo dates 
 uv run pytest -q                           # tests, all offline (a scripted fake LLM, no network)
 # Part 2 (in progress)
 uv run python -m psw.pipeline audit-ingest # extra fire satellites, burned area, official counts check, district weather
+uv run python -m psw.pipeline audit        # gap ranges, then audit briefs (Punjab 2024 and 2025, top 5 districts of 2025)
+uv run python -m psw.pipeline audit --tables-only                            # tables and summary only, no LLM
+uv run python -m psw.pipeline audit --district Sangrur --season 2025 --force # one brief; also --plan, --no-critic
 ```
 
 On macOS, LightGBM needs `brew install libomp`.

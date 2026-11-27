@@ -99,7 +99,7 @@
    "gap": {
     "low_pct": 29.7,
     "high_pct": 50.2,
-    "methods": "snpp / burned_area, base 2022; official / burned_area, base 2022; snpp / burned_area, base 2023; official / burned_area, base 2023",
+    "methods": "snpp / burned_area, base 2022; official / burned_area, base 2022 (start date not stated); snpp / burned_area, base 2023; official / burned_area, base 2023 (start date not stated)",
     "confidence": "medium",
     "direction": "counts fell more than burned area",
     "reason": null,
@@ -138,7 +138,7 @@
    "gap": {
     "low_pct": 77.0,
     "high_pct": 83.8,
-    "methods": "snpp / burned_area, base 2022; official / burned_area, base 2022; snpp / burned_area, base 2023; official / burned_area, base 2023",
+    "methods": "snpp / burned_area, base 2022; official / burned_area, base 2022 (start date not stated); snpp / burned_area, base 2023; official / burned_area, base 2023 (start date not stated)",
     "confidence": "medium",
     "direction": "counts fell more than burned area",
     "reason": null,

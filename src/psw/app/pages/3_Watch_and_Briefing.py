@@ -113,6 +113,8 @@ else:
             if rec.get("llm_error"):
                 st.caption(f"Reason: {rec['llm_error']}")
         st.markdown(rec["briefing"])
+        if (rec.get("critic") or {}).get("warning"):
+            st.warning(rec["critic"]["warning"])
         st.caption(f"Mode: {rec['mode']} · model: {rec.get('model')} · generated {rec.get('generated_at', '')[:19]} UTC · "
                    f"nearest city: {rec.get('nearest_city')}")
         st.caption("The Verifier proves that every number appears in the tool outputs and that every cited chunk was "

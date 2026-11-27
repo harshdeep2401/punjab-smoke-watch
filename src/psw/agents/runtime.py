@@ -51,16 +51,19 @@ JSON_RETRY = "Return only the JSON object, nothing else."
 
 
 def parse_json_object(text: str | None) -> dict | None:
-    """Tolerant parse: plain JSON, ```json fences, or a JSON object embedded in prose. None if there is none."""
+    """Tolerant parse: plain JSON, ```json fences, or a JSON object embedded in prose. None if there is none.
+
+    strict=False accepts real line breaks inside strings, which models write when asked for paragraphs.
+    """
     if not text:
         return None
     s = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.I)
     try:
-        v = json.loads(s)
+        v = json.loads(s, strict=False)
         return v if isinstance(v, dict) else None
     except json.JSONDecodeError:
         pass
-    dec = json.JSONDecoder()
+    dec = json.JSONDecoder(strict=False)
     for m in re.finditer(r"\{", s):
         try:
             v, _ = dec.raw_decode(s[m.start():])

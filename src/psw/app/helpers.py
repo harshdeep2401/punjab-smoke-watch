@@ -12,6 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from psw import config
+from psw.agents.critic import base_mode
 from psw.agents.orchestrator import briefing_path
 from psw.agents.verifier import Evidence, _walk, extract_numbers
 
@@ -60,7 +61,7 @@ def cached_districts(date: str, root: Path | None = None) -> set[str]:
 def badge(rec: dict) -> tuple[str, str]:
     """(kind, text) for the verification badge. kind: success | warning | error."""
     ok = bool(rec.get("verification", {}).get("ok"))
-    mode = rec.get("mode")
+    mode = base_mode(rec.get("mode"))
     if not ok:
         return "error", "❌ Verification failed"
     if mode == "template":
@@ -208,7 +209,7 @@ def reliability(root: Path | None = None) -> pd.DataFrame:
                 continue
         if not recs:
             continue
-        modes = Counter(r.get("mode") for r in recs)
+        modes = Counter(base_mode(r.get("mode")) for r in recs)
         verified = sum(bool(r.get("verification", {}).get("ok")) for r in recs)
         words = [len(r.get("briefing", "").split()) for r in recs]
         rows.append({"set": name, "briefings": len(recs), "verified": verified,

@@ -5,7 +5,7 @@
   "hybrid": {
    "hit_at_k": 23,
    "hit_at_1": 21,
-   "mrr": 0.9492753623188406,
+   "mrr": 0.9565217391304348,
    "items": [
     {
      "query": "why do satellites miss some fires",
@@ -303,19 +303,19 @@
      "expected": [
       "audit_2024_Sangrur"
      ],
-     "rank": 3,
+     "rank": 2,
      "got": [
       "season_2024_Sangrur",
-      "audit_2022_Sangrur",
-      "audit_2024_Sangrur"
+      "audit_2024_Sangrur",
+      "audit_2022_Sangrur"
      ]
     }
    ]
   },
   "embedding": {
-   "hit_at_k": 22,
-   "hit_at_1": 20,
-   "mrr": 0.9057971014492753,
+   "hit_at_k": 23,
+   "hit_at_1": 21,
+   "mrr": 0.9492753623188406,
    "items": [
     {
      "query": "why do satellites miss some fires",
@@ -353,7 +353,7 @@
      "got": [
       "how_to_read_forecast",
       "how_to_read_forecast",
-      "audit_2024_Amritsar"
+      "audit_2023_Amritsar"
      ]
     },
     {
@@ -591,7 +591,7 @@
      "got": [
       "method_detection_gap",
       "method_detection_gap",
-      "audit_2024_Amritsar"
+      "audit_2024_punjab"
      ]
     },
     {
@@ -613,11 +613,11 @@
      "expected": [
       "audit_2024_Sangrur"
      ],
-     "rank": null,
+     "rank": 1,
      "got": [
+      "audit_2024_Sangrur",
       "season_2024_Sangrur",
-      "audit_2022_Sangrur",
-      "season_2022_Sangrur"
+      "audit_2025_Sangrur"
      ]
     }
    ]

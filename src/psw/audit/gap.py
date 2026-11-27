@@ -38,6 +38,10 @@ INSUFFICIENT = "insufficient evidence"
 GAP_CAVEAT = ("The range shows only how the result changes with the count series and the base season. It does not include "
               "the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is "
               "triangulation of satellite and official signals, not field verification.")
+# Official counts are used as published. Some tables give no start date, so their window may differ from Sep 15 to
+# Nov 30; every method that uses such a table says so.
+NO_START_DATE = "no start date"  # as written in the table's method_note
+UNDATED = " (start date not stated)"
 EXPLANATIONS = ("A fall in detections per burned area fits three explanations: burning moved outside satellite pass times, "
                 "fires became smaller or cooler, or the sensitivity of the burned-area product changed.")
 MODIS_CONFOUND = "MODIS passes at other times (Terra in the morning, Aqua drifting later in the afternoon), which is a confound"
@@ -244,6 +248,8 @@ def gap_estimates(ms: pd.DataFrame, ba: pd.DataFrame, off: pd.DataFrame, bases=B
     official = official_vs_satellite(ms, off)
     counts = {"snpp": {(d, int(y)): v for d, y, v in zip(snpp["district"], snpp["season"], snpp["count"])},
               "official": {(d, int(y)): v for d, y, v in zip(official["district"], official["season"], official["official"])}}
+    undated = {(d, int(y)) for d, y, note in zip(official["district"], official["season"], official["method_note"])
+               if NO_START_DATE in note}
     burned = _burned(ba)
     area = {(d, int(y)): v for d, y, v in zip(burned["district"], burned["season"], burned["burned_km2"])}
     seasons = sorted({y for _, y in area})
@@ -257,8 +263,9 @@ def gap_estimates(ms: pd.DataFrame, ba: pd.DataFrame, off: pd.DataFrame, bases=B
                     b_t, b_b = area.get((district, season), np.nan), area.get((district, base), np.nan)
                     why = _why_not(c_b, b_t, b_b, c_t, season, base)
                     gap = np.nan if why else 1 - (c_t / b_t) / (c_b / b_b)
+                    flag = series == "official" and ((district, season) in undated or (district, base) in undated)
                     rows.append({"district": district, "season": season, "count_series": series, "base_season": base,
-                                 "method": f"{series} / burned_area, base {base}",
+                                 "method": f"{series} / burned_area, base {base}" + (UNDATED if flag else ""),
                                  "count_change_pct": pct_change(c_t, c_b), "burned_change_pct": pct_change(b_t, b_b),
                                  "gap": gap, "usable": why is None, "why_not": why})
     return pd.DataFrame(rows)

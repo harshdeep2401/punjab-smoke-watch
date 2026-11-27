@@ -4,6 +4,9 @@
     run_daily_watch   Sentinel scan, then a briefing for the top flagged districts.
     run_audit   one district (or Punjab) and season: Auditor -> Verifier -> (one revision) -> template fallback.
 
+With use_critic, the Critic reads an agent-written draft after the Verifier (default on for audits, off for briefings).
+A rewrite is used only if it passes the Verifier again; the mode then ends in "+critic".
+
 Whatever the LLM does (errors, bad JSON, invented numbers), the result is a briefing that passed the Verifier.
 """
 from __future__ import annotations
@@ -17,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from psw import config
-from psw.agents import analyst, audit_template, audit_tools, auditor, planner, sentinel, template, tools
+from psw.agents import analyst, audit_template, audit_tools, auditor, critic, planner, sentinel, template, tools
 from psw.agents.audit_tools import AuditStore
 from psw.agents.runtime import AgentResult, run_agent
 from psw.agents.tools import DataStore, nearest_city
@@ -47,6 +50,7 @@ class BriefingRecord:
     label: str | None = None  # set for template mode
     plan: dict | None = None  # the Planner's {steps, questions_to_answer}, when the planner ran and produced a usable plan
     planner_error: str | None = None  # why there is no plan, when the planner was asked to run
+    critic: dict | None = None  # {ok, issues, rewrite_used, error, ...} when the Critic ran
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -138,6 +142,17 @@ class Attempt:
     llm_error: str | None = None
 
 
+GROUPED_CITATION = re.compile(r"\[(K\d{3}(?:\s*[,;]\s*K\d{3})+)\]")
+
+
+def _split_citations(draft):
+    """'[K423, K425]' -> '[K423] [K425]'. Only the format changes; both ids are still checked."""
+    if not isinstance(draft, dict) or not isinstance(draft.get("briefing"), str):
+        return draft
+    text = GROUPED_CITATION.sub(lambda m: " ".join(f"[{c}]" for c in re.findall(r"K\d{3}", m.group(1))), draft["briefing"])
+    return {**draft, "briefing": text}
+
+
 def _draft_and_verify(llm, first, revise, check, revise_prompt: str, what: str) -> Attempt:
     """Agent, Verifier, and at most one revision in the same conversation. Shared by briefings and audits.
 
@@ -150,9 +165,10 @@ def _draft_and_verify(llm, first, revise, check, revise_prompt: str, what: str) 
     if res.error:
         out.llm_error = res.error
         return out
-    out.verdict = check(res.output, out.results)
+    output = _split_citations(res.output)
+    out.verdict = check(output, out.results)
     if out.verdict.ok:
-        out.mode, out.draft = "agent", res.output
+        out.mode, out.draft = "agent", output
         return out
     out.first_errors = out.verdict.errors
     log.info("%s: draft failed verification (%d errors), asking for one revision", what, len(out.first_errors))
@@ -162,12 +178,24 @@ def _draft_and_verify(llm, first, revise, check, revise_prompt: str, what: str) 
     if rev.error:
         out.llm_error = f"revision failed: {rev.error}"
         return out
-    out.verdict = check(rev.output, out.results)
+    output = _split_citations(rev.output)
+    out.verdict = check(output, out.results)
     if out.verdict.ok:
-        out.mode, out.draft = "agent_revised", rev.output
+        out.mode, out.draft = "agent_revised", output
     else:
         out.revision_errors = out.verdict.errors
     return out
+
+
+def _criticise(llm, brief_type: str, mode: str, draft: dict, verdict, kb, trace: list[dict], check, word_range):
+    """Run the Critic over a verified draft. Returns (mode, draft, verdict, critic info) and extends `trace`."""
+    done = critic.review(draft, brief_type, critic.cited_chunks(draft, kb), llm, check, word_range)
+    trace.append(done.entry)
+    if done.info["error"]:
+        log.info("%s: the Critic failed (%s), the verified draft stands", brief_type, done.info["error"])
+    if done.info["rewrite_used"]:
+        return f"{mode}+critic", done.draft, done.verdict, done.info
+    return mode, draft, verdict, done.info
 
 
 def load_reusable(district: str, date: str, root: Path | None = None) -> BriefingRecord | None:
@@ -175,7 +203,7 @@ def load_reusable(district: str, date: str, root: Path | None = None) -> Briefin
     path = briefing_path(date, district, root)
     try:
         d = json.loads(path.read_text())
-        ok = d["mode"] in ("agent", "agent_revised") and d["verification"]["ok"]
+        ok = critic.base_mode(d["mode"]) in ("agent", "agent_revised") and d["verification"]["ok"]
         names = BriefingRecord.__dataclass_fields__
         return BriefingRecord(**{k: v for k, v in d.items() if k in names}) if ok else None
     except (OSError, json.JSONDecodeError, KeyError, TypeError):
@@ -183,12 +211,14 @@ def load_reusable(district: str, date: str, root: Path | None = None) -> Briefin
 
 
 def run_briefing(district: str, date, llm=None, store: DataStore | None = None, kb=None,
-                 root: Path | None = None, save: bool = True, reuse: bool = False, use_planner: bool = False) -> BriefingRecord:
+                 root: Path | None = None, save: bool = True, reuse: bool = False, use_planner: bool = False,
+                 use_critic: bool = False) -> BriefingRecord:
     """One briefing. Never raises because of the LLM; raises ValueError only for an unknown district or date.
 
     reuse=True returns the saved briefing when it was written by the agent and verified (saves LLM quota on reruns).
     use_planner=True first asks the Planner for a plan (one extra LLM call) and passes it to the Analyst. A failed plan
     is recorded in `planner_error` and the Analyst runs without it.
+    use_critic=True has the Critic read an agent-written draft (one extra LLM call).
     """
     date = str(date)
     if reuse and (saved := load_reusable(district, date, root)) is not None:
@@ -234,6 +264,12 @@ def run_briefing(district: str, date, llm=None, store: DataStore | None = None, 
         results += att.results
         llm_error = att.llm_error
 
+    review_info = None
+    if mode is not None and use_critic:
+        mode, draft, verdict, review_info = _criticise(
+            llm, "briefing", mode, draft, verdict, kb, trace,
+            check=lambda d: verify(d, _evidence(results, date)), word_range=config.BRIEFING_WORDS)
+
     if mode is None:
         tfacts, tresults, ttrace = _template_facts(store, kb, district, date, city)
         draft = template.render(tfacts)
@@ -255,7 +291,7 @@ def run_briefing(district: str, date, llm=None, store: DataStore | None = None, 
         generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         nearest_city=city, first_attempt_errors=first_errors, llm_error=llm_error,
         label=draft.get("label") if mode == "template" else None,
-        plan=plan, planner_error=planner_error,
+        plan=plan, planner_error=planner_error, critic=review_info,
     )
     if save:
         _write_json(briefing_path(date, district, root), record.to_dict())
@@ -263,7 +299,7 @@ def run_briefing(district: str, date, llm=None, store: DataStore | None = None, 
 
 
 def run_daily_watch(date, top_n: int = 3, llm=None, store: DataStore | None = None, kb=None,
-                    root: Path | None = None, reuse: bool = False, use_planner: bool = False) -> dict:
+                    root: Path | None = None, reuse: bool = False, use_planner: bool = False, use_critic: bool = False) -> dict:
     """Sentinel scan, then a briefing for the top `top_n` flagged districts. Saves the watch file and returns it."""
     date = str(date)
     store = store or DataStore()
@@ -276,7 +312,8 @@ def run_daily_watch(date, top_n: int = 3, llm=None, store: DataStore | None = No
             log.warning("no LLM (%s): briefings will use the template", e)
     briefings = []
     for r in flagged[:top_n]:
-        rec = run_briefing(r["district"], date, llm=llm, store=store, kb=kb, root=root, reuse=reuse, use_planner=use_planner)
+        rec = run_briefing(r["district"], date, llm=llm, store=store, kb=kb, root=root, reuse=reuse, use_planner=use_planner,
+                           use_critic=use_critic)
         briefings.append({"district": rec.district, "mode": rec.mode, "headline": rec.headline,
                           "verified": rec.verification["ok"], "file": briefing_path(date, rec.district, root).name})
     watch = {"date": date, "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -308,6 +345,8 @@ class AuditRecord:
     label: str | None = None
     plan: dict | None = None
     planner_error: str | None = None
+    critic: dict | None = None
+    manual_edits: list[str] = field(default_factory=list)  # changes made by hand after the run, if any
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -321,7 +360,7 @@ def load_reusable_audit(district: str, season: int, root: Path | None = None) ->
     """A saved audit written by the agent that passed the Verifier. Template or failed ones are not reused."""
     try:
         d = json.loads(audit_path(season, district, root).read_text())
-        ok = d["mode"].startswith("agent") and d["verification"]["ok"]
+        ok = critic.base_mode(d["mode"]) in ("agent", "agent_revised") and d["verification"]["ok"]
         names = AuditRecord.__dataclass_fields__
         return AuditRecord(**{k: v for k, v in d.items() if k in names}) if ok else None
     except (OSError, json.JSONDecodeError, KeyError, TypeError):
@@ -333,10 +372,27 @@ def _gap_result(results: list[dict]) -> dict | None:
     return found[-1] if found else None
 
 
+AUDIT_TITLE = re.compile(r"burning audit, season (\d{4})")
+
+
+def _other_audits(results: list[dict], season: int) -> dict[str, int]:
+    """chunk id -> season, for retrieved audit documents about other seasons."""
+    found = {}
+    for r in results:
+        if r["tool"] != "search_knowledge":
+            continue
+        for c in r["result"].get("results", []):
+            m = AUDIT_TITLE.search(c.get("title", ""))
+            if m and int(m.group(1)) != season:
+                found[c["chunk_id"]] = int(m.group(1))
+    return found
+
+
 def _audit_check(season: int):
     def check(draft, found: list[dict]):
         evidence = Evidence.from_tool_results(found, dates=[audit_tools.cutoff(season)])
-        return verify_audit(draft, evidence, gap=_gap_result(found))
+        return verify_audit(draft, evidence, gap=_gap_result(found), audit_seasons=_other_audits(found, season),
+                            night_too_few=any(r["tool"] == "get_diurnal_profile" and "warning" in r["result"] for r in found))
     return check
 
 
@@ -351,11 +407,12 @@ def _audit_template_facts(store: AuditStore, kb, district: str, season: int) -> 
 
 
 def run_audit(district: str, season: int, llm=None, store: AuditStore | None = None, kb=None, root: Path | None = None,
-              save: bool = True, reuse: bool = False, use_planner: bool = False) -> AuditRecord:
+              save: bool = True, reuse: bool = False, use_planner: bool = False, use_critic: bool = True) -> AuditRecord:
     """One audit brief for a district or "Punjab". Never raises because of the LLM; raises ValueError for an unknown
     district or season.
 
     use_planner=True first asks the Planner for a plan from the names of the available signals (one extra LLM call).
+    use_critic (on by default) has the Critic read an agent-written draft (one extra LLM call).
     """
     season = int(season)
     if reuse and (saved := load_reusable_audit(district, season, root)) is not None:
@@ -394,6 +451,12 @@ def run_audit(district: str, season: int, llm=None, store: AuditStore | None = N
         trace += att.trace
 
     mode, draft, verdict, results = att.mode, att.draft, att.verdict, att.results
+    review_info = None
+    if mode is not None and use_critic:
+        mode, draft, verdict, review_info = _criticise(
+            llm, "audit", mode, draft, verdict, kb, trace,
+            check=lambda d: _audit_check(season)(d, att.results), word_range=config.AUDIT_WORDS)
+
     if mode is None:
         tfacts, results, ttrace = _audit_template_facts(store, kb, district, season)
         draft = audit_template.render(tfacts, district, season)
@@ -413,6 +476,7 @@ def run_audit(district: str, season: int, llm=None, store: AuditStore | None = N
         caveat=audit_tools.gap.GAP_CAVEAT, first_attempt_errors=att.first_errors, revision_errors=att.revision_errors,
         llm_error=att.llm_error,
         label=draft.get("label") if mode == "template" else None, plan=plan, planner_error=planner_error,
+        critic=review_info,
     )
     if save:
         _write_json(audit_path(season, district, root), record.to_dict())

@@ -49,7 +49,9 @@ def _detections(trend: dict, diurnal: dict, place: str, season: int) -> str:
     others = [f"{name} {s['detections']:,}" for name, s in by_name.items() if name != "VIIRS S-NPP"]
     if others:
         out.append("The other satellites recorded: " + ", ".join(others) + ".")
-    if _ok(diurnal) and diurnal["night_share_pct"] is not None:
+    if _ok(diurnal) and "warning" in diurnal:
+        out.append(f"S-NPP night detections: {diurnal['snpp_night_detections']:,}, too few to show a timing change.")
+    elif _ok(diurnal) and diurnal["night_share_pct"] is not None:
         if season != diurnal["base_season"] and diurnal["base_night_share_pct"] is not None:
             out.append(f"Night passes gave {diurnal['night_share_pct']}% of S-NPP detections, against "
                        f"{diurnal['base_night_share_pct']}% in {diurnal['base_season']}.")
@@ -93,9 +95,9 @@ def _range(g: dict, season: int, cite: str) -> str:
 
 
 def _settle() -> str:
-    return (f"{SETTLE}: field checks of a sample of paddy fields, and geostationary satellites that watch through the "
-            "day, could test this. Smaller or cooler fires, or a change in the burned-area product, could also lower "
-            "detections per burned area. This is triangulation of satellite and official signals, not field "
+    return (f"{SETTLE}: field checks and all-day geostationary satellites could test this. A fall in detections per "
+            "burned area could mean burning moved outside satellite pass times, fires became smaller or cooler, or "
+            "the burned-area product changed. This is triangulation of satellite and official signals, not field "
             "verification.")
 
 

@@ -1,0 +1,259 @@
+{
+ "district": "Tarn Taran",
+ "season": 2025,
+ "mode": "agent",
+ "headline": "Tarn Taran 2025 Satellite Fire Monitoring Audit",
+ "briefing": "What detections say: S-NPP recorded 621 detections, which was down 78.7% from 2022. NOAA-20 recorded 632 detections, which was down 79.0% from 2022. MODIS recorded 321 detections, which was down 51.4% from 2022. There were 1 night detections, which are too few to show a change in timing.\n\nWhat other signals say: MODIS burned area was 179.2 km², which was down 71.3% from 2022. The official count was 696, which was down 78.1% from 2022. The official count is satellite-based too, so it is not an independent check.\n\nOur best range and how sure we are: The fall in counts per burned km² is -62.2% to 25.7% with low confidence. The direction is unclear. The range does not include the error of the burned-area product, which is unknown and is the largest uncertainty [K426].\n\nWhat would settle it: Ground checks, or a geostationary satellite watching all day. A fall in detections per burned area could mean burning moved outside pass times, fires became smaller or cooler, or the burned-area product's sensitivity changed. This is triangulation, not field verification [K426].",
+ "citations": [
+  "K426"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K426",
+   "title": "How this project estimates the detection gap, and its weaknesses",
+   "doc_type": "curated"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   2025.0,
+   621.0,
+   78.7,
+   2022.0,
+   632.0,
+   79.0,
+   2022.0,
+   321.0,
+   51.4,
+   2022.0,
+   1.0,
+   179.2,
+   71.3,
+   2022.0,
+   696.0,
+   78.1,
+   2022.0,
+   62.2,
+   25.7
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "auditor",
+   "tool": "get_detection_trend",
+   "args": {
+    "district": "Tarn Taran",
+    "season": 2025
+   },
+   "result_summary": "{\"district\": \"Tarn Taran\", \"season\": 2025, \"sensors\": [{\"satellite\": \"VIIRS S-NPP\", \"detections\": 621, \"base_season\": 2022, \"change_vs_base_pct\": -78.7, \"change_in_words\": \"down 7…",
+   "ms": 34
+  },
+  {
+   "step": 2,
+   "agent": "auditor",
+   "tool": "get_diurnal_profile",
+   "args": {
+    "district": "Tarn Taran",
+    "season": 2025
+   },
+   "result_summary": "{\"district\": \"Tarn Taran\", \"season\": 2025, \"base_season\": 2022, \"snpp_night_detections\": 1, \"base_snpp_night_detections\": 0, \"warning\": \"night detections in one district are too f…",
+   "ms": 1
+  },
+  {
+   "step": 3,
+   "agent": "auditor",
+   "tool": "get_burned_area_comparison",
+   "args": {
+    "season": 2025,
+    "district": "Tarn Taran"
+   },
+   "result_summary": "{\"district\": \"Tarn Taran\", \"season\": 2025, \"base_season\": 2022, \"product\": \"MODIS burned area (MCD64A1), low confidence in cropland\", \"burned_km2\": 179.2, \"snpp_detections\": 621, …",
+   "ms": 0
+  },
+  {
+   "step": 4,
+   "agent": "auditor",
+   "tool": "get_official_vs_satellite",
+   "args": {
+    "district": "Tarn Taran",
+    "season": 2025
+   },
+   "result_summary": "{\"district\": \"Tarn Taran\", \"season\": 2025, \"official_count\": 696, \"snpp_detections\": 621, \"official_to_snpp_ratio\": 1.12, \"source_url\": \"https://ppcb.punjab.gov.in/media/documents…",
+   "ms": 0
+  },
+  {
+   "step": 5,
+   "agent": "auditor",
+   "tool": "get_gap_range",
+   "args": {
+    "season": 2025,
+    "district": "Tarn Taran"
+   },
+   "result_summary": "{\"district\": \"Tarn Taran\", \"season\": 2025, \"what_the_gap_is\": \"the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed\", \"detec…",
+   "ms": 0
+  },
+  {
+   "step": 6,
+   "agent": "auditor",
+   "tool": "search_knowledge",
+   "args": {
+    "k": 4,
+    "query": "how the detection gap is calculated and its weaknesses",
+    "before": "2025-12-01",
+    "district": "Tarn Taran",
+    "place": "Tarn Taran"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K426\", \"title\": \"How this project estimates the detection gap, and its weaknesses\", \"text\": \"# Weaknesses\\n\\nThe range does not include the error of the…",
+   "ms": 97
+  },
+  {
+   "step": 7,
+   "agent": "critic",
+   "tool": "review",
+   "args": {
+    "brief_type": "audit",
+    "chunks": [
+     "K426"
+    ]
+   },
+   "result_summary": "0 issue(s)",
+   "ms": 2836
+  }
+ ],
+ "facts": {
+  "get_detection_trend": {
+   "district": "Tarn Taran",
+   "season": 2025,
+   "sensors": [
+    {
+     "satellite": "VIIRS S-NPP",
+     "detections": 621,
+     "base_season": 2022,
+     "change_vs_base_pct": -78.7,
+     "change_in_words": "down 78.7% from 2022"
+    },
+    {
+     "satellite": "VIIRS NOAA-20",
+     "detections": 632,
+     "base_season": 2022,
+     "change_vs_base_pct": -79.0,
+     "change_in_words": "down 79.0% from 2022"
+    },
+    {
+     "satellite": "VIIRS NOAA-21",
+     "detections": 635,
+     "base_season": 2023,
+     "change_vs_base_pct": -64.0,
+     "change_in_words": "down 64.0% from 2023"
+    },
+    {
+     "satellite": "MODIS (Terra and Aqua)",
+     "detections": 321,
+     "base_season": 2022,
+     "change_vs_base_pct": -51.4,
+     "change_in_words": "down 51.4% from 2022"
+    }
+   ],
+   "note": "NOAA-20 and NOAA-21 pass at about the same time as S-NPP, so they are a robustness check and not an independent look. MODIS passes at other times."
+  },
+  "get_diurnal_profile": {
+   "district": "Tarn Taran",
+   "season": 2025,
+   "base_season": 2022,
+   "snpp_night_detections": 1,
+   "base_snpp_night_detections": 0,
+   "warning": "night detections in one district are too few to show a change in timing"
+  },
+  "get_burned_area_comparison": {
+   "district": "Tarn Taran",
+   "season": 2025,
+   "base_season": 2022,
+   "product": "MODIS burned area (MCD64A1), low confidence in cropland",
+   "burned_km2": 179.2,
+   "snpp_detections": 621,
+   "detections_per_burned_km2": 3.47,
+   "burned_change_vs_base_pct": -71.3,
+   "detections_change_vs_base_pct": -78.7,
+   "per_km2_change_vs_base_pct": -25.7,
+   "burned_change_in_words": "down 71.3% from 2022",
+   "detections_change_in_words": "down 78.7% from 2022"
+  },
+  "get_official_vs_satellite": {
+   "district": "Tarn Taran",
+   "season": 2025,
+   "official_count": 696,
+   "snpp_detections": 621,
+   "official_to_snpp_ratio": 1.12,
+   "source_url": "https://ppcb.punjab.gov.in/media/documents/CAQM_ATR_30.11.2025.pdf",
+   "how_counted": "Cumulative fire incidents as per ISRO protocol (satellite) as on 30 Nov 2025; the table states no start date",
+   "note": "The official count is satellite-based too, so it is not an independent check.",
+   "base_season": 2022,
+   "base_official_count": 3184,
+   "official_change_vs_base_pct": -78.1,
+   "official_change_in_words": "down 78.1% from 2022"
+  },
+  "get_gap_range": {
+   "district": "Tarn Taran",
+   "season": 2025,
+   "what_the_gap_is": "the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed",
+   "detected_change_pct": -78.7,
+   "reference_change_pct": -71.3,
+   "changes_are_for": "S-NPP detections against 2022",
+   "changes_in_words": "counts fell 78.7% and burned area fell 71.3%",
+   "gap_low_pct": -62.2,
+   "gap_high_pct": 25.7,
+   "methods": "S-NPP detections against burned area, base season 2022; official counts against burned area, base season 2022; S-NPP detections against burned area, base season 2023; official counts against burned area, base season 2023",
+   "confidence": "low",
+   "direction": "direction unclear",
+   "reason": null,
+   "timing_evidence": "Punjab-wide only. Night share of S-NPP detections: 2.4% (95% interval 2.0% to 2.9%) in 2025 against 0.2% (0.1% to 0.2%) in 2022: supports a shift in timing. MODIS change relative to the S-NPP change since 2022: 3.25 times (rule: at least 1.5): supports a shift in timing. MODIS passes at other times (Terra in the morning, Aqua drifting later in the afternoon), which is a confound.",
+   "other_explanations": "A fall in detections per burned area fits three explanations: burning moved outside satellite pass times, fires became smaller or cooler, or the sensitivity of the burned-area product changed.",
+   "caveat": "The range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification."
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K426",
+     "title": "How this project estimates the detection gap, and its weaknesses",
+     "text": "# Weaknesses\n\nThe range does not include the error of the burned-area product, which is unknown and is the largest uncertainty. A fall in detections per burned area fits three explanations: burning moved outside pass times, fires became smaller or cooler, or the burned-area product's sensitivity changed. The timing indicators speak only to the first. There is no field verification. This is triangulation, not ground truth."
+    },
+    {
+     "chunk_id": "K423",
+     "title": "How this project estimates the detection gap, and its weaknesses",
+     "text": "# What the gap measures\n\nThe detection gap is the fall in fire counts per burned square kilometre since a base season: one minus the ratio of (count divided by burned area) now to (count divided by burned area) in the base season. In plain words it compares how far counts fell with how far burned area fell. It is a relative loss of detection since the base season. It is not the share of burning that is missed, because the base season's own miss rate is unknown."
+    },
+    {
+     "chunk_id": "K425",
+     "title": "How this project estimates the detection gap, and its weaknesses",
+     "text": "# Range, thresholds and confidence\n\nThere is one estimate for each count series and base season (2022 or 2023), and the range runs from the lowest to the highest. Nothing is clipped, so a negative value means burned area fell more than counts. A pair is used only if burned area is at least 50 km² in both seasons and the base count is at least 100; otherwise the result is \"insufficient evidence\". Confidence is never high. Punjab is medium only if the lowest estimate is at least 0.25 and both timing indicators support a shift. Districts are low at most."
+    },
+    {
+     "chunk_id": "K271",
+     "title": "Tarn Taran burning audit, season 2023",
+     "text": "## Detection gap\n\nThe gap (the fall in counts per burned km²; a negative value is a rise) is 47% to 54% (confidence low; counts fell more than burned area). Methods: S-NPP detections against burned area, base season 2022; official counts against burned area, base season 2022.\n\nThe range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Season window Sep 15 to Nov 30."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-27T12:13:22+00:00",
+ "caveat": "The range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification.",
+ "first_attempt_errors": [],
+ "revision_errors": [],
+ "llm_error": null,
+ "label": null,
+ "plan": null,
+ "planner_error": null,
+ "critic": {
+  "ok": true,
+  "issues": [],
+  "rewrite_used": false,
+  "error": null,
+  "rewrite_rejected": [],
+  "original_briefing": null,
+  "warning": null
+ }
+}

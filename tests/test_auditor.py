@@ -81,8 +81,9 @@ def test_trend_diurnal_burned_and_official_tools(store):
     assert [s["satellite"] for s in trend["sensors"]] == ["VIIRS S-NPP", "VIIRS NOAA-20", "MODIS (Terra and Aqua)"]
     assert trend["sensors"][0]["change_vs_base_pct"] == -90.0 and "warning" not in trend["sensors"][0]
     assert "unreliable" in audit_tools.get_detection_trend(store, "Moga", SEASON)["sensors"][0]["warning"]
-    d = audit_tools.get_diurnal_profile(store, DISTRICT, SEASON)
-    assert d["night_share_pct"] == 40.0 and d["base_night_share_pct"] == 0.2 and d["night_share_change_points"] == 39.8
+    d = audit_tools.get_diurnal_profile(store, "Punjab", SEASON)
+    assert d["night_share_pct"] == 38.8 and d["base_night_share_pct"] == 0.2  # Punjab: 40 of 103 detections
+    assert d["night_share_in_words"] == "38.8% in 2024 against 0.2% in 2022"
     b = audit_tools.get_burned_area_comparison(store, DISTRICT, SEASON)
     assert b["burned_km2"] == 700.0 and b["burned_change_vs_base_pct"] == -30.0 and "warning" not in b
     assert "too small" in audit_tools.get_burned_area_comparison(store, "Moga", SEASON)["warning"]
@@ -118,11 +119,13 @@ def good_draft(store, extra="", citations=("K001",)):
     g = audit_tools.get_gap_range(store, DISTRICT, SEASON)
     filler = "The signals are read together and each one has its own weakness that a reader should keep in mind. "
     text = (f"What detections say: S-NPP detections fell {abs(g['detected_change_pct'])}% from 2022. {filler * 3}"
-            f"What other signals say: burned area fell {abs(g['reference_change_pct'])}%. [K001] {filler * 2}"
+            f"What other signals say: burned area fell {abs(g['reference_change_pct'])}%. Cropland burned area is low "
+            f"confidence. [K001] {filler * 2}"
             f"Our best range and how sure we are: counts per burned km² fell {g['gap_low_pct']}% to "
             f"{g['gap_high_pct']}%, confidence low. "
             "The range does not include the error of the burned-area product. "
-            f"What would settle it: field surveys. This is triangulation, not field verification. {filler}{extra}")
+            "What would settle it: field surveys. Burning may have moved outside pass times. "
+            f"This is triangulation, not field verification. {filler}{extra}")
     return {"headline": f"{DISTRICT} audit for {SEASON}", "briefing": text, "citations": list(citations)}
 
 
@@ -155,6 +158,8 @@ def test_each_label_is_required(store, label):
     ("field surveys", "field surveys of 4321 fields", "4321"),
     ("field surveys", "field surveys after a fall of -90.0 percent", "minus sign"),
     ("field surveys", "field surveys; NEVER call it the share missed", "instruction copied"),
+    ("field surveys", "field surveys [D]", "not a citation"),
+    ("Burning may have moved outside pass times.", "Fires may be smaller.", "outside satellite pass times"),
 ])
 def test_audit_only_rules(store, old, new, expected):
     d = good_draft(store)
@@ -195,6 +200,7 @@ def required_calls():
 
 
 def run(store, kb, script, tmp_path, **kw):
+    kw.setdefault("use_critic", False)  # the Critic has its own tests (test_critic.py)
     llm = FakeLLM(script)
     return orchestrator.run_audit(DISTRICT, SEASON, llm=llm, store=store, kb=kb, root=tmp_path, **kw), llm
 
@@ -220,7 +226,7 @@ def test_a_missing_label_gets_one_revision(store, kb, tmp_path):
     bad["briefing"] = bad["briefing"].replace("What would settle it:", "Next:")
     rec, llm = run(store, kb, [required_calls(), final(bad), final(good_draft(store))], tmp_path)
     assert rec.mode == "agent_revised" and any("What would settle it" in e for e in rec.first_attempt_errors)
-    assert "170 and 190 words" in llm.calls[-1]["messages"][-1]["content"]
+    assert "160 and 180 words" in llm.calls[-1]["messages"][-1]["content"]
 
 
 def test_two_bad_drafts_fall_back_to_the_template(store, kb, tmp_path):
@@ -284,3 +290,61 @@ def test_direction_and_insufficient_evidence_must_be_said(result, said, ok):
     text = ("Counts per burned km² changed, confidence low. The range does not include the error of the burned-area "
             "product. " + said)
     assert (_gap_errors(text, result) == []) is ok
+
+
+def test_an_earlier_season_audit_only_supports_sentences_about_that_season(store):
+    draft = good_draft(store, citations=("K001",))
+    results = [{"tool": "get_gap_range", "result": audit_tools.get_gap_range(store, DISTRICT, SEASON)},
+               {"tool": "search_knowledge", "result": {"results": [
+                   {"chunk_id": "K001", "title": "Sangrur burning audit, season 2023", "text": "Cropland."}]}}]
+    other = orchestrator._other_audits(results, SEASON)
+    assert other == {"K001": 2023} and orchestrator._other_audits(results, 2023) == {}
+    ev = Evidence.from_tool_results(results)
+    errors = verify_audit(draft, ev, gap=results[0]["result"], audit_seasons=other).errors
+    assert any("is the 2023 audit" in e for e in errors), errors  # the cited sentence is not about 2023
+    draft["briefing"] = draft["briefing"].replace("confidence. [K001]", "confidence. The 2023 audit had its own range. [K001]")
+    assert not any("2023 audit:" in e for e in verify_audit(draft, ev, gap=results[0]["result"], audit_seasons=other).errors)
+
+
+def test_sentences_keep_a_trailing_citation_with_its_sentence():
+    from psw.agents.verifier import sentences
+
+    assert sentences("One thing. [K001] Another [K002].\n\nThird. [K003] [K004]") == [
+        "One thing. [K001]", "Another [K002].", "Third. [K003] [K004]"]
+
+
+def test_line_breaks_inside_a_json_string_are_accepted():
+    from psw.agents.runtime import parse_json_object
+
+    raw = '```json\n{"headline": "h",\n"briefing": "Part one.\n\nPart two.", "citations": []}\n```'
+    assert parse_json_object(raw)["briefing"] == "Part one.\n\nPart two."
+    assert parse_json_object('Here: {"a": "x\ny"} done')["a"] == "x\ny"
+
+
+def test_grouped_citations_are_split_and_still_checked(store, kb, tmp_path):
+    draft = good_draft(store)
+    draft["briefing"] = draft["briefing"].replace("[K001]", "[K001, K999]")
+    rec, llm = run(store, kb, [required_calls(), final(draft), final(good_draft(store))], tmp_path)
+    assert rec.mode == "agent_revised" and any("K999" in e for e in rec.first_attempt_errors)
+    assert orchestrator._split_citations({"briefing": "a [K001; K002] b"})["briefing"] == "a [K001] [K002] b"
+
+
+def test_a_district_gets_night_counts_and_a_warning_but_no_share(store, kb):
+    d = audit_tools.get_diurnal_profile(store, DISTRICT, SEASON)
+    assert d["snpp_night_detections"] == 40 and d["base_snpp_night_detections"] == 2
+    assert "too few" in d["warning"] and not any(k.endswith("_pct") for k in d) and "snpp_passes" not in d
+    draft = good_draft(store, extra="Night passes rose.")
+    results = [{"tool": "get_gap_range", "result": audit_tools.get_gap_range(store, DISTRICT, SEASON)}]
+    ev = Evidence.from_tool_results(results + [{"tool": "x", "result": {"c": [{"chunk_id": "K001"}]}}])
+    errors = verify_audit(draft, ev, gap=results[0]["result"], night_too_few=True).errors
+    assert any("too few" in e for e in errors)
+    rec = orchestrator.run_audit(DISTRICT, SEASON, llm=FakeLLM([LLMError("down")]), store=store, kb=kb, save=False)
+    assert "too few to show a timing change" in rec.briefing and rec.verification["ok"]
+
+
+def test_template_passes_on_every_district_and_season_of_the_committed_tables(kb):
+    real = AuditStore()
+    for season in real.seasons:
+        for district in real.districts + ["Punjab"]:
+            rec = orchestrator.run_audit(district, season, llm=FakeLLM([LLMError("down")]), store=real, kb=kb, save=False)
+            assert rec.verification["ok"], (district, season, rec.verification["errors"])

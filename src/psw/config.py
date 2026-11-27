@@ -59,6 +59,7 @@ AUDIT_BANNED_PATTERNS = [
     (r"\b(fall|fell|drop|dropped|declined?|decreased?|reduction|rise|rose|increased?)\s+(of\s+|by\s+)?[-−]\s?\d",
      "write a change without the minus sign"),
     (r"\bnever (call|say|claim|present|cite) (it|the|that|a)\b|\bdo not copy\b", "an instruction copied into the brief"),
+    (r"\[(?!K\d{3}\])[^\]\n]{0,20}\]", "a bracketed marker that is not a citation"),
 ]
 # numbers that may appear without being in a tool result: "7-day", "80% interval", p10/p50/p90, "24-hour"
 VERIFY_CONSTANTS = (7, 80, 10, 50, 90, 24)

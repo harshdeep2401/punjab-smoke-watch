@@ -197,3 +197,14 @@ def test_summary_is_strict_json_with_the_headline_numbers():
     assert s["gap"]["low_pct"] == 85.7 and s["gap"]["confidence"] == "medium" and s["gap"]["reason"] is None
     assert summary["seasons"]["2022"]["gap"] is None
     assert summary["caveat"] == gap.GAP_CAVEAT and "three explanations" in summary["explanations"]
+
+
+def test_methods_using_an_official_table_without_a_start_date_say_so():
+    ms, ba, off = scenario()
+    off.loc[off["season"] == 2024, "method_note"] = "satellite; the table states no start date"
+    t = ranges(ms, ba, off)
+    methods = row(t)["methods"].split("; ")
+    assert methods == ["snpp / burned_area, base 2022", "official / burned_area, base 2022 (start date not stated)",
+                       "snpp / burned_area, base 2023", "official / burned_area, base 2023 (start date not stated)"]
+    assert "start date not stated" not in row(t, season=2023)["methods"]
+    assert gap.method_words(methods[1]) == "official counts against burned area, base season 2022 (start date not stated)"

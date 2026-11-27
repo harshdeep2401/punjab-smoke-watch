@@ -1,0 +1,278 @@
+{
+ "district": "Amritsar",
+ "season": 2025,
+ "mode": "agent_revised+critic",
+ "headline": "Amritsar Fire Audit Brief 2025",
+ "briefing": "What detections say: S-NPP had 353 detections, down 75.0% from 2022. NOAA-20 had 319 detections, down 79.1% from 2022. NOAA-21 had 350 detections, down 76.3% from 2023. MODIS had 140 detections, down 51.0% from 2022. Amritsar had 11 night detections, which are too few to show a change in timing.\n\nWhat other signals say: MODIS burned area was 177.4 km², down 29.5% from 2022. The official count was 315, down 79.6% from 2022. The official count is satellite-based, so it is not an independent check.\n\nOur best range and how sure we are: The range measures the fall in fire counts per burned km² [K423]. The range is 63.4% to 71.4%, confidence is low, and counts fell more than burned area. This leaves out the burned-area error [K426].\n\nWhat would settle it: Ground checks and a geostationary satellite would help. Burning may have moved outside pass times, fires may be smaller, or sensitivity changed [K426]. This is triangulation, not field verification [K426].",
+ "citations": [
+  "K423",
+  "K426"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K423",
+   "title": "How this project estimates the detection gap, and its weaknesses",
+   "doc_type": "curated"
+  },
+  {
+   "chunk_id": "K426",
+   "title": "How this project estimates the detection gap, and its weaknesses",
+   "doc_type": "curated"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   2025.0,
+   353.0,
+   75.0,
+   2022.0,
+   319.0,
+   79.1,
+   2022.0,
+   350.0,
+   76.3,
+   2023.0,
+   140.0,
+   51.0,
+   2022.0,
+   11.0,
+   177.4,
+   29.5,
+   2022.0,
+   315.0,
+   79.6,
+   2022.0,
+   63.4,
+   71.4
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "auditor",
+   "tool": "get_detection_trend",
+   "args": {
+    "season": 2025,
+    "district": "Amritsar"
+   },
+   "result_summary": "{\"district\": \"Amritsar\", \"season\": 2025, \"sensors\": [{\"satellite\": \"VIIRS S-NPP\", \"detections\": 353, \"base_season\": 2022, \"change_vs_base_pct\": -75.0, \"change_in_words\": \"down 75.…",
+   "ms": 8
+  },
+  {
+   "step": 2,
+   "agent": "auditor",
+   "tool": "get_diurnal_profile",
+   "args": {
+    "season": 2025,
+    "district": "Amritsar"
+   },
+   "result_summary": "{\"district\": \"Amritsar\", \"season\": 2025, \"base_season\": 2022, \"snpp_night_detections\": 11, \"base_snpp_night_detections\": 0, \"warning\": \"night detections in one district are too fe…",
+   "ms": 3
+  },
+  {
+   "step": 3,
+   "agent": "auditor",
+   "tool": "get_burned_area_comparison",
+   "args": {
+    "season": 2025,
+    "district": "Amritsar"
+   },
+   "result_summary": "{\"district\": \"Amritsar\", \"season\": 2025, \"base_season\": 2022, \"product\": \"MODIS burned area (MCD64A1), low confidence in cropland\", \"burned_km2\": 177.4, \"snpp_detections\": 353, \"d…",
+   "ms": 0
+  },
+  {
+   "step": 4,
+   "agent": "auditor",
+   "tool": "get_official_vs_satellite",
+   "args": {
+    "district": "Amritsar",
+    "season": 2025
+   },
+   "result_summary": "{\"district\": \"Amritsar\", \"season\": 2025, \"official_count\": 315, \"snpp_detections\": 353, \"official_to_snpp_ratio\": 0.89, \"source_url\": \"https://ppcb.punjab.gov.in/media/documents/C…",
+   "ms": 2
+  },
+  {
+   "step": 5,
+   "agent": "auditor",
+   "tool": "get_gap_range",
+   "args": {
+    "season": 2025,
+    "district": "Amritsar"
+   },
+   "result_summary": "{\"district\": \"Amritsar\", \"season\": 2025, \"what_the_gap_is\": \"the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed\", \"detecte…",
+   "ms": 2
+  },
+  {
+   "step": 6,
+   "agent": "auditor",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "how the detection gap is calculated and its weaknesses",
+    "k": 4,
+    "before": "2025-12-01",
+    "district": "Amritsar",
+    "place": "Amritsar"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K426\", \"title\": \"How this project estimates the detection gap, and its weaknesses\", \"text\": \"# Weaknesses\\n\\nThe range does not include the error of the…",
+   "ms": 507
+  },
+  {
+   "step": 7,
+   "agent": "critic",
+   "tool": "review",
+   "args": {
+    "brief_type": "audit",
+    "chunks": [
+     "K423",
+     "K426"
+    ]
+   },
+   "result_summary": "1 issue(s), rewrite used",
+   "ms": 3803
+  }
+ ],
+ "facts": {
+  "get_detection_trend": {
+   "district": "Amritsar",
+   "season": 2025,
+   "sensors": [
+    {
+     "satellite": "VIIRS S-NPP",
+     "detections": 353,
+     "base_season": 2022,
+     "change_vs_base_pct": -75.0,
+     "change_in_words": "down 75.0% from 2022"
+    },
+    {
+     "satellite": "VIIRS NOAA-20",
+     "detections": 319,
+     "base_season": 2022,
+     "change_vs_base_pct": -79.1,
+     "change_in_words": "down 79.1% from 2022"
+    },
+    {
+     "satellite": "VIIRS NOAA-21",
+     "detections": 350,
+     "base_season": 2023,
+     "change_vs_base_pct": -76.3,
+     "change_in_words": "down 76.3% from 2023"
+    },
+    {
+     "satellite": "MODIS (Terra and Aqua)",
+     "detections": 140,
+     "base_season": 2022,
+     "change_vs_base_pct": -51.0,
+     "change_in_words": "down 51.0% from 2022"
+    }
+   ],
+   "note": "NOAA-20 and NOAA-21 pass at about the same time as S-NPP, so they are a robustness check and not an independent look. MODIS passes at other times."
+  },
+  "get_diurnal_profile": {
+   "district": "Amritsar",
+   "season": 2025,
+   "base_season": 2022,
+   "snpp_night_detections": 11,
+   "base_snpp_night_detections": 0,
+   "warning": "night detections in one district are too few to show a change in timing"
+  },
+  "get_burned_area_comparison": {
+   "district": "Amritsar",
+   "season": 2025,
+   "base_season": 2022,
+   "product": "MODIS burned area (MCD64A1), low confidence in cropland",
+   "burned_km2": 177.4,
+   "snpp_detections": 353,
+   "detections_per_burned_km2": 1.99,
+   "burned_change_vs_base_pct": -29.5,
+   "detections_change_vs_base_pct": -75.0,
+   "per_km2_change_vs_base_pct": -64.5,
+   "burned_change_in_words": "down 29.5% from 2022",
+   "detections_change_in_words": "down 75.0% from 2022"
+  },
+  "get_official_vs_satellite": {
+   "district": "Amritsar",
+   "season": 2025,
+   "official_count": 315,
+   "snpp_detections": 353,
+   "official_to_snpp_ratio": 0.89,
+   "source_url": "https://ppcb.punjab.gov.in/media/documents/CAQM_ATR_30.11.2025.pdf",
+   "how_counted": "Cumulative fire incidents as per ISRO protocol (satellite) as on 30 Nov 2025; the table states no start date",
+   "note": "The official count is satellite-based too, so it is not an independent check.",
+   "base_season": 2022,
+   "base_official_count": 1542,
+   "official_change_vs_base_pct": -79.6,
+   "official_change_in_words": "down 79.6% from 2022"
+  },
+  "get_gap_range": {
+   "district": "Amritsar",
+   "season": 2025,
+   "what_the_gap_is": "the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed",
+   "detected_change_pct": -75.0,
+   "reference_change_pct": -29.5,
+   "changes_are_for": "S-NPP detections against 2022",
+   "changes_in_words": "counts fell 75.0% and burned area fell 29.5%",
+   "gap_low_pct": 63.4,
+   "gap_high_pct": 71.4,
+   "methods": "S-NPP detections against burned area, base season 2022; official counts against burned area, base season 2022; S-NPP detections against burned area, base season 2023; official counts against burned area, base season 2023",
+   "confidence": "low",
+   "direction": "counts fell more than burned area",
+   "reason": null,
+   "timing_evidence": "Punjab-wide only. Night share of S-NPP detections: 2.4% (95% interval 2.0% to 2.9%) in 2025 against 0.2% (0.1% to 0.2%) in 2022: supports a shift in timing. MODIS change relative to the S-NPP change since 2022: 3.25 times (rule: at least 1.5): supports a shift in timing. MODIS passes at other times (Terra in the morning, Aqua drifting later in the afternoon), which is a confound.",
+   "other_explanations": "A fall in detections per burned area fits three explanations: burning moved outside satellite pass times, fires became smaller or cooler, or the sensitivity of the burned-area product changed.",
+   "caveat": "The range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification."
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K426",
+     "title": "How this project estimates the detection gap, and its weaknesses",
+     "text": "# Weaknesses\n\nThe range does not include the error of the burned-area product, which is unknown and is the largest uncertainty. A fall in detections per burned area fits three explanations: burning moved outside pass times, fires became smaller or cooler, or the burned-area product's sensitivity changed. The timing indicators speak only to the first. There is no field verification. This is triangulation, not ground truth."
+    },
+    {
+     "chunk_id": "K423",
+     "title": "How this project estimates the detection gap, and its weaknesses",
+     "text": "# What the gap measures\n\nThe detection gap is the fall in fire counts per burned square kilometre since a base season: one minus the ratio of (count divided by burned area) now to (count divided by burned area) in the base season. In plain words it compares how far counts fell with how far burned area fell. It is a relative loss of detection since the base season. It is not the share of burning that is missed, because the base season's own miss rate is unknown."
+    },
+    {
+     "chunk_id": "K425",
+     "title": "How this project estimates the detection gap, and its weaknesses",
+     "text": "# Range, thresholds and confidence\n\nThere is one estimate for each count series and base season (2022 or 2023), and the range runs from the lowest to the highest. Nothing is clipped, so a negative value means burned area fell more than counts. A pair is used only if burned area is at least 50 km² in both seasons and the base count is at least 100; otherwise the result is \"insufficient evidence\". Confidence is never high. Punjab is medium only if the lowest estimate is at least 0.25 and both timing indicators support a shift. Districts are low at most."
+    },
+    {
+     "chunk_id": "K278",
+     "title": "Amritsar burning audit, season 2024",
+     "text": "## Detection gap\n\nThe gap (the fall in counts per burned km²; a negative value is a rise) is -60% to -24% (confidence low; no sign of a detection gap). Methods: S-NPP detections against burned area, base season 2022; official counts against burned area, base season 2022; S-NPP detections against burned area, base season 2023; official counts against burned area, base season 2023.\n\nThe range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Season window Sep 15 to Nov 30."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-27T12:15:08+00:00",
+ "caveat": "The range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification.",
+ "first_attempt_errors": [
+  "word count 215 outside 150-200"
+ ],
+ "revision_errors": [],
+ "llm_error": null,
+ "label": null,
+ "plan": null,
+ "planner_error": null,
+ "critic": {
+  "ok": false,
+  "issues": [
+   {
+    "type": "unsupported_citation",
+    "sentence": "MODIS burned area was 177.4 km², down 29.5% from 2022 [K423].",
+    "note": "K423 does not contain 177.4 or 29.5%",
+    "by": "critic"
+   }
+  ],
+  "rewrite_used": true,
+  "error": null,
+  "rewrite_rejected": [],
+  "original_briefing": "What detections say: S-NPP had 353 detections, down 75.0% from 2022. NOAA-20 had 319 detections, down 79.1% from 2022. NOAA-21 had 350 detections, down 76.3% from 2023. MODIS had 140 detections, down 51.0% from 2022. Amritsar had 11 night detections, which are too few to show a change in timing.\n\nWhat other signals say: MODIS burned area was 177.4 km², down 29.5% from 2022 [K423]. The official count was 315, down 79.6% from 2022. The official count is satellite-based, so it is not an independent check.\n\nOur best range and how sure we are: The range measures the fall in fire counts per burned km² [K423]. The range is 63.4% to 71.4%, confidence is low, and counts fell more than burned area. This leaves out the burned-area error [K426].\n\nWhat would settle it: Ground checks and a geostationary satellite would help. Burning may have moved outside pass times, fires may be smaller, or sensitivity changed [K426]. This is triangulation, not field verification [K426].",
+  "warning": null
+ }
+}

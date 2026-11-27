@@ -1,0 +1,278 @@
+{
+ "district": "Fazilka",
+ "season": 2025,
+ "mode": "agent_revised+critic",
+ "headline": "Fazilka 2025: Detections down while burned area stayed steady",
+ "briefing": "What detections say: VIIRS S-NPP recorded 320 fires, which was down 90.9% from 2022. VIIRS NOAA-20 recorded 305 fires, which was down 91.2% from 2022. VIIRS NOAA-21 recorded 311 fires, which was down 83.0% from 2023. MODIS recorded 325 fires, which was down 60.1% from 2022. There were 5 night detections, and they are too few to show a change in timing.\n\nWhat other signals say: MODIS burned area was down 1.8% from 2022. The official count was down 90.5% from 2022. The official count is satellite-based, so agreeing with it is not independent confirmation.\n\nOur best range and how sure we are: The fall in counts per burned km² is measured by the range [K423]. The range is 83.1% to 90.7%, confidence low. Counts fell more than burned area. The range does not include the error of the burned-area product, which is unknown and is the largest uncertainty [K426].\n\nWhat would settle it: Ground visits and all-day geostationary monitoring would help settle it. A fall in counts per burned km² has three explanations: burning moved outside pass times, fires became smaller or cooler, or burned-area sensitivity changed [K426]. This is triangulation, not field verification [K426].",
+ "citations": [
+  "K423",
+  "K426"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K423",
+   "title": "How this project estimates the detection gap, and its weaknesses",
+   "doc_type": "curated"
+  },
+  {
+   "chunk_id": "K426",
+   "title": "How this project estimates the detection gap, and its weaknesses",
+   "doc_type": "curated"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   2025.0,
+   320.0,
+   90.9,
+   2022.0,
+   305.0,
+   91.2,
+   2022.0,
+   311.0,
+   83.0,
+   2023.0,
+   325.0,
+   60.1,
+   2022.0,
+   5.0,
+   1.8,
+   2022.0,
+   90.5,
+   2022.0,
+   83.1,
+   90.7
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "auditor",
+   "tool": "get_detection_trend",
+   "args": {
+    "district": "Fazilka",
+    "season": 2025
+   },
+   "result_summary": "{\"district\": \"Fazilka\", \"season\": 2025, \"sensors\": [{\"satellite\": \"VIIRS S-NPP\", \"detections\": 320, \"base_season\": 2022, \"change_vs_base_pct\": -90.9, \"change_in_words\": \"down 90.9…",
+   "ms": 6
+  },
+  {
+   "step": 2,
+   "agent": "auditor",
+   "tool": "get_diurnal_profile",
+   "args": {
+    "district": "Fazilka",
+    "season": 2025
+   },
+   "result_summary": "{\"district\": \"Fazilka\", \"season\": 2025, \"base_season\": 2022, \"snpp_night_detections\": 5, \"base_snpp_night_detections\": 0, \"warning\": \"night detections in one district are too few …",
+   "ms": 3
+  },
+  {
+   "step": 3,
+   "agent": "auditor",
+   "tool": "get_burned_area_comparison",
+   "args": {
+    "district": "Fazilka",
+    "season": 2025
+   },
+   "result_summary": "{\"district\": \"Fazilka\", \"season\": 2025, \"base_season\": 2022, \"product\": \"MODIS burned area (MCD64A1), low confidence in cropland\", \"burned_km2\": 926.2, \"snpp_detections\": 320, \"de…",
+   "ms": 0
+  },
+  {
+   "step": 4,
+   "agent": "auditor",
+   "tool": "get_official_vs_satellite",
+   "args": {
+    "district": "Fazilka",
+    "season": 2025
+   },
+   "result_summary": "{\"district\": \"Fazilka\", \"season\": 2025, \"official_count\": 271, \"snpp_detections\": 320, \"official_to_snpp_ratio\": 0.85, \"source_url\": \"https://ppcb.punjab.gov.in/media/documents/CA…",
+   "ms": 2
+  },
+  {
+   "step": 5,
+   "agent": "auditor",
+   "tool": "get_gap_range",
+   "args": {
+    "district": "Fazilka",
+    "season": 2025
+   },
+   "result_summary": "{\"district\": \"Fazilka\", \"season\": 2025, \"what_the_gap_is\": \"the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed\", \"detected…",
+   "ms": 1
+  },
+  {
+   "step": 6,
+   "agent": "auditor",
+   "tool": "search_knowledge",
+   "args": {
+    "k": 4,
+    "query": "how the detection gap is calculated and its weaknesses",
+    "before": "2025-12-01",
+    "district": "Fazilka",
+    "place": "Fazilka"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K426\", \"title\": \"How this project estimates the detection gap, and its weaknesses\", \"text\": \"# Weaknesses\\n\\nThe range does not include the error of the…",
+   "ms": 13
+  },
+  {
+   "step": 7,
+   "agent": "critic",
+   "tool": "review",
+   "args": {
+    "brief_type": "audit",
+    "chunks": [
+     "K423",
+     "K425",
+     "K426"
+    ]
+   },
+   "result_summary": "1 issue(s), rewrite used",
+   "ms": 3924
+  }
+ ],
+ "facts": {
+  "get_detection_trend": {
+   "district": "Fazilka",
+   "season": 2025,
+   "sensors": [
+    {
+     "satellite": "VIIRS S-NPP",
+     "detections": 320,
+     "base_season": 2022,
+     "change_vs_base_pct": -90.9,
+     "change_in_words": "down 90.9% from 2022"
+    },
+    {
+     "satellite": "VIIRS NOAA-20",
+     "detections": 305,
+     "base_season": 2022,
+     "change_vs_base_pct": -91.2,
+     "change_in_words": "down 91.2% from 2022"
+    },
+    {
+     "satellite": "VIIRS NOAA-21",
+     "detections": 311,
+     "base_season": 2023,
+     "change_vs_base_pct": -83.0,
+     "change_in_words": "down 83.0% from 2023"
+    },
+    {
+     "satellite": "MODIS (Terra and Aqua)",
+     "detections": 325,
+     "base_season": 2022,
+     "change_vs_base_pct": -60.1,
+     "change_in_words": "down 60.1% from 2022"
+    }
+   ],
+   "note": "NOAA-20 and NOAA-21 pass at about the same time as S-NPP, so they are a robustness check and not an independent look. MODIS passes at other times."
+  },
+  "get_diurnal_profile": {
+   "district": "Fazilka",
+   "season": 2025,
+   "base_season": 2022,
+   "snpp_night_detections": 5,
+   "base_snpp_night_detections": 0,
+   "warning": "night detections in one district are too few to show a change in timing"
+  },
+  "get_burned_area_comparison": {
+   "district": "Fazilka",
+   "season": 2025,
+   "base_season": 2022,
+   "product": "MODIS burned area (MCD64A1), low confidence in cropland",
+   "burned_km2": 926.2,
+   "snpp_detections": 320,
+   "detections_per_burned_km2": 0.35,
+   "burned_change_vs_base_pct": -1.8,
+   "detections_change_vs_base_pct": -90.9,
+   "per_km2_change_vs_base_pct": -90.7,
+   "burned_change_in_words": "down 1.8% from 2022",
+   "detections_change_in_words": "down 90.9% from 2022"
+  },
+  "get_official_vs_satellite": {
+   "district": "Fazilka",
+   "season": 2025,
+   "official_count": 271,
+   "snpp_detections": 320,
+   "official_to_snpp_ratio": 0.85,
+   "source_url": "https://ppcb.punjab.gov.in/media/documents/CAQM_ATR_30.11.2025.pdf",
+   "how_counted": "Cumulative fire incidents as per ISRO protocol (satellite) as on 30 Nov 2025; the table states no start date",
+   "note": "The official count is satellite-based too, so it is not an independent check.",
+   "base_season": 2022,
+   "base_official_count": 2856,
+   "official_change_vs_base_pct": -90.5,
+   "official_change_in_words": "down 90.5% from 2022"
+  },
+  "get_gap_range": {
+   "district": "Fazilka",
+   "season": 2025,
+   "what_the_gap_is": "the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed",
+   "detected_change_pct": -90.9,
+   "reference_change_pct": -1.8,
+   "changes_are_for": "S-NPP detections against 2022",
+   "changes_in_words": "counts fell 90.9% and burned area fell 1.8%",
+   "gap_low_pct": 83.1,
+   "gap_high_pct": 90.7,
+   "methods": "S-NPP detections against burned area, base season 2022; official counts against burned area, base season 2022; S-NPP detections against burned area, base season 2023; official counts against burned area, base season 2023",
+   "confidence": "low",
+   "direction": "counts fell more than burned area",
+   "reason": null,
+   "timing_evidence": "Punjab-wide only. Night share of S-NPP detections: 2.4% (95% interval 2.0% to 2.9%) in 2025 against 0.2% (0.1% to 0.2%) in 2022: supports a shift in timing. MODIS change relative to the S-NPP change since 2022: 3.25 times (rule: at least 1.5): supports a shift in timing. MODIS passes at other times (Terra in the morning, Aqua drifting later in the afternoon), which is a confound.",
+   "other_explanations": "A fall in detections per burned area fits three explanations: burning moved outside satellite pass times, fires became smaller or cooler, or the sensitivity of the burned-area product changed.",
+   "caveat": "The range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification."
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K426",
+     "title": "How this project estimates the detection gap, and its weaknesses",
+     "text": "# Weaknesses\n\nThe range does not include the error of the burned-area product, which is unknown and is the largest uncertainty. A fall in detections per burned area fits three explanations: burning moved outside pass times, fires became smaller or cooler, or the burned-area product's sensitivity changed. The timing indicators speak only to the first. There is no field verification. This is triangulation, not ground truth."
+    },
+    {
+     "chunk_id": "K423",
+     "title": "How this project estimates the detection gap, and its weaknesses",
+     "text": "# What the gap measures\n\nThe detection gap is the fall in fire counts per burned square kilometre since a base season: one minus the ratio of (count divided by burned area) now to (count divided by burned area) in the base season. In plain words it compares how far counts fell with how far burned area fell. It is a relative loss of detection since the base season. It is not the share of burning that is missed, because the base season's own miss rate is unknown."
+    },
+    {
+     "chunk_id": "K425",
+     "title": "How this project estimates the detection gap, and its weaknesses",
+     "text": "# Range, thresholds and confidence\n\nThere is one estimate for each count series and base season (2022 or 2023), and the range runs from the lowest to the highest. Nothing is clipped, so a negative value means burned area fell more than counts. A pair is used only if burned area is at least 50 km² in both seasons and the base count is at least 100; otherwise the result is \"insufficient evidence\". Confidence is never high. Punjab is medium only if the lowest estimate is at least 0.25 and both timing indicators support a shift. Districts are low at most."
+    },
+    {
+     "chunk_id": "K223",
+     "title": "Fazilka burning audit, season 2023",
+     "text": "## Detection gap\n\nThe gap (the fall in counts per burned km²; a negative value is a rise) is 39% to 45% (confidence low; counts fell more than burned area). Methods: S-NPP detections against burned area, base season 2022; official counts against burned area, base season 2022.\n\nThe range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification.\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Season window Sep 15 to Nov 30."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-27T12:14:06+00:00",
+ "caveat": "The range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification.",
+ "first_attempt_errors": [
+  "word count 223 outside 150-200",
+  "[K223] is the 2023 audit: it cannot support a sentence that is not about 2023"
+ ],
+ "revision_errors": [],
+ "llm_error": null,
+ "label": null,
+ "plan": null,
+ "planner_error": null,
+ "critic": {
+  "ok": false,
+  "issues": [
+   {
+    "type": "unsupported_citation",
+    "sentence": "The range is 83.1% to 90.7%, confidence low [K425].",
+    "note": "K425 does not contain the numbers 83.1 or 90.7",
+    "by": "critic"
+   }
+  ],
+  "rewrite_used": true,
+  "error": null,
+  "rewrite_rejected": [],
+  "original_briefing": "What detections say: VIIRS S-NPP recorded 320 fires, which was down 90.9% from 2022. VIIRS NOAA-20 recorded 305 fires, which was down 91.2% from 2022. VIIRS NOAA-21 recorded 311 fires, which was down 83.0% from 2023. MODIS recorded 325 fires, which was down 60.1% from 2022. There were 5 night detections, and they are too few to show a change in timing.\n\nWhat other signals say: MODIS burned area was down 1.8% from 2022. The official count was down 90.5% from 2022. The official count is satellite-based, so agreeing with it is not independent confirmation.\n\nOur best range and how sure we are: The fall in counts per burned km² is measured by the range [K423]. The range is 83.1% to 90.7%, confidence low [K425]. Counts fell more than burned area. The range does not include the error of the burned-area product, which is unknown and is the largest uncertainty [K426].\n\nWhat would settle it: Ground visits and all-day geostationary monitoring would help settle it. A fall in counts per burned km² has three explanations: burning moved outside pass times, fires became smaller or cooler, or burned-area sensitivity changed [K426]. This is triangulation, not field verification [K426].",
+  "warning": null
+ }
+}

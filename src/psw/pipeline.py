@@ -235,7 +235,7 @@ def cmd_audit(args) -> None:
     records = []
     for district, season in wanted:
         rec = orchestrator.run_audit(district, season, llm=llm, store=store, kb=kb, reuse=not args.force,
-                                     use_planner=args.plan)
+                                     use_planner=args.plan, use_critic=not args.no_critic)
         _print_audit(rec)
         records.append(rec)
     modes = [r.mode for r in records]
@@ -245,11 +245,25 @@ def cmd_audit(args) -> None:
         print("token usage:", llm.usage)
 
 
+def _print_critic(rec) -> None:
+    c = getattr(rec, "critic", None)
+    if not c:
+        return
+    if c["error"]:
+        print("  critic: failed,", c["error"])
+        return
+    print(f"  critic: {len(c['issues'])} issue(s), rewrite used {c['rewrite_used']}"
+          + (f", rewrite rejected: {c['rewrite_rejected']}" if c["rewrite_rejected"] else ""))
+    for i in c["issues"]:
+        print(f"    - {i['type']}: {i['sentence']} | {i['note']}")
+
+
 def _print_audit(rec) -> None:
     v = rec.verification
     print(f"\n[{rec.mode}] {rec.district} {rec.season} | model {rec.model} | verified {v['ok']} "
           f"({len(v['checked_numbers'])} numbers checked)")
     print(f"  {rec.headline}\n{rec.briefing}")
+    _print_critic(rec)
     if rec.plan:
         print("  plan:", " | ".join(rec.plan["steps"]))
     elif rec.planner_error:
@@ -269,6 +283,7 @@ def _print_briefing(rec) -> None:
     print(f"\n[{rec.mode}] {rec.district} {rec.date} | model {rec.model} | verified {v['ok']} "
           f"({len(v['checked_numbers'])} numbers checked) | tools: {[t['tool'] for t in rec.trace]}")
     print(f"  {rec.headline}\n  {rec.briefing}")
+    _print_critic(rec)
     plan = getattr(rec, "plan", None)
     if plan:
         print("  plan:", " | ".join(plan["steps"]))
@@ -302,6 +317,7 @@ def cmd_brief(args) -> None:
     from collections import Counter
 
     from psw.agents import orchestrator
+    from psw.agents.critic import base_mode
     from psw.agents.tools import DataStore
     from psw.llm import LLM, LLMError
     from psw.rag.index import KnowledgeBase
@@ -328,10 +344,11 @@ def cmd_brief(args) -> None:
             if rec is not None:
                 print("    (reusing the saved agent briefing)", flush=True)
             else:  # new, or the earlier try fell back to the template (for example a rate limit): try again
-                rec = orchestrator.run_briefing(dist, d, llm=llm, store=store, kb=kb, root=root, use_planner=args.plan)
+                rec = orchestrator.run_briefing(dist, d, llm=llm, store=store, kb=kb, root=root, use_planner=args.plan,
+                                                use_critic=args.critic)
             print(f"    -> {rec.mode}, verified={rec.verification['ok']}" + (f", llm: {rec.llm_error}" if rec.llm_error else ""))
             recs.append(rec)
-        modes = Counter(r.mode for r in recs)
+        modes = Counter(base_mode(r.mode) for r in recs)
         passed = sum(r.verification["ok"] for r in recs)
         report = {"n": len(recs), "verified_ok": passed, "modes": dict(modes),
                   "agent_or_revised": modes["agent"] + modes["agent_revised"], "model": getattr(llm, "model", None),
@@ -347,9 +364,11 @@ def cmd_brief(args) -> None:
     if not args.date:
         raise SystemExit("--date YYYY-MM-DD is required (or use --sample N)")
     if args.district:
-        _print_briefing(orchestrator.run_briefing(args.district, args.date, llm=llm, store=store, kb=kb, use_planner=args.plan))
+        _print_briefing(orchestrator.run_briefing(args.district, args.date, llm=llm, store=store, kb=kb, use_planner=args.plan,
+                                                  use_critic=args.critic))
         return
-    watch = orchestrator.run_daily_watch(args.date, top_n=args.top_n, llm=llm, store=store, kb=kb, use_planner=args.plan)
+    watch = orchestrator.run_daily_watch(args.date, top_n=args.top_n, llm=llm, store=store, kb=kb, use_planner=args.plan,
+                                         use_critic=args.critic)
     print(f"Daily watch {args.date}: {watch['n_flagged']} districts flagged, briefing the top {len(watch['briefings'])}")
     for r in watch["watchlist"][:max(args.top_n, 6)]:
         print(f"  {r['district']:26s} {r['fire_count']:4d} fires (7d mean {r['fire_count_7d_mean']:6.1f})  "
@@ -381,7 +400,7 @@ def cmd_demo_cache(args) -> None:
         llm = None
         print(f"No LLM ({e}); briefings that are not already saved will use the template.")
     out = demo.build_demo_cache(llm=llm, store=DataStore(), kb=KnowledgeBase(), top_n=args.top_n, force=args.force, use_planner=args.plan)
-    bad = [x for v in out["briefed"].values() for x in v if not x.endswith(("agent", "agent_revised"))]
+    bad = [x for v in out["briefed"].values() for x in v if not x.split("+")[0].endswith(("agent", "agent_revised"))]
     print(f"Saved data/processed/demo.json. Not written by the agent: {bad or 'none'}")
 
 
@@ -416,6 +435,8 @@ def main() -> None:
     p.add_argument("--season", type=int, help="audit: the season to audit (with --district, or Punjab alone)")
     p.add_argument("--tables-only", action="store_true", help="audit: write the tables and summary, no briefs")
     p.add_argument("--plan", action="store_true", help="brief / demo-cache / audit: run the Planner first (one extra LLM call each)")
+    p.add_argument("--critic", action="store_true", help="brief: have the Critic read each briefing (one extra LLM call each)")
+    p.add_argument("--no-critic", action="store_true", help="audit: skip the Critic (it is on by default for audits)")
     p.add_argument("--force", action="store_true", help="demo-cache / audit: regenerate what is already saved")
     p.add_argument("--no-llm", action="store_true", help="brief / audit: skip the LLM and use the template fallback")
     args = p.parse_args()

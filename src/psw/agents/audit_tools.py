@@ -103,9 +103,13 @@ def get_detection_trend(store: AuditStore, district: str, season: int) -> dict:
                     "not an independent look. MODIS passes at other times."}
 
 
+NIGHT_TOO_FEW = "night detections in one district are too few to show a change in timing"
+
+
 def get_diurnal_profile(store: AuditStore, district: str, season: int) -> dict:
     """Detections by time of pass, and the night share of S-NPP now and in the base season (one satellite, so the
-    two seasons are comparable)."""
+    two seasons are comparable). For a district only the night counts are given (D23): a share of a handful of
+    detections reads as a shift in timing when it is not evidence of one."""
     season = int(season)
     prof = store.rows("diurnal_profile", district)
     now = prof[prof["season"] == season]
@@ -122,11 +126,21 @@ def get_diurnal_profile(store: AuditStore, district: str, season: int) -> dict:
         return None if p.empty else _r(p["share"].iloc[0] * 100)
 
     base = gap.BASES[0]
+    if district != STATE:
+        def night_count(y: int) -> int:
+            p = prof[(prof["season"] == y) & (prof["sensor"] == "snpp") & (prof["pass_label"] == NIGHT)]
+            return int(p["count"].sum())
+
+        return {"district": district, "season": season, "base_season": base,
+                "snpp_night_detections": night_count(season), "base_snpp_night_detections": night_count(base),
+                "warning": NIGHT_TOO_FEW}
+
     n, b = night_pct(season), night_pct(base)
     return {"district": district, "season": season, "base_season": base,
             "snpp_passes": passes("snpp"), "modis_passes": passes("modis"),
             "night_share_pct": n, "base_night_share_pct": b,
-            "night_share_change_points": None if n is None or b is None else _r(n - b),
+            "night_share_in_words": None if n is None or b is None or season == base else
+            f"{n}% in {season} against {b}% in {base}",
             "note": "Night share is of S-NPP detections. Satellites only see fires burning when they pass over."}
 
 
@@ -226,7 +240,7 @@ TOOL_SCHEMAS: list[dict] = [
         _PLACE, ["district", "season"]),
     _fn("search_knowledge",
         "Search the knowledge base (satellite pass times, official counting, the burned-area product, the gap method, "
-        "published reporting, earlier season audits). Returns chunks with ids like K012 that you can cite.",
+        "published reporting, earlier season audits). Returns chunks, each with a chunk_id you can cite.",
         {"query": {"type": "string"}, "k": {"type": "integer", "description": "Number of chunks, 1 to 6 (default 4)."}}, ["query"]),
 ]
 _SCHEMA = {s["function"]["name"]: s["function"] for s in TOOL_SCHEMAS}

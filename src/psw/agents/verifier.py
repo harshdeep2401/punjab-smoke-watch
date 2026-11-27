@@ -191,6 +191,19 @@ def verify(briefing: dict, evidence: Evidence, word_range: tuple[int, int] | Non
     return VerifyResult(ok=not errors, errors=errors, checked_numbers=checked)
 
 
+def sentences(text: str) -> list[str]:
+    """Sentences, with a citation marker written after the full stop kept with the sentence it follows."""
+    out: list[str] = []
+    for part in re.split(r"(?<=[.!?])\s+|\n+", text):
+        lead = re.match(r"^(?:\[K\d{3}\][\s.]*)+", part)
+        if lead and out:
+            out[-1] += " " + lead.group(0).strip()
+            part = part[lead.end():]
+        if part.strip():
+            out.append(part.strip())
+    return out
+
+
 # ---------- audit briefs: the same checks, plus what every audit must say ----------
 
 # the range must be tied to the burned-area product's error, in one sentence
@@ -198,10 +211,24 @@ BURNED_ERROR = re.compile(r"(?=[^.]*(burned[- ]area|MCD64A1))(?=[^.]*(error|unce
 
 
 def _has_burned_area_caveat(text: str) -> bool:
-    return any(BURNED_ERROR.match(sentence) for sentence in re.split(r"(?<=[.!?])\s+", text))
+    return any(BURNED_ERROR.match(sentence) for sentence in sentences(text))
+
+
+def _other_season_errors(text: str, audit_seasons: dict[str, int]) -> list[str]:
+    """An earlier season's audit document may only support a sentence that is about that season."""
+    errors = []
+    for sentence in sentences(text):
+        said = INLINE_CITATION.sub(" ", sentence)
+        for cid in INLINE_CITATION.findall(sentence):
+            year = audit_seasons.get(cid)
+            if year and str(year) not in said:
+                errors.append(f"[{cid}] is the {year} audit: it cannot support a sentence that is not about {year}")
+    return list(dict.fromkeys(errors))
 
 
 MEASURE = re.compile(r"per burned (km|area|square)", re.I)  # what a gap range is a range of
+ABOUT_PRODUCT = re.compile(r"cropland|MCD64A1|burned[- ]area (is|has|product)", re.I)
+PASS_TIME = re.compile(r"(outside|between)[^.]{0,40}\b(over)?pass", re.I)  # the first of D23's three explanations
 DIRECTION_WORDS = {"direction unclear": "unclear", "no sign of a detection gap": "no sign"}
 
 
@@ -215,8 +242,12 @@ def _gap_errors(text: str, gap: dict) -> list[str]:
     if not MEASURE.search(text):
         errors.append("say what the range measures: the fall in counts per burned km²")
     conf = gap["confidence"]
-    if not re.search(rf"confidence[^.]{{0,30}}\b{conf}\b|\b{conf}\b[^.]{{0,15}}confidence", text, re.I):
+    stated = re.compile(rf"confidence[^.]{{0,30}}\b{conf}\b|\b{conf}\b[^.]{{0,15}}confidence", re.I)
+    # "burned area in cropland is low confidence" is about the satellite product and says nothing about the range
+    if not any(stated.search(s) and not ABOUT_PRODUCT.search(s) for s in sentences(text)):
         errors.append(f"state that the confidence of the range is {conf}")
+    if gap.get("direction") == "counts fell more than burned area" and not PASS_TIME.search(text):
+        errors.append("say that one explanation is burning moving outside satellite pass times (it is not proven)")
     word = DIRECTION_WORDS.get(gap.get("direction"))
     if word and word not in text.lower():
         errors.append(f"say plainly: {gap['direction']}")
@@ -224,8 +255,11 @@ def _gap_errors(text: str, gap: dict) -> list[str]:
 
 
 def verify_audit(briefing: dict, evidence: Evidence, gap: dict | None = None,
-                 word_range: tuple[int, int] = config.AUDIT_WORDS) -> VerifyResult:
-    """`gap`: the get_gap_range result for this district and season (None or an error for the base season)."""
+                 word_range: tuple[int, int] = config.AUDIT_WORDS,
+                 audit_seasons: dict[str, int] | None = None, night_too_few: bool = False) -> VerifyResult:
+    """`gap`: the get_gap_range result for this district and season (None or an error for the base season).
+    `audit_seasons`: chunk id -> season for every retrieved chunk that is another season's audit document.
+    `night_too_few`: the place is a district, so any mention of night detections must say they are too few."""
     base = verify(briefing, evidence, word_range=word_range)
     errors = list(base.errors)
     headline = briefing.get("headline") if isinstance(briefing, dict) else None
@@ -238,6 +272,9 @@ def verify_audit(briefing: dict, evidence: Evidence, gap: dict | None = None,
             errors.append("say that this is triangulation, not field verification")
         if gap and "error" not in gap:
             errors += _gap_errors(text, gap)
+        errors += _other_season_errors(text, audit_seasons or {})
+        if night_too_few and re.search(r"\bnight", text, re.I) and "too few" not in text.lower():
+            errors.append("say that a district's night detections are too few to show a change in timing")
     for s in (headline, text):
         if not _is_text(s):
             continue

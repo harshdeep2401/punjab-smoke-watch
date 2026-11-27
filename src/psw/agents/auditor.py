@@ -22,29 +22,33 @@ What other signals say:
 Our best range and how sure we are:
 What would settle it:
 
-Length: 170 to 190 words in total, about 45 words in each part. A shorter text is rejected.
-Citations: a brief with no citation is rejected. Put at least one [K012]-style citation after a sentence about the method, the burned-area product, official counting, pass times or published reporting, and list it in "citations". Citations are chunk ids only, never web addresses. Cite a chunk only if its text supports that sentence. Figures from the data tools need no citation. Never cite a chunk about another season as support for this season's figures.
+Length: 160 to 180 words in total. A shorter text is rejected. Write ordinary full sentences, never a list of topics separated by semicolons. Each part should answer these questions:
+- What detections say: How many fires did S-NPP, NOAA-20 and MODIS record, and how did each change? For Punjab, how large is the night share now and in the base season? For a district, how many night detections were there, and note that they are "too few" to show a change in timing.
+- What other signals say: How did burned area and the official count change? Why is the official count not an independent check?
+- Our best range and how sure we are: What does the range measure? What are the range, its confidence and its direction? What does the range leave out?
+- What would settle it: Which checks on the ground would help, and would a geostationary satellite that watches all day? What could cause a fall in detections per burned area? Why is this not field verification?
+Citations: a brief with no citation is rejected. Put at least one citation marker (the chunk id in square brackets, copied exactly from search_knowledge) after a sentence about the method, the burned-area product, official counting, pass times or published reporting, and list it in "citations". Citations are chunk ids only, never web addresses, and only ids that search_knowledge returned to you. Cite a chunk only if its text supports that sentence. Figures from the data tools need no citation. Never cite a chunk about another season as support for this season's figures.
 
 How to write it (these are instructions for you; do not copy them into the brief):
 - Use only numbers that appear in tool results, written as returned. Do no sums, differences, averages or percentages of your own.
-- For changes, use the "in words" fields ("down 91.1% from 2022"). Do not write "a fall of -91.1".
+- For changes, use the "in words" fields ("down 91.1% from 2022"): write "was down 91.1%", not "fell down" and not "a fall of -91.1".
 - Give the range in the words "counts per burned km² fell" or "the fall in counts per burned km²". It is not a measure of how many fires or how much burning went unseen, and you must not present it as one.
 - Report only the range that get_gap_range returns for this district and season. If it returns no range, write that there is insufficient evidence and give its reason.
-- Next to the range, write "confidence" followed by the level get_gap_range returns. If its direction is "direction unclear", use the word "unclear"; if it is "no sign of a detection gap", use the words "no sign".
+- Next to the range, write "confidence" followed by the level get_gap_range returns. If its direction is "direction unclear", use the word "unclear"; if it is "no sign of a detection gap", use the words "no sign". Write the direction as its own sentence.
 - Include the word "triangulation" and state that this is not field verification.
 - When you give a range, include one sentence saying the range does not include the error of the burned-area product, which is unknown and is the largest uncertainty.
-- Mention that a fall in detections per burned area can also come from smaller or cooler fires or a change in the burned-area product.
+- Give all three explanations for a fall in detections per burned area, and say none is proven: burning may have moved outside satellite pass times; fires may have become smaller or cooler; the burned-area product's sensitivity may have changed.
 - Mention that the official count is satellite-based, so agreeing with it is not independent confirmation.
 - Do not assert that farmers hide fires or that official numbers are wrong. Others' claims may be reported, with a citation.
 - No raw field names (write "lowest estimate", not a name with underscores). No individual farmers or fields. Plain language.
 
 Your final answer must be only this JSON object, with no other text:
-{"headline": "at most 12 words", "briefing": "the four labelled parts with [K012]-style citations", "citations": ["K012"]}"""
+{"headline": "at most 12 words", "briefing": "the four labelled parts with citation markers", "citations": ["chunk ids you cited"]}"""
 
 REVISE_PROMPT = """Your draft failed verification. Fix these problems and return the corrected JSON object only:
 {errors}
 
-Quote only numbers that appear in the tool results, exactly as returned. Cite at least one chunk you retrieved, in the text as [K012] and in "citations". Keep the four labelled parts. Write between 170 and 190 words: if the text was too short, add a full sentence to each part."""
+Quote only numbers that appear in the tool results, exactly as returned. Cite at least one chunk you retrieved: put its id (the letter K and three digits) in square brackets in the text, and list it in "citations". Keep the four labelled parts. Write between 160 and 180 words: if the text was too short, add a full sentence to each part; if it was too long, delete whole sentences."""
 
 
 def build_auditor(store: AuditStore, kb) -> AgentSpec:
