@@ -51,6 +51,15 @@ SENTINEL_SMOG_P90 = 120  # "smog_risk": nearest-city p90 forecast above this (ug
 # Verifier (PLAN 5.5)
 BRIEFING_WORDS = (100, 180)
 HEADLINE_MAX_WORDS = 12
+# Phase 10: audit briefs
+AUDIT_WORDS = (150, 200)
+AUDIT_LABELS = ("What detections say", "What other signals say", "Our best range and how sure we are", "What would settle it")
+AUDIT_BANNED_PATTERNS = [
+    (r"\bhigh confidence\b|\bconfidence\s*(is|of|:)\s*high\b", "an audit is never high confidence"),
+    (r"\b(fall|fell|drop|dropped|declined?|decreased?|reduction|rise|rose|increased?)\s+(of\s+|by\s+)?[-−]\s?\d",
+     "write a change without the minus sign"),
+    (r"\bnever (call|say|claim|present|cite) (it|the|that|a)\b|\bdo not copy\b", "an instruction copied into the brief"),
+]
 # numbers that may appear without being in a tool result: "7-day", "80% interval", p10/p50/p90, "24-hour"
 VERIFY_CONSTANTS = (7, 80, 10, 50, 90, 24)
 BANNED_PATTERNS = [  # (regex, why). Matched case-insensitively except the name rule, which needs a capital letter.

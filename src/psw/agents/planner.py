@@ -41,6 +41,32 @@ def build_planner(tool_schemas: list[dict] | None = None) -> AgentSpec:
     return AgentSpec(name="planner", system_prompt=SYSTEM_PROMPT.format(tools=lines), tools=[], max_turns=2, json_output=True)
 
 
+AUDIT_SYSTEM_PROMPT = """You plan a short audit brief about whether stubble-fire detections in Punjab, India show how much burning really happened. You do not write the brief and you cannot call tools. A separate auditor will follow your plan using these tools:
+{tools}
+
+You are told the district (or the whole state), the season, and the names of the signals available. The brief has four parts: what detections say, what other signals say, the best range and how sure we are, and what would settle it.
+
+Rules:
+- You have no data. Never write, guess or imply any number or result. The only digits allowed are years and dates, for example "2024 season".
+- Never write tool names or field names with underscores. Describe things in plain words.
+- Say which available signals to check first and what would make the picture unclear. Do not ask for signals that are not available.
+- The result is triangulation, not field truth. Never plan to say that farmers hide fires or that official numbers are wrong.
+
+Return only this JSON object, with no other text:
+{{"steps": ["3 to 5 short imperative steps for the auditor"], "questions_to_answer": ["2 to 4 questions the brief must answer"]}}"""
+
+
+def build_audit_planner(tool_schemas: list[dict]) -> AgentSpec:
+    lines = "\n".join(f"- {s['function']['name']}: {s['function']['description']}" for s in tool_schemas)
+    return AgentSpec(name="planner", system_prompt=AUDIT_SYSTEM_PROMPT.format(tools=lines), tools=[], max_turns=2,
+                     json_output=True)
+
+
+def audit_user_message(district: str, season: int, signals: list[str]) -> str:
+    return (f"District: {district}\nSeason: {season}\nSignals available: {', '.join(signals) if signals else 'none'}\n"
+            f"Write the plan.")
+
+
 def flag_kinds(store: DataStore, district: str, date: str) -> list[str]:
     """The kinds of Sentinel flag the district has on `date` ([] if none or the district is unknown)."""
     for row in sentinel.scan(date, store):
@@ -103,12 +129,22 @@ def plan_text(plan: dict) -> str:
 
 
 def make_plan(district: str, date: str, city: str, kinds: list[str], llm) -> tuple[dict | None, str | None, dict]:
-    """Run the planner. Returns (plan or None, error or None, a trace entry). Never raises because of the LLM."""
+    """Plan a district briefing. Returns (plan or None, error or None, a trace entry). Never raises because of the LLM."""
+    return _plan(build_planner(), user_message(district, date, city, kinds), llm, {"sentinel_flags": kinds})
+
+
+def make_audit_plan(district: str, season: int, signals: list[str], llm,
+                    tool_schemas: list[dict]) -> tuple[dict | None, str | None, dict]:
+    """Plan an audit brief from the names of the available signals only. Same return value as `make_plan`."""
+    return _plan(build_audit_planner(tool_schemas), audit_user_message(district, season, signals), llm, {"signals": signals})
+
+
+def _plan(spec: AgentSpec, message: str, llm, shown_args: dict) -> tuple[dict | None, str | None, dict]:
     t0 = time.perf_counter()
-    res = run_agent(build_planner(), user_message(district, date, city, kinds), llm)
+    res = run_agent(spec, message, llm)
     plan = None if res.error else clean_plan(res.output)
     error = res.error or (None if plan else reject_reason(res.output))
     summary = (str(plan) if plan else f"no plan: {error}")
-    entry = {"step": 1, "agent": "planner", "tool": "plan", "args": {"sentinel_flags": kinds},
+    entry = {"step": 1, "agent": "planner", "tool": "plan", "args": shown_args,
              "result_summary": summary if len(summary) <= 180 else summary[:179] + "…", "ms": int((time.perf_counter() - t0) * 1000)}
     return plan, error, entry

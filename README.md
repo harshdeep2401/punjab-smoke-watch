@@ -83,6 +83,8 @@ uv run python -m psw.pipeline brief --date 2025-10-31 --district Ludhiana --plan
 uv run python -m psw.pipeline brief --sample 12                              # verifier pass rate on sampled flagged district-days
 uv run python -m psw.pipeline demo-cache   # briefings for the three demo dates (reuses saved agent briefings; --force redoes them)
 uv run pytest -q                           # tests, all offline (a scripted fake LLM, no network)
+# Part 2 (in progress)
+uv run python -m psw.pipeline audit-ingest # extra fire satellites, burned area, official counts check, district weather
 ```
 
 On macOS, LightGBM needs `brew install libomp`.
@@ -120,6 +122,7 @@ More in [`docs/screenshots/`](docs/screenshots/).
 - **Fire detections:** NASA FIRMS, VIIRS S-NPP 375 m, archive product (low-confidence detections dropped). https://firms.modaps.eosdis.nasa.gov
 - **PM2.5 (the forecast target):** Copernicus Atmosphere Monitoring Service (CAMS) global atmospheric composition forecasts, retrieved through the Open-Meteo air-quality API (data by [Open-Meteo.com](https://open-meteo.com/), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). This is modelled PM2.5, not a ground monitor.
 - **Weather:** weather data by [Open-Meteo.com](https://open-meteo.com/) (ERA5 reanalysis, Copernicus Climate Change Service), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Audit data (Part 2, not yet shown in the app):** extra FIRMS sensors (VIIRS NOAA-20 and NOAA-21, MODIS Terra and Aqua); NASA MODIS MCD64A1 Collection 6.1 burned area, downloaded from the University of Maryland server named in its user guide; official district fire counts from Punjab's reports to the National Green Tribunal, with the source link on every row of `data/manual/official_counts.csv`.
 - **District boundaries:** geoBoundaries IND ADM2 (gbOpen), licence Open Data Commons Open Database License (ODbL) 1.0, attribution to geoBoundaries (wmgeolab). https://www.geoboundaries.org
 - **Embeddings:** `BAAI/bge-small-en-v1.5`, run locally with fastembed.
 - **PM2.5 reference line:** India's National Ambient Air Quality Standards, 24-hour value of 60 µg/m³.

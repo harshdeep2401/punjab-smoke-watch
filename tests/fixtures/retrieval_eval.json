@@ -15,5 +15,11 @@
   {"kind": "keyword", "query": "Moga 2022 busiest day", "expected": ["season_2022_Moga"]},
   {"kind": "keyword", "query": "Patiala PM2.5 days above 60 in 2025", "expected": ["city_season_2025_Patiala"]},
   {"kind": "keyword", "query": "Bathinda PM2.5 season 2022", "expected": ["city_season_2022_Bathinda"]},
-  {"kind": "filtered", "query": "Sangrur 2024 season", "before": "2025-11-05", "district": "Sangrur", "expected": ["season_2024_Sangrur"]}
+  {"kind": "filtered", "query": "Sangrur 2024 season", "before": "2025-11-05", "district": "Sangrur", "expected": ["season_2024_Sangrur"]},
+  {"kind": "meaning", "query": "are farmers lighting fires later in the day so satellites do not see them", "expected": ["evening_burning_reports", "evening_burning_study", "evening_burning_debate"]},
+  {"kind": "meaning", "query": "at what time of day do the fire satellites look at Punjab", "expected": ["overpass_times"]},
+  {"kind": "meaning", "query": "who produces the official government count of stubble fires and how", "expected": ["official_counting_method"]},
+  {"kind": "meaning", "query": "how is the range for undetected burning worked out and how sure can we be", "expected": ["method_detection_gap"]},
+  {"kind": "keyword", "query": "MCD64A1 cropland omission error", "expected": ["mcd64a1"]},
+  {"kind": "keyword", "query": "Sangrur burned area audit season 2024", "expected": ["audit_2024_Sangrur"]}
 ]

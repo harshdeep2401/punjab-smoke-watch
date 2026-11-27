@@ -1,0 +1,151 @@
+{
+ "district": "Punjab",
+ "base_season": 2022,
+ "seasons": {
+  "2022": {
+   "sensors": {
+    "modis": {
+     "detections": 10565,
+     "base_season": 2022,
+     "change_pct": 0.0
+    },
+    "noaa20": {
+     "detections": 48365,
+     "base_season": 2022,
+     "change_pct": 0.0
+    },
+    "snpp": {
+     "detections": 45387,
+     "base_season": 2022,
+     "change_pct": 0.0
+    }
+   },
+   "viirs_night_share_pct": 0.2,
+   "snpp_night_share_pct": 0.2,
+   "burned_km2": 16532.0,
+   "burned_change_pct": 0.0,
+   "official_count": 49922,
+   "official_change_pct": 0.0,
+   "gap": null
+  },
+  "2023": {
+   "sensors": {
+    "modis": {
+     "detections": 8347,
+     "base_season": 2022,
+     "change_pct": -21.0
+    },
+    "noaa20": {
+     "detections": 32778,
+     "base_season": 2022,
+     "change_pct": -32.2
+    },
+    "noaa21": {
+     "detections": 31244,
+     "base_season": 2023,
+     "change_pct": 0.0
+    },
+    "snpp": {
+     "detections": 30390,
+     "base_season": 2022,
+     "change_pct": -33.0
+    }
+   },
+   "viirs_night_share_pct": 0.3,
+   "snpp_night_share_pct": 0.3,
+   "burned_km2": 14980.0,
+   "burned_change_pct": -9.4,
+   "official_count": 36663,
+   "official_change_pct": -26.6,
+   "gap": {
+    "low_pct": 18.9,
+    "high_pct": 26.1,
+    "methods": "snpp / burned_area, base 2022; official / burned_area, base 2022",
+    "confidence": "low",
+    "direction": "counts fell more than burned area",
+    "reason": null,
+    "timing_evidence": "Punjab-wide only. Night share of S-NPP detections: 0.3% (95% interval 0.2% to 0.4%) in 2023 against 0.2% (0.1% to 0.2%) in 2022: supports a shift in timing. MODIS change relative to the S-NPP change since 2022: 1.18 times (rule: at least 1.5): does not support a shift in timing. MODIS passes at other times (Terra in the morning, Aqua drifting later in the afternoon), which is a confound."
+   }
+  },
+  "2024": {
+   "sensors": {
+    "modis": {
+     "detections": 3853,
+     "base_season": 2022,
+     "change_pct": -63.5
+    },
+    "noaa20": {
+     "detections": 9958,
+     "base_season": 2022,
+     "change_pct": -79.4
+    },
+    "noaa21": {
+     "detections": 8949,
+     "base_season": 2023,
+     "change_pct": -71.4
+    },
+    "snpp": {
+     "detections": 8672,
+     "base_season": 2022,
+     "change_pct": -80.9
+    }
+   },
+   "viirs_night_share_pct": 1.6,
+   "snpp_night_share_pct": 1.6,
+   "burned_km2": 6343.0,
+   "burned_change_pct": -61.6,
+   "official_count": 10909,
+   "official_change_pct": -78.1,
+   "gap": {
+    "low_pct": 29.7,
+    "high_pct": 50.2,
+    "methods": "snpp / burned_area, base 2022; official / burned_area, base 2022; snpp / burned_area, base 2023; official / burned_area, base 2023",
+    "confidence": "medium",
+    "direction": "counts fell more than burned area",
+    "reason": null,
+    "timing_evidence": "Punjab-wide only. Night share of S-NPP detections: 1.6% (95% interval 1.4% to 1.9%) in 2024 against 0.2% (0.1% to 0.2%) in 2022: supports a shift in timing. MODIS change relative to the S-NPP change since 2022: 1.91 times (rule: at least 1.5): supports a shift in timing. MODIS passes at other times (Terra in the morning, Aqua drifting later in the afternoon), which is a confound."
+   }
+  },
+  "2025": {
+   "sensors": {
+    "modis": {
+     "detections": 3051,
+     "base_season": 2022,
+     "change_pct": -71.1
+    },
+    "noaa20": {
+     "detections": 4153,
+     "base_season": 2022,
+     "change_pct": -91.4
+    },
+    "noaa21": {
+     "detections": 4050,
+     "base_season": 2023,
+     "change_pct": -87.0
+    },
+    "snpp": {
+     "detections": 4038,
+     "base_season": 2022,
+     "change_pct": -91.1
+    }
+   },
+   "viirs_night_share_pct": 3.1,
+   "snpp_night_share_pct": 2.4,
+   "burned_km2": 9102.0,
+   "burned_change_pct": -44.9,
+   "official_count": 5114,
+   "official_change_pct": -89.8,
+   "gap": {
+    "low_pct": 77.0,
+    "high_pct": 83.8,
+    "methods": "snpp / burned_area, base 2022; official / burned_area, base 2022; snpp / burned_area, base 2023; official / burned_area, base 2023",
+    "confidence": "medium",
+    "direction": "counts fell more than burned area",
+    "reason": null,
+    "timing_evidence": "Punjab-wide only. Night share of S-NPP detections: 2.4% (95% interval 2.0% to 2.9%) in 2025 against 0.2% (0.1% to 0.2%) in 2022: supports a shift in timing. MODIS change relative to the S-NPP change since 2022: 3.25 times (rule: at least 1.5): supports a shift in timing. MODIS passes at other times (Terra in the morning, Aqua drifting later in the afternoon), which is a confound."
+   }
+  }
+ },
+ "caveat": "The range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification.",
+ "explanations": "A fall in detections per burned area fits three explanations: burning moved outside satellite pass times, fires became smaller or cooler, or the sensitivity of the burned-area product changed."
+}

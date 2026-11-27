@@ -33,6 +33,7 @@ class AgentSpec:
     required_tools: list[str] = field(default_factory=list)  # nudged once if missing from the final answer
     max_turns: int = 8
     json_output: bool = True  # the final answer must parse as a JSON object
+    word_range: tuple[int, int] | None = None  # length of the verified text; None = the Verifier's default
 
 
 @dataclass

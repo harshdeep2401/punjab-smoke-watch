@@ -2,6 +2,7 @@
 
     run_briefing   one district-day. mode is "agent", "agent_revised" or "template".
     run_daily_watch   Sentinel scan, then a briefing for the top flagged districts.
+    run_audit   one district (or Punjab) and season: Auditor -> Verifier -> (one revision) -> template fallback.
 
 Whatever the LLM does (errors, bad JSON, invented numbers), the result is a briefing that passed the Verifier.
 """
@@ -16,10 +17,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from psw import config
-from psw.agents import analyst, planner, sentinel, template, tools
+from psw.agents import analyst, audit_template, audit_tools, auditor, planner, sentinel, template, tools
+from psw.agents.audit_tools import AuditStore
 from psw.agents.runtime import AgentResult, run_agent
 from psw.agents.tools import DataStore, nearest_city
-from psw.agents.verifier import Evidence, verify
+from psw.agents.verifier import Evidence, verify, verify_audit
 from psw.llm import LLM, LLMError
 
 log = logging.getLogger(__name__)
@@ -97,15 +99,8 @@ def _renumber(trace: list[dict]) -> list[dict]:
     return [{**t, "step": i} for i, t in enumerate(trace, 1)]
 
 
-def _template_facts(store: DataStore, kb, district: str, date: str, city: str) -> tuple[dict, list[dict], list[dict]]:
-    """Call the tools directly (no LLM). Returns (template facts, tool_results, trace)."""
-    calls = [
-        ("snapshot", "get_district_snapshot", {"district": district, "date": date}, lambda: tools.get_district_snapshot(store, district, date)),
-        ("forecast", "get_city_forecast", {"city": city, "date": date}, lambda: tools.get_city_forecast(store, city, date)),
-        ("wind", "get_wind_and_upwind", {"city": city, "date": date}, lambda: tools.get_wind_and_upwind(store, city, date)),
-        ("reliability", "get_model_reliability", {"city": city}, lambda: tools.get_model_reliability(store, city)),
-        ("limitations", "search_knowledge", {"doc": tools.LIMITATIONS_DOC}, lambda: tools.limitations_chunk(kb)),
-    ]
+def _template_calls(calls: list[tuple]) -> tuple[dict, list[dict], list[dict]]:
+    """Run (key, tool name, args, fn) calls directly (no LLM). Returns (template facts, tool_results, trace)."""
     facts, results, trace = {}, [], []
     for key, name, args, fn in calls:
         t0 = time.perf_counter()
@@ -116,6 +111,63 @@ def _template_facts(store: DataStore, kb, district: str, date: str, city: str) -
         trace.append({"agent": "template", "tool": name, "args": args, "result_summary": s if len(s) <= 180 else s[:179] + "…",
                       "ms": int((time.perf_counter() - t0) * 1000)})
     return facts, results, trace
+
+
+def _template_facts(store: DataStore, kb, district: str, date: str, city: str) -> tuple[dict, list[dict], list[dict]]:
+    """Call the tools directly (no LLM). Returns (template facts, tool_results, trace)."""
+    calls = [
+        ("snapshot", "get_district_snapshot", {"district": district, "date": date}, lambda: tools.get_district_snapshot(store, district, date)),
+        ("forecast", "get_city_forecast", {"city": city, "date": date}, lambda: tools.get_city_forecast(store, city, date)),
+        ("wind", "get_wind_and_upwind", {"city": city, "date": date}, lambda: tools.get_wind_and_upwind(store, city, date)),
+        ("reliability", "get_model_reliability", {"city": city}, lambda: tools.get_model_reliability(store, city)),
+        ("limitations", "search_knowledge", {"doc": tools.LIMITATIONS_DOC}, lambda: tools.limitations_chunk(kb)),
+    ]
+    return _template_calls(calls)
+
+
+@dataclass
+class Attempt:
+    """What came out of the LLM: the draft that passed the Verifier (mode is None if none did) and how it got there."""
+    mode: str | None = None  # agent | agent_revised
+    draft: dict | None = None
+    verdict: object = None
+    trace: list[dict] = field(default_factory=list)
+    results: list[dict] = field(default_factory=list)
+    first_errors: list[str] = field(default_factory=list)
+    revision_errors: list[str] = field(default_factory=list)  # why the revision failed too, if it did
+    llm_error: str | None = None
+
+
+def _draft_and_verify(llm, first, revise, check, revise_prompt: str, what: str) -> Attempt:
+    """Agent, Verifier, and at most one revision in the same conversation. Shared by briefings and audits.
+
+    first() and revise(prompt, history) return an AgentResult; check(draft, tool_results) returns a VerifyResult.
+    """
+    out = Attempt()
+    res: AgentResult = first()
+    out.trace += res.trace
+    out.results += res.tool_results
+    if res.error:
+        out.llm_error = res.error
+        return out
+    out.verdict = check(res.output, out.results)
+    if out.verdict.ok:
+        out.mode, out.draft = "agent", res.output
+        return out
+    out.first_errors = out.verdict.errors
+    log.info("%s: draft failed verification (%d errors), asking for one revision", what, len(out.first_errors))
+    rev = revise(revise_prompt.format(errors="\n".join(f"- {e}" for e in out.first_errors)), res.messages)
+    out.trace += rev.trace
+    out.results += rev.tool_results
+    if rev.error:
+        out.llm_error = f"revision failed: {rev.error}"
+        return out
+    out.verdict = check(rev.output, out.results)
+    if out.verdict.ok:
+        out.mode, out.draft = "agent_revised", rev.output
+    else:
+        out.revision_errors = out.verdict.errors
+    return out
 
 
 def load_reusable(district: str, date: str, root: Path | None = None) -> BriefingRecord | None:
@@ -170,29 +222,17 @@ def run_briefing(district: str, date, llm=None, store: DataStore | None = None, 
             log.info("%s %s: no plan (%s), the Analyst runs without one", district, date, planner_error)
 
     if llm is not None:
-        res: AgentResult = analyst.analyse(district, date, llm, store, kb, plan_text=planner.plan_text(plan) if plan else None)
-        trace += res.trace
-        results += res.tool_results
-        if res.error:
-            llm_error = res.error
-        else:
-            verdict = verify(res.output, _evidence(results, date))
-            if verdict.ok:
-                mode, draft = "agent", res.output
-            else:
-                first_errors = verdict.errors
-                log.info("%s %s: draft failed verification (%d errors), asking for one revision", district, date, len(first_errors))
-                spec = analyst.build_analyst(store, kb)
-                rev = run_agent(spec, analyst.REVISE_PROMPT.format(errors="\n".join(f"- {e}" for e in first_errors)), llm,
-                                injected_args=analyst.injected_args(district, date, city), history=res.messages)
-                trace += rev.trace
-                results += rev.tool_results
-                if rev.error:
-                    llm_error = f"revision failed: {rev.error}"
-                else:
-                    verdict = verify(rev.output, _evidence(results, date))
-                    if verdict.ok:
-                        mode, draft = "agent_revised", rev.output
+        att = _draft_and_verify(
+            llm,
+            first=lambda: analyst.analyse(district, date, llm, store, kb, plan_text=planner.plan_text(plan) if plan else None),
+            revise=lambda prompt, history: run_agent(analyst.build_analyst(store, kb), prompt, llm,
+                                                     injected_args=analyst.injected_args(district, date, city), history=history),
+            check=lambda draft, found: verify(draft, _evidence(found, date)),
+            revise_prompt=analyst.REVISE_PROMPT, what=f"{district} {date}")
+        mode, draft, verdict, first_errors = att.mode, att.draft, att.verdict, att.first_errors
+        trace += att.trace
+        results += att.results
+        llm_error = att.llm_error
 
     if mode is None:
         tfacts, tresults, ttrace = _template_facts(store, kb, district, date, city)
@@ -243,3 +283,137 @@ def run_daily_watch(date, top_n: int = 3, llm=None, store: DataStore | None = No
              "n_flagged": len(flagged), "top_n": top_n, "watchlist": rows, "briefings": briefings}
     _write_json(watch_path(date, root), watch)
     return watch
+
+
+# ---------- Part 2: audits ----------
+
+@dataclass
+class AuditRecord:
+    district: str  # a district, or "Punjab"
+    season: int
+    mode: str  # agent | agent_revised | template
+    headline: str
+    briefing: str
+    citations: list[str]
+    sources: list[dict]
+    verification: dict
+    trace: list[dict]
+    facts: dict
+    model: str
+    generated_at: str
+    caveat: str = ""  # set by code, so every audit output carries it whatever the text says
+    first_attempt_errors: list[str] = field(default_factory=list)
+    revision_errors: list[str] = field(default_factory=list)
+    llm_error: str | None = None
+    label: str | None = None
+    plan: dict | None = None
+    planner_error: str | None = None
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+def audit_path(season: int, district: str, root: Path | None = None) -> Path:
+    return Path(root or config.PROCESSED) / "audits" / f"{int(season)}_{slug(district)}.json"
+
+
+def load_reusable_audit(district: str, season: int, root: Path | None = None) -> AuditRecord | None:
+    """A saved audit written by the agent that passed the Verifier. Template or failed ones are not reused."""
+    try:
+        d = json.loads(audit_path(season, district, root).read_text())
+        ok = d["mode"].startswith("agent") and d["verification"]["ok"]
+        names = AuditRecord.__dataclass_fields__
+        return AuditRecord(**{k: v for k, v in d.items() if k in names}) if ok else None
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        return None
+
+
+def _gap_result(results: list[dict]) -> dict | None:
+    found = [r["result"] for r in results if r["tool"] == "get_gap_range" and "error" not in r["result"]]
+    return found[-1] if found else None
+
+
+def _audit_check(season: int):
+    def check(draft, found: list[dict]):
+        evidence = Evidence.from_tool_results(found, dates=[audit_tools.cutoff(season)])
+        return verify_audit(draft, evidence, gap=_gap_result(found))
+    return check
+
+
+def _audit_template_facts(store: AuditStore, kb, district: str, season: int) -> tuple[dict, list[dict], list[dict]]:
+    place = {"district": district, "season": season}
+    calls = [(key, name, place, lambda fn=audit_tools.DATA_TOOLS[name]: fn(store, district, season))
+             for key, name in (("trend", "get_detection_trend"), ("diurnal", "get_diurnal_profile"),
+                               ("burned", "get_burned_area_comparison"), ("official", "get_official_vs_satellite"),
+                               ("gap", "get_gap_range"))]
+    calls.append(("method", "search_knowledge", {"doc": audit_template.METHOD_DOC}, lambda: audit_template.method_chunks(kb)))
+    return _template_calls(calls)
+
+
+def run_audit(district: str, season: int, llm=None, store: AuditStore | None = None, kb=None, root: Path | None = None,
+              save: bool = True, reuse: bool = False, use_planner: bool = False) -> AuditRecord:
+    """One audit brief for a district or "Punjab". Never raises because of the LLM; raises ValueError for an unknown
+    district or season.
+
+    use_planner=True first asks the Planner for a plan from the names of the available signals (one extra LLM call).
+    """
+    season = int(season)
+    if reuse and (saved := load_reusable_audit(district, season, root)) is not None:
+        return saved
+    store = store or AuditStore()
+    store.check(district, season)
+    if kb is None:
+        from psw.rag.index import KnowledgeBase
+        kb = KnowledgeBase()
+
+    llm_error: str | None = None
+    if llm is None:
+        try:
+            llm = LLM.from_env()
+        except LLMError as e:
+            llm_error = str(e)
+
+    trace: list[dict] = []
+    att = Attempt(llm_error=llm_error)
+    plan = planner_error = None
+    if llm is not None:
+        if use_planner:
+            signals = audit_tools.available_signals(store, district, season)
+            plan, planner_error, entry = planner.make_audit_plan(district, season, signals, llm, audit_tools.TOOL_SCHEMAS)
+            trace.append(entry)
+            if planner_error:
+                log.info("%s %s: no plan (%s), the Auditor runs without one", district, season, planner_error)
+        spec = auditor.build_auditor(store, kb)
+        injected = auditor.injected_args(district, season)
+        message = auditor.user_message(district, season, planner.plan_text(plan) if plan else None)
+        att = _draft_and_verify(
+            llm,
+            first=lambda: run_agent(spec, message, llm, injected_args=injected),
+            revise=lambda prompt, history: run_agent(spec, prompt, llm, injected_args=injected, history=history),
+            check=_audit_check(season), revise_prompt=auditor.REVISE_PROMPT, what=f"audit {district} {season}")
+        trace += att.trace
+
+    mode, draft, verdict, results = att.mode, att.draft, att.verdict, att.results
+    if mode is None:
+        tfacts, results, ttrace = _audit_template_facts(store, kb, district, season)
+        draft = audit_template.render(tfacts, district, season)
+        verdict = _audit_check(season)(draft, results)
+        if not verdict.ok:
+            log.error("template audit for %s %s failed verification: %s", district, season, verdict.errors)
+        mode, trace = "template", trace + ttrace
+
+    citations = [c for c in draft.get("citations", []) if isinstance(c, str)]
+    record = AuditRecord(
+        district=district, season=season, mode=mode, headline=draft["headline"], briefing=draft["briefing"],
+        citations=citations, sources=_sources(citations, kb),
+        verification={"ok": verdict.ok, "errors": verdict.errors, "checked_numbers": verdict.checked_numbers},
+        trace=_renumber(trace), facts=_facts(results),
+        model=getattr(llm, "model", "none") if mode != "template" else "template",
+        generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        caveat=audit_tools.gap.GAP_CAVEAT, first_attempt_errors=att.first_errors, revision_errors=att.revision_errors,
+        llm_error=att.llm_error,
+        label=draft.get("label") if mode == "template" else None, plan=plan, planner_error=planner_error,
+    )
+    if save:
+        _write_json(audit_path(season, district, root), record.to_dict())
+    return record

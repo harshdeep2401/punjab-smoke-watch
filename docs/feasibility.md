@@ -51,7 +51,7 @@ Checked on 2026-11-26. Satellite, burned-area and rain figures are measured by `
 | CRM machines by district | Punjab status reports at the National Green Tribunal | 2018-19 to 2024-25 | Public PDF | **GO** (found 2026-11-27) | Machines supplied on subsidy, not machines in working order |
 | District rain | Open-Meteo archive `precipitation_sum` | 2022 to 2025 | No key | **GO** | Reanalysis, not rain gauges |
 
-**Chosen burned-area path:** MCD64A1 monthly `burndate` GeoTIFFs from the University of Maryland server. This changes D17 (which named Planetary Computer), so Phase 9 needs `rasterio` and `paramiko` instead of `pystac-client`, `planetary-computer` and `rasterio`. **Needs the user's go-ahead.**
+**Chosen burned-area path:** MCD64A1 monthly `burndate` GeoTIFFs from the University of Maryland server. This changes D17 (which named Planetary Computer), so Phase 9 needs `rasterio` and `paramiko` instead of `pystac-client`, `planetary-computer` and `rasterio`. **Approved by the user on 2026-11-26 (D22) and built in Phase 9.**
 
 ## 1. FIRMS sensors
 

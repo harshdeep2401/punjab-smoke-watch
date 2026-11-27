@@ -145,6 +145,125 @@ def _ingest_district_weather() -> None:
           f"{wx['date'].min()} to {wx['date'].max()}")
 
 
+def _load_audit_inputs():
+    """(multi-sensor fires, burned area, official counts) from the committed files."""
+    import pandas as pd
+
+    from psw.audit import official
+
+    ms = pd.read_parquet(config.PROCESSED / "fires_multisensor.parquet")
+    return ms, pd.read_parquet(config.PROCESSED / "burned_area.parquet"), official.load_official()
+
+
+def _write_audit_tables() -> dict:
+    """Compute the audit tables and the Punjab summary from committed data. No network, no LLM."""
+    import json
+
+    from psw.audit import gap
+
+    tables = gap.audit_tables(*_load_audit_inputs())
+    out = config.PROCESSED / "audit"
+    out.mkdir(parents=True, exist_ok=True)
+    for name, table in tables.items():
+        table.to_parquet(out / f"{name}.parquet", index=False)
+    summary = gap.audit_summary(tables)
+    (config.PROCESSED / "audit_summary.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False, allow_nan=False))
+    print(f"audit: {len(tables)} tables in data/processed/audit/ and data/processed/audit_summary.json")
+    state = tables["gap_range"]
+    for r in state[state["district"] == gap.STATE].itertuples():
+        span = r.reason if r.confidence == gap.INSUFFICIENT else f"{r.gap_low:.2f} to {r.gap_high:.2f}"
+        print(f"  Punjab {r.season}: gap {span} | confidence {r.confidence} | {r.methods}")
+    print(f"  {gap.GAP_CAVEAT}")
+    return tables
+
+
+AUDIT_SEASONS = (2024, 2025)  # the Punjab audits
+AUDIT_TOP_DISTRICTS = 5  # plus the busiest districts of the latest season
+
+
+def _no_llm(reason: str):
+    """A stand-in that forces the template path without trying .env."""
+    from psw.llm import LLMError
+
+    class NoLLM:
+        model = "none"
+
+        def chat(self, *a, **k):
+            raise LLMError(reason)
+    return NoLLM()
+
+
+def _llm_or_template(no_llm: bool):
+    from psw.llm import LLM, LLMError
+
+    if no_llm:
+        return _no_llm("--no-llm")
+    try:
+        llm = LLM.from_env()
+    except LLMError as e:
+        print(f"No LLM ({e}); using the template fallback.")
+        return _no_llm(str(e))
+    print(f"LLM: {llm.model} (min {llm.min_interval_s:.0f}s between calls)")
+    return llm
+
+
+def _default_audits(tables: dict) -> list[tuple[str, int]]:
+    """Punjab for the audit seasons, then the districts with the most S-NPP detections in the latest season."""
+    trend = tables["sensor_trend"]
+    latest = max(AUDIT_SEASONS)
+    top = trend[(trend["sensor"] == "snpp") & (trend["season"] == latest) & (trend["district"] != "Punjab")]
+    top = top.sort_values(["count", "district"], ascending=[False, True]).head(AUDIT_TOP_DISTRICTS)
+    return [("Punjab", s) for s in AUDIT_SEASONS] + [(d, latest) for d in top["district"]]
+
+
+def cmd_audit(args) -> None:
+    tables = _write_audit_tables()
+    if args.tables_only:
+        return
+
+    from psw.agents import orchestrator
+    from psw.agents.audit_tools import AuditStore
+    from psw.rag.index import KnowledgeBase
+
+    if args.district:
+        wanted = [(args.district, args.season or max(AUDIT_SEASONS))]
+    elif args.season:
+        wanted = [("Punjab", args.season)]
+    else:
+        wanted = _default_audits(tables)
+    store, kb, llm = AuditStore(), KnowledgeBase(), _llm_or_template(args.no_llm)
+    records = []
+    for district, season in wanted:
+        rec = orchestrator.run_audit(district, season, llm=llm, store=store, kb=kb, reuse=not args.force,
+                                     use_planner=args.plan)
+        _print_audit(rec)
+        records.append(rec)
+    modes = [r.mode for r in records]
+    print(f"\n{len(records)} audits, {sum(r.verification['ok'] for r in records)} verified; "
+          f"modes: { {m: modes.count(m) for m in sorted(set(modes))} }. Saved in data/processed/audits/")
+    if hasattr(llm, "usage"):
+        print("token usage:", llm.usage)
+
+
+def _print_audit(rec) -> None:
+    v = rec.verification
+    print(f"\n[{rec.mode}] {rec.district} {rec.season} | model {rec.model} | verified {v['ok']} "
+          f"({len(v['checked_numbers'])} numbers checked)")
+    print(f"  {rec.headline}\n{rec.briefing}")
+    if rec.plan:
+        print("  plan:", " | ".join(rec.plan["steps"]))
+    elif rec.planner_error:
+        print("  planner: no plan,", rec.planner_error)
+    if rec.first_attempt_errors:
+        print("  first draft errors:", rec.first_attempt_errors)
+    if rec.revision_errors:
+        print("  revision errors:", rec.revision_errors)
+    if rec.llm_error:
+        print("  llm:", rec.llm_error)
+    if v["errors"]:
+        print("  VERIFY ERRORS:", v["errors"])
+
+
 def _print_briefing(rec) -> None:
     v = rec.verification
     print(f"\n[{rec.mode}] {rec.district} {rec.date} | model {rec.model} | verified {v['ok']} "
@@ -196,12 +315,7 @@ def cmd_brief(args) -> None:
         except LLMError as e:
             print(f"No LLM ({e}); using the template fallback.")
     if args.no_llm:
-        class _NoLLM:  # forces the template path without trying .env
-            model = "none"
-
-            def chat(self, *a, **k):
-                raise LLMError("--no-llm")
-        llm = _NoLLM()
+        llm = _no_llm("--no-llm")
 
     if args.sample:
         pairs = _sample_district_days(args.sample)
@@ -280,6 +394,7 @@ COMMANDS = {
     "brief": cmd_brief,
     "demo-cache": cmd_demo_cache,
     "audit-ingest": cmd_audit_ingest,
+    "audit": cmd_audit,
 }
 
 
@@ -298,9 +413,11 @@ def main() -> None:
     p.add_argument("--district")
     p.add_argument("--sample", type=int, help="brief N sampled flagged district-days in the test seasons and report the pass rate")
     p.add_argument("--top-n", type=int, default=3, help="daily watch: how many flagged districts to brief")
-    p.add_argument("--plan", action="store_true", help="brief / demo-cache: run the Planner first (one extra LLM call per briefing)")
-    p.add_argument("--force", action="store_true", help="demo-cache: regenerate briefings that are already saved")
-    p.add_argument("--no-llm", action="store_true", help="brief: skip the LLM and use the template fallback")
+    p.add_argument("--season", type=int, help="audit: the season to audit (with --district, or Punjab alone)")
+    p.add_argument("--tables-only", action="store_true", help="audit: write the tables and summary, no briefs")
+    p.add_argument("--plan", action="store_true", help="brief / demo-cache / audit: run the Planner first (one extra LLM call each)")
+    p.add_argument("--force", action="store_true", help="demo-cache / audit: regenerate what is already saved")
+    p.add_argument("--no-llm", action="store_true", help="brief / audit: skip the LLM and use the template fallback")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     COMMANDS[args.command](args)

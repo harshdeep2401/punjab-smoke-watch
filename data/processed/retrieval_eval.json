@@ -1,11 +1,11 @@
 {
  "k": 3,
- "n": 17,
+ "n": 23,
  "modes": {
   "hybrid": {
-   "hit_at_k": 17,
-   "hit_at_1": 16,
-   "mrr": 0.9705882352941176,
+   "hit_at_k": 23,
+   "hit_at_1": 21,
+   "mrr": 0.9492753623188406,
    "items": [
     {
      "query": "why do satellites miss some fires",
@@ -30,7 +30,7 @@
      "got": [
       "cams_pm25",
       "how_to_read_forecast",
-      "model_card"
+      "cams_pm25"
      ]
     },
     {
@@ -122,8 +122,8 @@
      "rank": 1,
      "got": [
       "limitations",
-      "model_card",
-      "crop_residue_context"
+      "crop_residue_context",
+      "method_detection_gap"
      ]
     },
     {
@@ -136,7 +136,7 @@
      "got": [
       "cams_pm25",
       "limitations",
-      "model_card"
+      "mcd64a1"
      ]
     },
     {
@@ -174,8 +174,8 @@
      "rank": 1,
      "got": [
       "season_2024_Tarn Taran",
-      "season_2022_Tarn Taran",
-      "season_2025_Tarn Taran"
+      "audit_2024_Tarn Taran",
+      "season_2022_Tarn Taran"
      ]
     },
     {
@@ -229,13 +229,93 @@
       "season_2022_Sangrur",
       "season_2023_Sangrur"
      ]
+    },
+    {
+     "query": "are farmers lighting fires later in the day so satellites do not see them",
+     "kind": "meaning",
+     "expected": [
+      "evening_burning_reports",
+      "evening_burning_study",
+      "evening_burning_debate"
+     ],
+     "rank": 1,
+     "got": [
+      "evening_burning_debate",
+      "overpass_times",
+      "firms_detection"
+     ]
+    },
+    {
+     "query": "at what time of day do the fire satellites look at Punjab",
+     "kind": "meaning",
+     "expected": [
+      "overpass_times"
+     ],
+     "rank": 1,
+     "got": [
+      "overpass_times",
+      "evening_burning_study",
+      "evening_burning_reports"
+     ]
+    },
+    {
+     "query": "who produces the official government count of stubble fires and how",
+     "kind": "meaning",
+     "expected": [
+      "official_counting_method"
+     ],
+     "rank": 1,
+     "got": [
+      "official_counting_method",
+      "evening_burning_debate",
+      "official_counting_method"
+     ]
+    },
+    {
+     "query": "how is the range for undetected burning worked out and how sure can we be",
+     "kind": "meaning",
+     "expected": [
+      "method_detection_gap"
+     ],
+     "rank": 1,
+     "got": [
+      "method_detection_gap",
+      "method_detection_gap",
+      "audit_2023_punjab"
+     ]
+    },
+    {
+     "query": "MCD64A1 cropland omission error",
+     "kind": "keyword",
+     "expected": [
+      "mcd64a1"
+     ],
+     "rank": 1,
+     "got": [
+      "mcd64a1",
+      "audit_2022_Pathankot",
+      "audit_2024_Pathankot"
+     ]
+    },
+    {
+     "query": "Sangrur burned area audit season 2024",
+     "kind": "keyword",
+     "expected": [
+      "audit_2024_Sangrur"
+     ],
+     "rank": 3,
+     "got": [
+      "season_2024_Sangrur",
+      "audit_2022_Sangrur",
+      "audit_2024_Sangrur"
+     ]
     }
    ]
   },
   "embedding": {
-   "hit_at_k": 17,
-   "hit_at_1": 15,
-   "mrr": 0.9313725490196079,
+   "hit_at_k": 22,
+   "hit_at_1": 20,
+   "mrr": 0.9057971014492753,
    "items": [
     {
      "query": "why do satellites miss some fires",
@@ -273,7 +353,7 @@
      "got": [
       "how_to_read_forecast",
       "how_to_read_forecast",
-      "how_to_read_forecast"
+      "audit_2024_Amritsar"
      ]
     },
     {
@@ -353,7 +433,7 @@
      "got": [
       "limitations",
       "limitations",
-      "crop_residue_context"
+      "method_detection_gap"
      ]
     },
     {
@@ -365,8 +445,8 @@
      "rank": 1,
      "got": [
       "cams_pm25",
-      "limitations",
-      "season_2023_Mansa"
+      "evening_burning_debate",
+      "evening_burning_debate"
      ]
     },
     {
@@ -459,13 +539,93 @@
       "season_2022_Sangrur",
       "season_2023_Sangrur"
      ]
+    },
+    {
+     "query": "are farmers lighting fires later in the day so satellites do not see them",
+     "kind": "meaning",
+     "expected": [
+      "evening_burning_reports",
+      "evening_burning_study",
+      "evening_burning_debate"
+     ],
+     "rank": 1,
+     "got": [
+      "evening_burning_reports",
+      "evening_burning_debate",
+      "firms_detection"
+     ]
+    },
+    {
+     "query": "at what time of day do the fire satellites look at Punjab",
+     "kind": "meaning",
+     "expected": [
+      "overpass_times"
+     ],
+     "rank": 1,
+     "got": [
+      "overpass_times",
+      "overpass_times",
+      "evening_burning_study"
+     ]
+    },
+    {
+     "query": "who produces the official government count of stubble fires and how",
+     "kind": "meaning",
+     "expected": [
+      "official_counting_method"
+     ],
+     "rank": 1,
+     "got": [
+      "official_counting_method",
+      "evening_burning_debate",
+      "official_counting_method"
+     ]
+    },
+    {
+     "query": "how is the range for undetected burning worked out and how sure can we be",
+     "kind": "meaning",
+     "expected": [
+      "method_detection_gap"
+     ],
+     "rank": 1,
+     "got": [
+      "method_detection_gap",
+      "method_detection_gap",
+      "audit_2024_Amritsar"
+     ]
+    },
+    {
+     "query": "MCD64A1 cropland omission error",
+     "kind": "keyword",
+     "expected": [
+      "mcd64a1"
+     ],
+     "rank": 1,
+     "got": [
+      "mcd64a1",
+      "mcd64a1",
+      "audit_2024_Pathankot"
+     ]
+    },
+    {
+     "query": "Sangrur burned area audit season 2024",
+     "kind": "keyword",
+     "expected": [
+      "audit_2024_Sangrur"
+     ],
+     "rank": null,
+     "got": [
+      "season_2024_Sangrur",
+      "audit_2022_Sangrur",
+      "season_2022_Sangrur"
+     ]
     }
    ]
   },
   "bm25": {
-   "hit_at_k": 16,
-   "hit_at_1": 15,
-   "mrr": 0.9117647058823529,
+   "hit_at_k": 21,
+   "hit_at_1": 17,
+   "mrr": 0.8115942028985508,
    "items": [
     {
      "query": "why do satellites miss some fires",
@@ -475,8 +635,8 @@
      ],
      "rank": null,
      "got": [
-      "limitations",
       "crop_residue_context",
+      "limitations",
       "crop_residue_context"
      ]
     },
@@ -502,8 +662,8 @@
      "rank": 1,
      "got": [
       "how_to_read_forecast",
-      "crop_residue_context",
-      "grap"
+      "city_season_2024_Amritsar",
+      "firms_detection"
      ]
     },
     {
@@ -583,7 +743,7 @@
      "got": [
       "limitations",
       "crop_residue_context",
-      "grap"
+      "model_card"
      ]
     },
     {
@@ -596,7 +756,7 @@
      "got": [
       "cams_pm25",
       "limitations",
-      "firms_detection"
+      "model_card"
      ]
     },
     {
@@ -629,11 +789,11 @@
      "expected": [
       "season_2024_Tarn Taran"
      ],
-     "rank": 1,
+     "rank": 2,
      "got": [
+      "audit_2024_Tarn Taran",
       "season_2024_Tarn Taran",
-      "season_2025_Tarn Taran",
-      "season_2022_Tarn Taran"
+      "season_2025_Tarn Taran"
      ]
     },
     {
@@ -686,6 +846,86 @@
       "season_2024_Sangrur",
       "season_2022_Sangrur",
       "season_2023_Sangrur"
+     ]
+    },
+    {
+     "query": "are farmers lighting fires later in the day so satellites do not see them",
+     "kind": "meaning",
+     "expected": [
+      "evening_burning_reports",
+      "evening_burning_study",
+      "evening_burning_debate"
+     ],
+     "rank": 3,
+     "got": [
+      "overpass_times",
+      "crop_residue_context",
+      "evening_burning_debate"
+     ]
+    },
+    {
+     "query": "at what time of day do the fire satellites look at Punjab",
+     "kind": "meaning",
+     "expected": [
+      "overpass_times"
+     ],
+     "rank": 1,
+     "got": [
+      "overpass_times",
+      "firms_detection",
+      "firms_detection"
+     ]
+    },
+    {
+     "query": "who produces the official government count of stubble fires and how",
+     "kind": "meaning",
+     "expected": [
+      "official_counting_method"
+     ],
+     "rank": 3,
+     "got": [
+      "standards_pm25",
+      "evening_burning_reports",
+      "official_counting_method"
+     ]
+    },
+    {
+     "query": "how is the range for undetected burning worked out and how sure can we be",
+     "kind": "meaning",
+     "expected": [
+      "method_detection_gap"
+     ],
+     "rank": null,
+     "got": [
+      "grap",
+      "cams_pm25",
+      "how_to_read_forecast"
+     ]
+    },
+    {
+     "query": "MCD64A1 cropland omission error",
+     "kind": "keyword",
+     "expected": [
+      "mcd64a1"
+     ],
+     "rank": 1,
+     "got": [
+      "mcd64a1",
+      "audit_2022_Pathankot",
+      "audit_2024_Rupnagar"
+     ]
+    },
+    {
+     "query": "Sangrur burned area audit season 2024",
+     "kind": "keyword",
+     "expected": [
+      "audit_2024_Sangrur"
+     ],
+     "rank": 1,
+     "got": [
+      "audit_2024_Sangrur",
+      "season_2024_Sangrur",
+      "audit_2022_Sangrur"
      ]
     }
    ]

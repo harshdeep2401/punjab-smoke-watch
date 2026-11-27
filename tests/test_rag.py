@@ -309,3 +309,80 @@ def test_committed_eval_set_is_valid_against_the_committed_index():
         if it.get("before"):
             date.fromisoformat(it["before"])
     assert {it.get("kind") for it in items} >= {"meaning", "keyword"}
+
+
+# ---------- Part 2: audit documents ----------
+
+def audit_inputs():
+    """Two districts and three seasons: enough for a range, an insufficient district and a base season."""
+    import pandas as pd
+
+    from tests.test_audit_gap import area, fires, official
+
+    ms, ba, off = {}, {}, {}
+    for season, n, night in ((2022, 1000, 2), (2023, 800, 2), (2024, 100, 40)):
+        for district, km2 in (("Sangrur", 1000 if season < 2024 else 700), ("Moga", 20)):
+            ms[(district, "snpp", season)] = (n - night, night)
+            ms[(district, "modis", season)] = (100 if season < 2024 else 40, 0)
+            ba[(district, season)] = km2
+            off[(district, season)] = n
+    return fires(ms), area(ba), official(off)
+
+
+@pytest.fixture
+def audit_processed(tmp_path):
+    from psw.audit import gap
+
+    folder = tmp_path / "audit"
+    folder.mkdir()
+    for name, table in gap.audit_tables(*audit_inputs()).items():
+        table.to_parquet(folder / f"{name}.parquet", index=False)
+    return tmp_path
+
+
+def audit_text(processed, doc_id):
+    return dict(build_kb.audit_docs(processed))[doc_id]
+
+
+def test_audit_docs_cover_each_district_season_and_punjab(audit_processed):
+    docs = dict(build_kb.audit_docs(audit_processed))
+    assert len(docs) == 9 and {"audit_2024_punjab", "audit_2024_Sangrur", "audit_2022_Moga"} <= set(docs)
+    meta, body = index.parse_markdown(docs["audit_2024_Sangrur"])
+    assert meta["as_of"] == "2024-12-01" and meta["part"] == "2" and meta["district"] == "Sangrur"
+    assert meta["doc_type"] == "audit" and "100 detections (down 90.0% from 2022)" in body
+    assert "district" not in index.parse_markdown(docs["audit_2024_punjab"])[0]
+    assert "Timing indicators" in docs["audit_2024_punjab"] and "Timing indicators" not in docs["audit_2024_Sangrur"]
+
+
+def test_audit_docs_state_the_base_season_and_insufficient_evidence_without_a_range(audit_processed):
+    assert "base season and has no gap" in audit_text(audit_processed, "audit_2022_Sangrur")
+    moga = audit_text(audit_processed, "audit_2024_Moga")
+    assert "Insufficient evidence" in moga and "under 50 km²" in moga and "The gap (the fall" not in moga
+
+
+def test_every_chunk_with_a_gap_range_carries_the_caveat(audit_processed):
+    from psw.audit import gap
+
+    ranges = 0
+    for _, text in build_kb.audit_docs(audit_processed):
+        for piece in index.chunk(index.parse_markdown(text)[1]):
+            assert len(piece) > 60  # no title-only chunks
+            assert "burned_area" not in piece
+            if "The gap (the fall" in piece:
+                ranges += 1
+                assert gap.GAP_CAVEAT in piece and "confidence" in piece
+    assert ranges > 0
+
+
+def test_no_audit_tables_means_no_audit_docs(tmp_path):
+    assert build_kb.audit_docs(tmp_path) == []
+
+
+def test_later_parts_sort_after_earlier_ones_so_chunk_ids_do_not_move(tmp_path):
+    old = [index.Doc(id=i, title=i, doc_type="curated", as_of="2022-01-01", text=f"text of {i}") for i in ("method", "season")]
+    new = index.Doc(id="audit_x", title="a", doc_type="audit", as_of="2022-12-01", text="audit text", part=2)
+    before = index.build_index(old, embedder=FakeEmbedder(), out_dir=tmp_path / "a")
+    after = index.build_index([new, *old], embedder=FakeEmbedder(), out_dir=tmp_path / "b")
+    assert list(after["doc_id"]) == ["method", "season", "audit_x"]
+    assert after.iloc[:2][["chunk_id", "doc_id"]].equals(before[["chunk_id", "doc_id"]])
+

@@ -31,12 +31,17 @@ CHUNKS_FILE = "kb_chunks.parquet"
 class Doc:
     id: str
     title: str
-    doc_type: str  # curated | season_summary | city_season | model_card
+    doc_type: str  # curated | season_summary | city_season | model_card | audit
     as_of: str  # ISO date; retrieval only sees docs with as_of < briefing date
     text: str
     district: str | None = None
     city: str | None = None
     source_url: str | None = None
+    part: int = 1  # docs added in a later part sort after earlier ones, so existing chunk ids do not move
+
+
+def _order(d: "Doc") -> tuple[int, str]:
+    return d.part, d.id
 
 
 # ---------- embedders: any object with embed_passages(list[str]) and embed_query(str) ----------
@@ -141,11 +146,11 @@ def load_docs(*dirs: Path) -> list[Doc]:
             date.fromisoformat(meta["as_of"])  # fail early on a bad date
             docs.append(Doc(id=meta["id"], title=meta["title"], doc_type=meta["doc_type"], as_of=meta["as_of"],
                             text=body, district=meta.get("district"), city=meta.get("city"),
-                            source_url=meta.get("source_url")))
+                            source_url=meta.get("source_url"), part=int(meta.get("part", 1))))
     ids = [d.id for d in docs]
     if len(ids) != len(set(ids)):
         raise ValueError("duplicate doc ids")
-    return sorted(docs, key=lambda d: d.id)  # sorted, so chunk ids are stable across rebuilds
+    return sorted(docs, key=_order)  # sorted, so chunk ids are stable across rebuilds
 
 
 # ---------- build and search ----------
@@ -155,7 +160,7 @@ def build_index(docs: list[Doc], embedder=None, out_dir: Path | None = None) -> 
     embedder = embedder or FastEmbedder()
     out_dir = Path(out_dir or config.PROCESSED)
     rows = []
-    for d in sorted(docs, key=lambda d: d.id):
+    for d in sorted(docs, key=_order):
         for piece in chunk(d.text):
             rows.append({"chunk_id": f"K{len(rows):03d}", "doc_id": d.id, "title": d.title, "doc_type": d.doc_type,
                          "as_of": d.as_of, "district": d.district, "city": d.city,
@@ -191,15 +196,21 @@ class KnowledgeBase:
             self._bm25 = BM25Okapi([tokenize(f"{r.title}. {r.text}") for r in self.chunks.itertuples()])
         return self._bm25
 
-    def _mask(self, before) -> np.ndarray:
+    def _mask(self, before, audit_place: str | None = None) -> np.ndarray:
+        keep = np.ones(len(self.chunks), dtype=bool)
+        if audit_place is not None:  # state audit documents have no district
+            audit = (self.chunks["doc_type"] == "audit").to_numpy()
+            own = (self.chunks["district"].fillna("Punjab") == audit_place).to_numpy()
+            keep &= ~audit | own
         if before is None:
-            return np.ones(len(self.chunks), dtype=bool)
+            return keep
         cutoff = date.fromisoformat(before) if isinstance(before, str) else before
-        return np.array([a < cutoff for a in self._as_of])
+        return keep & np.array([a < cutoff for a in self._as_of])
 
     def search(self, query: str, k: int = 4, before: date | str | None = None,
-               district: str | None = None, mode: str = DEFAULT_MODE) -> list[dict]:
-        """Top-k chunks. Chunks with as_of >= `before` are excluded in every mode, before ranking.
+               district: str | None = None, mode: str = DEFAULT_MODE, audit_place: str | None = None) -> list[dict]:
+        """Top-k chunks. Chunks with as_of >= `before` are excluded in every mode, before ranking. With `audit_place`
+        (a district or "Punjab"), audit documents about any other place are excluded too.
 
         embedding: cosine similarity; a matching `district` adds +0.05 (a boost, not a filter).
         bm25:      keyword score; chunks sharing no word with the query are not returned.
@@ -208,7 +219,7 @@ class KnowledgeBase:
         """
         if mode not in MODES:
             raise ValueError(f"mode must be one of {MODES}, got '{mode}'")
-        mask = self._mask(before)
+        mask = self._mask(before, audit_place)
         rankings: list[list[int]] = []
         scores: dict[str, np.ndarray] = {}
         if mode in ("embedding", "hybrid"):

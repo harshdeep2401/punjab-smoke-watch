@@ -19,6 +19,8 @@ from psw import config
 
 ISO_DATE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
 FIELD_NAME = re.compile(r"\b[a-z]+(?:_[a-z0-9]+)+\b")  # raw tool field names such as rank_in_punjab or upwind_frp_l0
+URL = re.compile(r"https?://\S+")  # digits inside an address are not facts anyone may quote
+SATELLITE_NAME = re.compile(r"\bNOAA[- ]?2[01](?:\s*/\s*(?:NOAA[- ]?)?2[01])?\b|\bINSAT-3DS?\b")  # names, not numbers
 CITATION = re.compile(r"\[?\bK\d{3}\b\]?")
 INLINE_CITATION = re.compile(r"\[(K\d{3})\]")
 # digits not glued to a letter, digit or '.', so PM2.5, PM10, p10, K012, NO2 and N95 are not numbers
@@ -42,7 +44,7 @@ def extract_numbers(text: str) -> list[Num]:
     for m in ISO_DATE.finditer(text):
         for part in m.groups():
             out.append(Num(float(int(part)), 0, part))
-    rest = CITATION.sub(" ", ISO_DATE.sub(" ", text))
+    rest = SATELLITE_NAME.sub(" ", CITATION.sub(" ", ISO_DATE.sub(" ", text)))
     for m in NUMBER.finditer(rest):
         raw = m.group(1)
         clean = raw.replace(",", "")
@@ -99,7 +101,7 @@ class Evidence:
                 if isinstance(leaf, (int, float)):
                     nums.append(abs(float(leaf)))
                 elif isinstance(leaf, str):
-                    nums += [n.value for n in extract_numbers(leaf)]  # dates, "p50 above 60", chunk text
+                    nums += [n.value for n in extract_numbers(URL.sub(" ", leaf))]  # dates, "p50 above 60", chunk text
         return cls(allowed_numbers=sorted(set(nums)), retrieved_ids=ids)
 
     def matches(self, value: float, decimals: int) -> bool:
@@ -131,7 +133,7 @@ def _is_text(x) -> bool:
     return isinstance(x, str) and x.strip() != ""
 
 
-def verify(briefing: dict, evidence: Evidence) -> VerifyResult:
+def verify(briefing: dict, evidence: Evidence, word_range: tuple[int, int] | None = None) -> VerifyResult:
     """Check a briefing {headline, briefing, citations}. Returns every error found, not just the first."""
     errors: list[str] = []
     checked: list[float] = []
@@ -167,7 +169,7 @@ def verify(briefing: dict, evidence: Evidence) -> VerifyResult:
 
     if _is_text(text):
         n_words = len(_words(text))
-        lo, hi = config.BRIEFING_WORDS
+        lo, hi = word_range or config.BRIEFING_WORDS
         if not lo <= n_words <= hi:
             errors.append(f"word count {n_words} outside {lo}-{hi}")
 
@@ -187,3 +189,60 @@ def verify(briefing: dict, evidence: Evidence) -> VerifyResult:
                 errors.append(f"inline citation [{c}] is not listed in citations")
 
     return VerifyResult(ok=not errors, errors=errors, checked_numbers=checked)
+
+
+# ---------- audit briefs: the same checks, plus what every audit must say ----------
+
+# the range must be tied to the burned-area product's error, in one sentence
+BURNED_ERROR = re.compile(r"(?=[^.]*(burned[- ]area|MCD64A1))(?=[^.]*(error|uncertain))", re.I)
+
+
+def _has_burned_area_caveat(text: str) -> bool:
+    return any(BURNED_ERROR.match(sentence) for sentence in re.split(r"(?<=[.!?])\s+", text))
+
+
+MEASURE = re.compile(r"per burned (km|area|square)", re.I)  # what a gap range is a range of
+DIRECTION_WORDS = {"direction unclear": "unclear", "no sign of a detection gap": "no sign"}
+
+
+def _gap_errors(text: str, gap: dict) -> list[str]:
+    """What a brief must say about this district-season's get_gap_range result, whatever else it says."""
+    if gap.get("gap_low_pct") is None:
+        return [] if "insufficient evidence" in text.lower() else ["say there is insufficient evidence for a range"]
+    errors = []
+    if not _has_burned_area_caveat(text):
+        errors.append("say in one sentence that the range does not include the error of the burned-area product")
+    if not MEASURE.search(text):
+        errors.append("say what the range measures: the fall in counts per burned km²")
+    conf = gap["confidence"]
+    if not re.search(rf"confidence[^.]{{0,30}}\b{conf}\b|\b{conf}\b[^.]{{0,15}}confidence", text, re.I):
+        errors.append(f"state that the confidence of the range is {conf}")
+    word = DIRECTION_WORDS.get(gap.get("direction"))
+    if word and word not in text.lower():
+        errors.append(f"say plainly: {gap['direction']}")
+    return errors
+
+
+def verify_audit(briefing: dict, evidence: Evidence, gap: dict | None = None,
+                 word_range: tuple[int, int] = config.AUDIT_WORDS) -> VerifyResult:
+    """`gap`: the get_gap_range result for this district and season (None or an error for the base season)."""
+    base = verify(briefing, evidence, word_range=word_range)
+    errors = list(base.errors)
+    headline = briefing.get("headline") if isinstance(briefing, dict) else None
+    text = briefing.get("briefing") if isinstance(briefing, dict) else None
+    if _is_text(text):
+        for label in config.AUDIT_LABELS:
+            if f"{label.lower()}:" not in text.lower():
+                errors.append(f"missing the part labelled '{label}:'")
+        if "triangulation" not in text.lower():
+            errors.append("say that this is triangulation, not field verification")
+        if gap and "error" not in gap:
+            errors += _gap_errors(text, gap)
+    for s in (headline, text):
+        if not _is_text(s):
+            continue
+        for pattern, why in config.AUDIT_BANNED_PATTERNS:
+            m = re.search(pattern, s, re.I)
+            if m:
+                errors.append(f"banned content ({why}): '{m.group(0)}'")
+    return VerifyResult(ok=not errors, errors=errors, checked_numbers=base.checked_numbers)

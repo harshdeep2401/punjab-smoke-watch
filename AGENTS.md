@@ -31,7 +31,7 @@ Phases 0–7 built the platform above. Part 2 (Phases 8–13 in PLAN.md) points 
 1. **Module A, Audit ("what is really happening?"): monitoring and audits.** We **triangulate** the true scale of burning from independent signals instead of trusting one satellite pass:
    - several sensors at different overpass times (VIIRS S-NPP, NOAA-20, NOAA-21; MODIS Terra ≈10:30 and Aqua ≈13:30);
    - the time-of-day profile of detections;
-   - **burned area** (MODIS MCD64A1, plus Sentinel-2 dNBR if feasible);
+   - **burned area** (MODIS MCD64A1; Sentinel-2 dNBR was tested and dropped, D22);
    - official counts (hand-entered, with sources).
 
    The output is a **detection-gap range** per district and season, and a verified audit brief written by an **Auditor agent**.
@@ -72,7 +72,7 @@ Implementer rules:
   - Alternative: **Ollama** at `http://<host>:11434/v1`. The user has a 22 GB P6000 and can serve e.g. a Qwen 14B-class model with tool support.
   - No agent framework (LangChain, CrewAI and the like). The agent loop is about 100 lines of plain Python.
 - App: `streamlit`, `pydeck` (maps), `plotly` (charts).
-- Part 2, **only if Phase 8 feasibility confirms they're needed:** `pystac-client` and `planetary-computer` (Microsoft Planetary Computer STAC, no key) and `rasterio` for MODIS MCD64A1 burned area, plus Sentinel-2 dNBR if it's feasible. Log the addition as a decision.
+- Part 2 (D22): `rasterio` (reads the MODIS MCD64A1 burned-area GeoTIFFs) and `paramiko` (downloads them from the University of Maryland SFTP server). `pystac-client`, `planetary-computer` and Sentinel-2 dNBR were tested in Phase 8 and not used.
 - Tests: `pytest`. **No network in tests.** Use recorded fixtures in `tests/fixtures/` and a scripted fake LLM.
 
 ## 4. Repo layout
