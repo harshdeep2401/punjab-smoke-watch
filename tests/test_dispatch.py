@@ -6,7 +6,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
-from psw.agents import dispatch_template, dispatch_tools, dispatcher, orchestrator
+from psw.agents import dispatch_template, dispatch_tools, dispatcher, orchestrator, verifier
 from psw.agents.dispatch_tools import ResponseStore, Settings
 from psw.agents.verifier import (FIELD_NAME, Evidence, Plan, lowercase_words, name_errors, unit_errors,
                                   verify_dispatch)
@@ -350,3 +350,97 @@ def test_the_dispatcher_spec_requires_the_planned_tools(store, kb):
     assert {t.name for t in spec.tools} == {s["function"]["name"] for s in dispatch_tools.TOOL_SCHEMAS}
     shown = next(t for t in spec.tools if t.name == "get_allocation").parameters["properties"]
     assert set(shown) == {"date", "district"}  # no units, share or basis for the model to set
+
+
+# ---------- the saved record keeps every figure, so it can be checked again ----------
+
+def _recheck(rec, store, kb, facts):
+    """Run the dispatch Verifier on a saved record, with only the record's own facts as evidence."""
+    settings = Settings(rec.units, rec.max_share, rec.use_likely)
+    allocation = dispatch_tools.plan_allocation(store, rec.date, settings)
+    check = orchestrator._dispatch_check(allocation, rec.date, rec.district, kb)
+    found = [{"tool": name.split(" (")[0], "args": {}, "result": result} for name, result in facts.items()]
+    draft = {"headline": rec.headline, "briefing": rec.briefing, "citations": rec.citations}
+    if rec.district_paragraph:
+        draft["district_paragraph"] = rec.district_paragraph
+    return check(draft, found)
+
+
+def test_a_record_with_two_districts_can_be_checked_again_from_its_facts(store, kb, tmp_path):
+    rec = orchestrator.run_dispatch(DAY, district="Sangrur", llm=FakeLLM([LLMError("down")]), store=store, kb=kb,
+                                    root=tmp_path)
+    leader = rec.allocation[0]["district"]
+    assert leader != "Sangrur"
+    assert rec.facts["get_rain_outlook"]["district"] == "Sangrur"  # the plain name holds the last call
+    assert rec.facts[f"get_rain_outlook ({leader})"]["district"] == leader
+    assert rec.facts[f"get_hotspot_cells ({leader})"]["district"] == leader
+    assert _recheck(rec, store, kb, rec.facts).ok
+    last_only = {name: result for name, result in rec.facts.items() if " (" not in name}
+    assert not _recheck(rec, store, kb, last_only).ok  # the leading district's cell and rain figures would be missing
+
+
+def test_facts_keep_distinct_results_and_drop_repeats_and_errors():
+    def call(district, result):
+        return {"tool": "get_rain_outlook", "args": {"district": district}, "result": result}
+
+    a, b = {"district": "Moga", "mm": 1}, {"district": "Barnala", "mm": 2}
+    facts = orchestrator._facts([call("Moga", a), call("Moga", a), call("Nowhere", {"error": "x"}), call("Barnala", b)])
+    assert facts == {"get_rain_outlook": b, "get_rain_outlook (Moga)": a}
+    assert orchestrator._facts([call("Nowhere", {"error": "x"})]) == {"get_rain_outlook": {"error": "x"}}
+
+
+def test_the_writing_instructions_name_no_tool_or_field():
+    instructions = dispatcher.SYSTEM_PROMPT.split("The briefing text has exactly these four parts")[1]
+    assert FIELD_NAME.findall(instructions) == []
+
+
+# ---------- rain and cells must be the described district's own ----------
+
+def test_a_brief_cannot_describe_a_district_whose_rain_and_cells_were_never_fetched(store, kb, tmp_path):
+    """Seen live: only the asked district's tools were called, and its figures were written under the leader's name."""
+    draft, leader = good_draft(store, district="Sangrur")
+    only_sangrur = calls(("get_risk_forecast", {}), ("get_allocation", {"district": "Sangrur"}),
+                         ("get_rain_outlook", {"district": "Sangrur"}), ("get_hotspot_cells", {"district": "Sangrur"}),
+                         ("get_gap_range", {"district": "Punjab"}), ("search_knowledge", {"query": "straw"}))
+    llm = FakeLLM([only_sangrur, final(draft), final(draft)])
+    rec = orchestrator.run_dispatch(DAY, district="Sangrur", llm=llm, store=store, kb=kb, root=tmp_path,
+                                    use_critic=False)
+    assert rec.mode == "template"
+    assert any(f"call the rain outlook and hotspot cell tools for {leader}" in e for e in rec.first_attempt_errors)
+
+
+SITE = Plan(units={"Fazilka": 60, "Barnala": 20}, detected_units={"Fazilka": 40, "Barnala": 5}, totals={},
+            use_likely=False, rain={"Fazilka": (1.5, 0.0), "Barnala": (4.0, 2.0)},
+            cells={"Fazilka": [1070, 1022], "Barnala": []})
+
+
+@pytest.mark.parametrize("text, message", [
+    ("Fazilka had 4.0 mm of rain. Start at cell 1070.", "not a rain figure for Fazilka"),
+    ("Start at cell 495.", "cell 495 is not one of the cells"),
+    ("Awareness teams might start where there is no cluster, not at cell 1070.", "is wrong"),
+    ("Awareness teams should wait.", "naming a cell"),
+])
+def test_site_claims_are_checked_against_what_was_fetched(text, message):
+    assert any(message in e for e in verifier._site_errors(text, ["Fazilka"], SITE, need_cell=True))
+
+
+def test_site_claims_that_match_pass():
+    good = "Fazilka had 1.5 mm and then 0.0 mm. Start at cell 1022 (north Fazilka)."
+    assert verifier._site_errors(good, ["Fazilka"], SITE, need_cell=True) == []
+    assert verifier._site_errors("No cell in Barnala had a cluster.", ["Barnala"], SITE, need_cell=False) == []
+
+
+def test_an_instruction_copied_into_the_brief_is_rejected(store, kb, tmp_path):
+    draft, leader = good_draft(store)
+    draft["briefing"] += " Say that what one unit achieves is assumed."
+    llm = FakeLLM([tool_turn(leader), final(draft), final(draft)])
+    rec = orchestrator.run_dispatch(DAY, llm=llm, store=store, kb=kb, root=tmp_path, use_critic=False)
+    assert any("instruction was copied" in e for e in rec.first_attempt_errors)
+
+
+def test_why_must_explain_the_district_with_the_most_units():
+    """Seen live: "Why" gave the second district's forecast, under a split that Fazilka led."""
+    wrong = "Why: Barnala has 7 forecast detections. The adjustment moves Fazilka up. How sure we are: not very."
+    assert any("start 'Why' with Fazilka" in e for e in verifier._why_errors(wrong, SITE))
+    right = "Why: Fazilka has 35 forecast detections. Barnala moves too. How sure we are: not very."
+    assert verifier._why_errors(right, SITE) == []

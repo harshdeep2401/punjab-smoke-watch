@@ -17,7 +17,7 @@ import json
 import logging
 import re
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -81,17 +81,44 @@ def _evidence(results: list[dict], date: str) -> Evidence:
     return Evidence.from_tool_results(results, dates=[date])
 
 
+def _failed(result) -> bool:
+    return isinstance(result, dict) and "error" in result
+
+
+def _fact_key(facts: dict, call: dict) -> str:
+    """A name for an earlier result of a tool that was called again: "tool (district)", numbered if that is taken."""
+    district = (call.get("args") or {}).get("district")
+    base = f"{call['tool']} ({district})" if district else f"{call['tool']} (another call)"
+    key, n = base, 2
+    while key in facts:
+        key, n = f"{base} {n}", n + 1
+    return key
+
+
 def _facts(results: list[dict]) -> dict:
-    """tool name -> result. The last successful call wins. Retrieved chunks from every search are merged."""
-    facts: dict = {}
+    """tool name -> result, keeping everything the Verifier could quote, so a saved record can be checked again.
+
+    The plain tool name holds the last successful result. A different result from an earlier call of the same tool is
+    kept as "tool (district)". Retrieved chunks from every search are merged. A tool that only failed keeps its error.
+    """
+    calls: dict[str, list[dict]] = {}
     chunks: dict[str, dict] = {}
     for r in results:
-        name, res = r["tool"], r["result"]
-        if name == "search_knowledge" and isinstance(res, dict):
-            for c in res.get("results", []):
+        calls.setdefault(r["tool"], []).append(r)
+        if r["tool"] == "search_knowledge" and isinstance(r["result"], dict):
+            for c in r["result"].get("results", []):
                 chunks.setdefault(c["chunk_id"], c)
-        if name not in facts or not (isinstance(res, dict) and "error" in res):
-            facts[name] = res
+    facts: dict = {}
+    for name, found in calls.items():
+        good = [r for r in found if not _failed(r["result"])]
+        facts[name] = (good or found)[-1]["result"]
+        if name == "search_knowledge":
+            continue
+        kept = [facts[name]]
+        for r in good:
+            if r["result"] not in kept:
+                kept.append(r["result"])
+                facts[_fact_key(facts, r)] = r["result"]
     if chunks:
         facts["search_knowledge"] = {"results": list(chunks.values())}
     return facts
@@ -545,6 +572,20 @@ def load_reusable_dispatch(date: str, settings: Settings, district: str | None, 
         return None
 
 
+def _site_facts(found: list[dict]) -> tuple[dict, dict]:
+    """(district -> rain mm last and next, district -> cell ids) from the rain and hotspot calls that succeeded."""
+    rain, cells = {}, {}
+    for r in found:
+        res = r["result"]
+        if _failed(res):
+            continue
+        if r["tool"] == "get_rain_outlook":
+            rain[res["district"]] = (res["rain_last_3_days_mm"], res["rain_next_3_days_mm"])
+        elif r["tool"] == "get_hotspot_cells":
+            cells[res["district"]] = [int(c["cell"].split()[1]) for c in res["cells"]]
+    return rain, cells
+
+
 def _dispatch_check(allocation: dispatch_tools.Allocation, day: str, district: str | None, kb):
     # words our own texts write in lower case; capitalised in a brief, they are ordinary words and not names
     own = lowercase_words([dispatcher.SYSTEM_PROMPT, *dispatch_template.PADDING, *kb.chunks["text"]])
@@ -552,7 +593,9 @@ def _dispatch_check(allocation: dispatch_tools.Allocation, day: str, district: s
     def check(draft, found: list[dict]):
         evidence = Evidence.from_tool_results(found, dates=[day])
         words = own | lowercase_words(json.dumps(r["result"], ensure_ascii=False, default=str) for r in found)
-        return verify_dispatch(draft, evidence, allocation.plan(words), district=district)
+        rain, cells = _site_facts(found)
+        plan = replace(allocation.plan(words), rain=rain, cells=cells)
+        return verify_dispatch(draft, evidence, plan, district=district)
     return check
 
 

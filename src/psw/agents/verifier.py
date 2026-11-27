@@ -330,6 +330,9 @@ class Plan:
     most_moved: str | None = None  # the district the adjustment moves most, if it moves any
     confidence: str | None = None  # of the gap range behind the biggest move (likely planning only)
     words: frozenset[str] = frozenset()  # words seen in lower case in our own texts: capitalised, they are not names
+    # what the run actually fetched; None means the rain and cell checks are not made
+    rain: dict[str, tuple[float, float]] | None = None  # district -> (mm over the last 3 days, over the next 3)
+    cells: dict[str, list[int]] | None = None  # district -> cell ids offered to awareness teams (may be empty)
 
 
 def _names(district: str) -> list[str]:
@@ -488,9 +491,56 @@ def _archive_rain_errors(text: str) -> list[str]:
     return []
 
 
+MM = re.compile(r"(\d+(?:\.\d+)?)\s*mm\b", re.I)
+CELL_ID = re.compile(r"\bcell\s+(\d+)", re.I)
+NO_CLUSTER = re.compile(r"\bno\s+(?:\w+\s+)?(?:cluster|cell)\b", re.I)
+COPIED = re.compile(r"saying in the same sentence|\bif there are no cells\b|\bsay that\b", re.I)
+
+
+def _leaders(plan: Plan) -> list[str]:
+    """The district or districts with the most units. Empty if nothing was placed."""
+    most = max(plan.units.values(), default=0)
+    return sorted(d for d, n in plan.units.items() if n == most and most > 0)
+
+
+def _site_errors(text: str, districts: list[str], plan: Plan, need_cell: bool) -> list[str]:
+    """What is said about a district's rain and cells must come from what was fetched for that district.
+
+    `districts`: whom the text is about (more than one only when several tie for the most units).
+    """
+    if plan.rain is None or plan.cells is None or not districts:
+        return []
+    about = [d for d in districts if d in plan.rain and d in plan.cells]
+    if not about:
+        return [f"call the rain outlook and hotspot cell tools for {districts[0]} before writing about its rain and cells"]
+    name = " or ".join(about)
+    rain = [value for d in about for value in plan.rain[d]]
+    cells = [c for d in about for c in plan.cells[d]]
+    errors = [f"{m.group(0)} is not a rain figure for {name}" for m in MM.finditer(text) if float(m.group(1)) not in rain]
+    errors += [f"cell {m.group(1)} is not one of the cells returned for {name}"
+               for m in CELL_ID.finditer(text) if int(m.group(1)) not in cells]
+    if cells and (m := NO_CLUSTER.search(text)):
+        errors.append(f"'{m.group(0)}' is wrong: {name} has cells with clusters of detections")
+    if cells and need_cell and not CELL_ID.search(text):
+        errors.append(f"say where awareness teams might start in {name}, naming a cell that was returned for it")
+    return errors
+
+
 def _where_part(text: str) -> str:
     """The "Where the units go" part: everything before "Why:"."""
     return re.split(r"\bwhy\s*:", text, flags=re.I)[0] if re.search(r"where the units go\s*:", text, re.I) else ""
+
+
+def _why_errors(text: str, plan: Plan) -> list[str]:
+    """"Why" explains the district with the most units, so that is the first district it names."""
+    part = re.search(r"\bwhy\s*:(.*?)(?=how sure we are\s*:|$)", text, re.I | re.S)
+    leaders = _leaders(plan)
+    if not part or not leaders:
+        return []
+    named = _mentions(part.group(1), plan.units)
+    if not named or named[0][2] not in leaders:
+        return [f"start 'Why' with {leaders[0]}, the district with the most units: its forecast comes first"]
+    return []
 
 
 def _dispatch_content_errors(text: str, plan: Plan) -> list[str]:
@@ -539,6 +589,9 @@ def verify_dispatch(briefing: dict, evidence: Evidence, plan: Plan, district: st
     if _is_text(text):
         errors += _dispatch_banned("briefing", text) + _dispatch_content_errors(text, plan)
         errors += unit_errors(text, plan, _where_part(text)) + name_errors(text, plan) + _archive_rain_errors(text)
+        errors += _site_errors(text, _leaders(plan), plan, need_cell=True) + _why_errors(text, plan)
+        if m := COPIED.search(text):
+            errors.append(f"an instruction was copied into the brief: '{m.group(0)}'")
     if district:
         if not _is_text(paragraph):
             errors.append(f"district_paragraph about {district} is missing")
@@ -549,6 +602,7 @@ def verify_dispatch(briefing: dict, evidence: Evidence, plan: Plan, district: st
             found = [e for e in part.errors if "citation" not in e]  # the brief's citations are checked above
             found += _dispatch_banned("paragraph", paragraph) + unit_errors(paragraph, plan)
             found += name_errors(paragraph, plan) + _archive_rain_errors(paragraph)
+            found += _site_errors(paragraph, [district], plan, need_cell=False)
             errors += [f"district paragraph: {e}" for e in found]
     elif _is_text(paragraph):
         errors.append("no district_paragraph was asked for")
