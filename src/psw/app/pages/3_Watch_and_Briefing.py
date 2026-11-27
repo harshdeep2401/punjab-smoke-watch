@@ -1,5 +1,4 @@
 """Daily Watch & Briefing: the Sentinel watchlist, then one cited, verified district briefing with its agent trace."""
-import json
 from datetime import date as Date
 
 import pandas as pd
@@ -8,7 +7,8 @@ import streamlit as st
 from psw.agents import analyst, tools
 from psw.agents.demo import load_demo
 from psw.app.common import get_kb, get_store, load_district_daily, scan_watchlist
-from psw.app.helpers import badge, cached_districts, explain_numbers, find_briefing, peak_day, retrieved_chunks
+from psw.app.helpers import cached_districts, find_briefing, peak_day
+from psw.app.record_view import show_provenance, show_tabs, show_text
 from psw.llm import LLM, LLMError
 
 st.set_page_config(page_title="Watch & Briefing", layout="wide")
@@ -102,69 +102,12 @@ if rec is None:
     run_agent_button("Run agent")
 else:
     left, right = st.columns([5, 4])
-    kind, text = badge(rec)
     with left:
-        st.subheader(rec["headline"])
-        getattr(st, kind)(text)
-        for e in rec["verification"].get("errors", []):
-            st.error(e)
-        if rec["mode"] == "template":
-            st.caption(rec.get("label") or "Written from a fixed template because the agent was unavailable or failed verification.")
-            if rec.get("llm_error"):
-                st.caption(f"Reason: {rec['llm_error']}")
-        st.markdown(rec["briefing"])
-        if (rec.get("critic") or {}).get("warning"):
-            st.warning(rec["critic"]["warning"])
-        st.caption(f"Mode: {rec['mode']} · model: {rec.get('model')} · generated {rec.get('generated_at', '')[:19]} UTC · "
-                   f"nearest city: {rec.get('nearest_city')}")
-        st.caption("The Verifier proves that every number appears in the tool outputs and that every cited chunk was "
-                   "retrieved. It does not prove that a cited source supports the sentence, so read the sources.")
+        show_text(rec)
+        show_provenance(rec, f"nearest city: {rec.get('nearest_city')}")
         run_agent_button("Regenerate with the agent")
     with right:
-        t_trace, t_src, t_facts, t_ver = st.tabs(["Agent trace", "Sources", "Facts JSON", "Verifier report"])
-        with t_trace:
-            if rec.get("plan"):
-                st.markdown("**Plan** (written by the Planner agent before the Analyst ran)")
-                for i, step in enumerate(rec["plan"]["steps"], 1):
-                    st.markdown(f"{i}. {step}")
-                if rec["plan"].get("questions_to_answer"):
-                    st.markdown("**Questions the briefing should answer**")
-                    for q in rec["plan"]["questions_to_answer"]:
-                        st.markdown(f"- {q}")
-                st.caption("The plan is guidance, not evidence. Numbers still come only from tools, and the Verifier checks the text.")
-            elif rec.get("planner_error"):
-                st.caption(f"The Planner was asked to run but produced no usable plan ({rec['planner_error']}), so the Analyst ran without one.")
-            if rec["trace"]:
-                tr = pd.DataFrame(rec["trace"])
-                tr["args"] = tr["args"].map(lambda a: json.dumps(a, ensure_ascii=False))
-                cols = [c for c in ("step", "agent", "tool", "args", "result_summary", "ms") if c in tr]
-                st.dataframe(tr[cols], hide_index=True, width="stretch")
-                st.caption("Result summaries are cut at 180 characters; the full results are in Facts JSON. "
-                           "Date, city and the retrieval filters are fixed by the orchestrator, not chosen by the model.")
-            else:
-                st.write("No trace was saved.")
-        with t_src:
-            chunks = retrieved_chunks(rec)
-            if not chunks:
-                st.write("No chunks were retrieved.")
-            for c in chunks:
-                with st.expander(f"[{c['chunk_id']}] {c['title']}" + ("  ✔ cited" if c["cited"] else ""), expanded=c["cited"]):
-                    st.markdown(c["text"])
-        with t_facts:
-            st.json(rec["facts"], expanded=False)
-        with t_ver:
-            v = rec["verification"]
-            st.write(f"**{'Passed' if v['ok'] else 'Failed'}**: {len(v.get('checked_numbers', []))} numbers checked, "
-                     f"{len(v.get('errors', []))} errors.")
-            if rec.get("first_attempt_errors"):
-                st.write("The first draft failed on:")
-                for e in rec["first_attempt_errors"]:
-                    st.write(f"- {e}")
-            ex = explain_numbers(rec)
-            if not ex.empty:
-                st.dataframe(ex, hide_index=True, width="stretch")
-            st.caption("Each number in the text, the evidence value it matched, and the tool that returned it. "
-                       "Rounding and the sign are ignored when matching.")
+        show_tabs(rec, "Date, city and the retrieval filters are fixed by the orchestrator, not chosen by the model.")
 
 # ---------- how it works ----------
 with st.expander("How the agent works"):

@@ -12,6 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from psw import config
+from psw.agents.audit_tools import cutoff
 from psw.agents.critic import base_mode
 from psw.agents.orchestrator import briefing_path
 from psw.agents.verifier import Evidence, _walk, extract_numbers
@@ -93,7 +94,8 @@ def explain_numbers(rec: dict) -> pd.DataFrame:
 
     Re-runs the Verifier's matching rule (`Evidence.matches`) against each tool's output on its own.
     """
-    date = Date.fromisoformat(str(rec["date"]))
+    # an audit has a season instead of a date: its evidence is cut off on 1 December of that season
+    date = Date.fromisoformat(str(rec.get("date") or cutoff(rec["season"])))
     facts = rec.get("facts", {})
     pools = {name: sorted(set(_tool_numbers(res))) for name, res in facts.items()}
     constants = {float(c): "constant (7-day, 80% interval, p10/p50/p90, 24-hour)" for c in config.VERIFY_CONSTANTS}

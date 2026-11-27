@@ -387,6 +387,18 @@ def audit_path(season: int, district: str, root: Path | None = None) -> Path:
     return Path(root or config.PROCESSED) / "audits" / f"{int(season)}_{slug(district)}.json"
 
 
+def load_record(path: Path) -> dict:
+    """A saved record as a dict. Raises OSError or ValueError, so a half-written file can be treated as missing."""
+    d = json.loads(Path(path).read_text())
+    if not isinstance(d, dict) or not {"headline", "briefing", "verification", "mode"} <= set(d):
+        raise ValueError(f"not a saved record: {path}")
+    return d
+
+
+def save_audit(record: AuditRecord, root: Path | None = None) -> None:
+    _write_json(audit_path(record.season, record.district, root), record.to_dict())
+
+
 def load_reusable_audit(district: str, season: int, root: Path | None = None) -> AuditRecord | None:
     """A saved audit written by the agent that passed the Verifier. Template or failed ones are not reused."""
     try:
@@ -510,7 +522,7 @@ def run_audit(district: str, season: int, llm=None, store: AuditStore | None = N
         critic=review_info,
     )
     if save:
-        _write_json(audit_path(season, district, root), record.to_dict())
+        save_audit(record, root)
     return record
 
 
