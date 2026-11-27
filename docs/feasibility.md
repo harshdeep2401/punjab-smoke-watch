@@ -129,7 +129,7 @@ The polygons cover 50,502 km² in this grid, close to Punjab's area.
 
 - [Status report of 26 Nov 2024](https://www.greentribunal.gov.in/sites/default/files/news_updates/Status%20Report%20of%20State%20of%20Punjab%20in%20OA%20NO%20632%20of%202023%20In%20re%20News%20item%20appearing%20in%20Hindu%20dated%2006.10.2023%20titled%20Pollution%20takes%20a%20front%20seat%20as%20stubble%20fires%20spike%20in%20Punjab.pdf), Annexure C: cumulative machines supplied on subsidy, 2018-19 to 2024-25, by type for all 23 districts (146,540 in total; the district totals add up).
 - [Status report of 2 Sep 2024](https://www.greentribunal.gov.in/sites/default/files/news_updates/Status%20Report%20by%20State%20of%20Punjab%20in%20OA%20No.%20632%20of%202023%20%28In%20re%20News%20Item%20published%20in%20The%20Hindu%20dated%2006.10.2023%20titled%20as%20Pollution%20take%20a%20front%20seat.pdf), Annexure A: the same by year, 2018-19 to 2023-24.
-- These count machines **supplied**, including tractors and rotavators. They do not say how many still work or are free to move. The planner can use them to inform defaults and per-district limits, but the fleet size stays a user input. No figures have been entered into the repo.
+- These count machines **supplied**, including tractors and rotavators. They do not say how many still work or are free to move. The planner can use them to inform defaults and per-district limits, but the fleet size stays a user input. The district figures of the first report (Annexure C) were entered into `data/manual/crm_machines.csv` in Phase 12, as context only (D24).
 
 The first check (2026-11-26) had called this a no-go; it did not look at the tribunal filings.
 

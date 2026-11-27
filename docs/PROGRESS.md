@@ -2,7 +2,7 @@
 
 Update this file at the end of every phase. Newest notes go at the top of each section.
 
-**Current phase:** Part 1 (0–7) done, plus Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). **Part 2 (Audit + Response) planned on 2026-11-26. Phase 8 done on 2026-11-26, Phases 9, 10 and 11 on 2026-11-27. Opus review of the gap formula done (D23). Phase 12 in progress: steps 1 (allocator, decision backtest) and 2 (5 km grid) of 4 done.** See AGENTS.md §1b and PLAN.md Part 2.
+**Current phase:** Part 1 (0–7) done, plus Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). **Part 2 (Audit + Response) planned on 2026-11-26. Phase 8 done on 2026-11-26, Phases 9, 10 and 11 on 2026-11-27. Opus review of the gap formula done (D23). Phase 12 in progress: steps 1 (allocator, decision backtest), 2 (5 km grid) and 3 (machine stock) of 4 done.** See AGENTS.md §1b and PLAN.md Part 2.
 
 **Part 2 motivating finding** (Opus, from `fires.parquet`, S-NPP, Indian Punjab):
 
@@ -34,6 +34,7 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - [ ] Part 2 stretch
 
 ## Results (fill in during the phases)
+- Phase 12, step 3, **machine stock:** `data/manual/crm_machines.csv`, 391 rows (23 districts x 17 types, 2018-19 to 2024-25), 146,540 machines supplied on subsidy. All 23 district totals, all 17 type totals and the grand total match the printed table. Context only (D24): the allocator has no way to receive it. 355 tests pass offline.
 - Phase 12, step 2, **5 km grid:** 2,200 cells cover Punjab's 50,425 km2 (1,785 whole, 50 under 1 km2 along the border). 348 tests pass offline. **Hotspot cells are often thin:** of the top-5 cells listed per district, 36 of 93 had a single detection on 2025-10-28, 24 of 100 on 2025-10-31 and 34 of 78 on 2025-11-20. The Dispatcher and the page must show the counts and not present a one-detection cell as a hotspot. They also come from detections, so they cannot show where undetected burning is.
 - Phase 12, step 1, **decision backtest** (does the forecast help decide where units go?). 500 units, k = 20, at most 25% per district, 148 issue days in 2024 and 2025. Score = detections seen in the next 3 days x cover(units), as a share of an allocation that knew them in advance:
 
@@ -136,6 +137,7 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - Planner: the first real run produced no usable plan once (reason not recorded, because the error text was vague). Two later calls with the same input gave good plans. I made the cleaner allow the Verifier's constants (7-day, 80%, p10/p50/p90, 24-hour), since the tool descriptions in the prompt contain "7-day" and the model repeats it, and I made the failure reason specific (`planner_error` now says why). A plan with no usable steps is still possible and is simply skipped.
 
 ## Deviations from PLAN.md
+- Phase 12, machine stock: the table (Annexure C, PDF page 37) is a **scanned page** whose text layer is wrong in places (for example 4135 for 1135), so the figures were **typed from the rendered page image**, not generated from the text. A one-off script wrote the CSV only after every row, column and grand total matched; tests check the committed file against the same totals. New `response/machines.py` loads and validates it, and `audit-ingest` checks it. `machines.PUBLISHED` (26 Nov 2024) is there so the Dispatcher cannot show these figures for an earlier date.
 - Phase 12, grid: the signature is `hotspot_cells(district, date, fires, grid, top=5)` (data passed in, no hidden file reads), and `build_grid()` returns the cells and the district shapes together. Detections are S-NPP (`fires.parquet`), the same series as the forecast. A cell belongs to the district covering most of it, but hotspots count each district's own detections, so a border cell can be listed under two. Cell ids are unique across the state.
 - Phase 12: `allocate` also returns `basis` ("likely" or "detected" per district). The limit per district is `floor(max_share x units)`, at least 1. If every district with expected burning is at its limit, the rest stays **unplaced**, so the total can be below `units`. `compare_to_proportional(allocation, last_season)` uses the whole previous season and applies no limit.
 - Phase 12: the decision backtest runs inside `pipeline risk-train` and writes `data/processed/decision_backtest.json` (PLAN names no file). It adds an equal-split row, so the percentages have a floor, and reports the likely-burning allocation apart from the comparison (PLAN keeps the gap adjustment out of the metrics).
@@ -233,6 +235,7 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - Phase 5: `LLM_MODEL=gemini-2.5-flash` (the default in PLAN and AGENTS.md) returns a 404 ("no longer available to new users"). `gemini-3.8-flash` returned 503 "high demand" for every request. All live runs used `gemini-3.5-flash`, set per command with the `LLM_MODEL` environment variable. `.env.example` was changed by the user to `gemini-3.8-flash`.
 
 ## Open questions / user actions needed
+- **Spot-check a few machine counts** in `data/manual/crm_machines.csv` against PDF page 37 of the report (the address is in each row). The totals match, but one person-readable check of the typing is worth having.
 - **Decided 2026-11-27 (user):** planning defaults to **likely burning**. As recommended, the detected-only allocation is shown beside it and the districts the adjustment moved are named (`allocate.compare_to_detected`; the dispatch record in step 4, the page in Phase 13).
 - **Review the 7 new notes in `kb/curated/`** (PLAN asks for it). NASA's FIRMS FAQ puts NOAA-20/21 about 50 minutes ahead of S-NPP, but Phase 8 measured all three within about 25 minutes; `overpass_times.md` states both.
 - **Read the audits before showing them to anyone.** "Verified" means the numbers exist in the evidence and the required statements are there. It does not mean each citation supports its sentence.

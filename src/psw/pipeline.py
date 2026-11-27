@@ -114,6 +114,7 @@ def cmd_audit_ingest(_args) -> None:
         print(table.groupby(["sensor", "season"]).size().unstack(fill_value=0).to_string())
     _ingest_burned_area()
     _check_official_counts()
+    _check_machine_stock()
     _ingest_district_weather()
 
 
@@ -134,6 +135,14 @@ def _check_official_counts() -> None:
     totals = counts.groupby("season")["count"].sum()
     print(f"official_counts: {len(counts)} district-seasons; Punjab totals per season: "
           f"{ {int(k): int(v) for k, v in totals.items()} }")
+
+
+def _check_machine_stock() -> None:
+    from psw.response import machines
+
+    stock = machines.load_machine_stock()  # raises on a bad row
+    print(f"crm_machines: {stock['district'].nunique()} districts, {stock['machine_type'].nunique()} types, "
+          f"{int(stock['count'].sum())} machines supplied on subsidy (context only)")
 
 
 def _ingest_district_weather() -> None:
