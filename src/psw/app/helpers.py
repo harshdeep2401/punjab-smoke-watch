@@ -200,13 +200,17 @@ def interpret(m: dict) -> list[str]:
     return out
 
 
+RELIABILITY_SETS = (("district briefings (demo set)", "briefings"), ("district briefings (sampled run)", SAMPLE_DIR + "/briefings"),
+                    ("audit briefs", "audits"), ("dispatch briefs", "dispatch"))
+
+
 def reliability(root: Path | None = None) -> pd.DataFrame:
-    """Verifier pass rate and mode counts over saved briefings, split by folder (demo set vs sampled run)."""
+    """Verifier pass rate, mode counts and Critic outcomes over the saved records, one row per kind."""
     root = Path(root or config.PROCESSED)
     rows = []
-    for name, base in (("demo briefings", root / "briefings"), ("sampled run", root / SAMPLE_DIR / "briefings")):
+    for name, folder in RELIABILITY_SETS:
         recs = []
-        for p in sorted(base.glob("*.json")):
+        for p in sorted((root / folder).glob("*.json")):
             try:
                 recs.append(json.loads(p.read_text()))
             except (OSError, json.JSONDecodeError):
@@ -216,11 +220,15 @@ def reliability(root: Path | None = None) -> pd.DataFrame:
         modes = Counter(base_mode(r.get("mode")) for r in recs)
         verified = sum(bool(r.get("verification", {}).get("ok")) for r in recs)
         words = [len(r.get("briefing", "").split()) for r in recs]
-        rows.append({"set": name, "briefings": len(recs), "verified": verified,
+        critics = [r["critic"] for r in recs if r.get("critic")]
+        rows.append({"set": name, "saved": len(recs), "verified": verified,
                      "pass rate (%)": 100 * verified / len(recs),
                      "agent": modes.get("agent", 0), "agent_revised": modes.get("agent_revised", 0),
                      "template": modes.get("template", 0),
+                     "edited by hand": sum(bool(r.get("manual_edits")) for r in recs),
                      "first draft failed": sum(bool(r.get("first_attempt_errors")) for r in recs),
+                     "read by the Critic": len(critics),
+                     "Critic warnings": sum(bool(c.get("warning")) for c in critics),
                      "mean words": sum(words) / len(words),
                      "models": ", ".join(sorted({str(r.get("model")) for r in recs if r.get("mode") != "template"})) or "none"})
     return pd.DataFrame(rows)

@@ -441,16 +441,30 @@ def _decision_backtest() -> None:
 
     import pandas as pd
 
-    from psw.response import allocate, risk
+    from psw.response import allocate, intervals, risk
 
     P = config.PROCESSED
-    d = allocate.decision_backtest(pd.read_parquet(P / risk.FORECAST_FILE), pd.read_parquet(P / "district_daily.parquet"))
+    forecasts, daily = pd.read_parquet(P / risk.FORECAST_FILE), pd.read_parquet(P / "district_daily.parquet")
+    metrics = json.loads((P / risk.METRICS_FILE).read_text())
+    best = metrics["best_ranking_variant"]
+    d = allocate.decision_backtest(forecasts, daily)
+    d["lead_over_last_season_share"] = intervals.allocation_lead(allocate.daily_scores(forecasts, daily), best,
+                                                                 "last_season_share")
+    d["ranking_lead"] = intervals.ranking_lead(forecasts, best, intervals.runner_up(metrics))
+    d["interval_method"] = intervals.METHOD
     (P / DECISION_FILE).write_text(json.dumps(d, indent=1, allow_nan=False))
     print(f"\ndecision backtest: {d['units']} units, k = {d['k']:g}, at most {d['max_share']:.0%} per district, "
           f"{d['n_days']} issue days (% of an allocation that knew the next 3 days)")
     for name, value in d["pct_of_oracle"].items():
         by = ", ".join(f"{s} {v[name]:.1f}" for s, v in d["by_season"].items())
         print(f"  {name:18s} {value:6.1f}   ({by})")
+    lead, rank = d["lead_over_last_season_share"], d["ranking_lead"]
+    print(f"  {lead['of']} over last_season_share: {lead['points']:+.1f} points ({lead['low']:+.1f} to {lead['high']:+.1f})")
+    print(f"  ranking, {rank['of']} over {rank['against']}: top-5 {rank['top5']['points']:+.1f} points "
+          f"({rank['top5']['low']:+.1f} to {rank['top5']['high']:+.1f}), Spearman {rank['spearman']['difference']:+.2f} "
+          f"({rank['spearman']['low']:+.2f} to {rank['spearman']['high']:+.2f})")
+    print("  top-5 lead by season: " + ", ".join(f"{s} {v['points']:+.1f} ({v['low']:+.1f} to {v['high']:+.1f})"
+                                                for s, v in rank["top5"]["by_season"].items()))
     if "likely_check" in d:
         print(f"  apart: model on likely burning {d['likely_check']['pct_of_oracle']:.1f} (scored against detections only)")
     print(f"Saved data/processed/{DECISION_FILE}")

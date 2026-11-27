@@ -39,5 +39,52 @@
    "2025": 93.13
   },
   "note": "Allocation on likely burning (the planner's default), scored the same way against detections. Detections cannot show the undetected burning it plans for, so this does not say whether it helps more or less; it shows how far it departs from what satellites later saw."
- }
+ },
+ "lead_over_last_season_share": {
+  "of": "model",
+  "against": "last_season_share",
+  "points": 4.2,
+  "low": 2.39,
+  "high": 7.04,
+  "by_season": {
+   "2024": {
+    "points": 4.53,
+    "low": 2.08,
+    "high": 8.97
+   },
+   "2025": {
+    "points": 3.49,
+    "low": 2.22,
+    "high": 6.45
+   }
+  }
+ },
+ "ranking_lead": {
+  "of": "model",
+  "against": "persistence",
+  "n_days": 128,
+  "top5": {
+   "points": 3.93,
+   "low": 1.07,
+   "high": 7.82,
+   "by_season": {
+    "2024": {
+     "points": 7.88,
+     "low": 4.44,
+     "high": 12.34
+    },
+    "2025": {
+     "points": -0.28,
+     "low": -5.39,
+     "high": 5.76
+    }
+   }
+  },
+  "spearman": {
+   "difference": 0.071,
+   "low": 0.036,
+   "high": 0.12
+  }
+ },
+ "interval_method": "95% interval from a block bootstrap: issue days are resampled in runs of 7 within each season, 2000 times with a fixed seed. It covers the choice of days only, not the choice of variant, which was made on the same test seasons."
 }

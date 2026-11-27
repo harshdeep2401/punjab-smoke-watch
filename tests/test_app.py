@@ -104,7 +104,8 @@ def test_find_briefing_and_reliability(tmp_path):
     assert helpers.find_briefing("2025-11-09", "Moga", tmp_path) is None
     assert helpers.cached_districts("2025-11-06", tmp_path) == {"Moga"}
     rel = helpers.reliability(tmp_path).set_index("set")
-    assert rel.loc["demo briefings", "briefings"] == 1 and rel.loc["sampled run", "template"] == 1
+    assert rel.loc["district briefings (demo set)", "saved"] == 1
+    assert rel.loc["district briefings (sampled run)", "template"] == 1
     assert helpers.reliability(tmp_path / "nowhere").empty
 
 

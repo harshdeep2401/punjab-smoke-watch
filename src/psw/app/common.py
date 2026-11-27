@@ -15,10 +15,15 @@ LIMITATIONS = """
 - This is a student project, not a regulatory or health tool. No individual farms or farmers are identified.
 - Forecast accuracy is limited by the training window we can actually obtain (2022 to 2025).
 - Districts: 22 districts. **Malerkotla** (created in 2021) is counted inside Sangrur.
+- The audit **triangulates** satellite and official signals. There is no field verification, and the error of the
+  burned-area product is unknown.
+- The response planner is **support, not enforcement**. What a machine or team achieves is an assumption, "likely
+  burning" is not a count of fires, and nothing finer than a 5 km cell is shown.
 """
 
 CREDITS = (
-    "Data: NASA FIRMS (VIIRS S-NPP); weather and air-quality data by [Open-Meteo.com](https://open-meteo.com/) "
+    "Data: NASA FIRMS (VIIRS S-NPP, NOAA-20, NOAA-21; MODIS); MODIS MCD64A1 burned area (University of Maryland); "
+    "official fire counts and machine figures from Punjab Pollution Control Board and state reports; weather and air-quality data by [Open-Meteo.com](https://open-meteo.com/) "
     "(ERA5 weather, CAMS air quality), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); "
     "district boundaries from geoBoundaries (ODbL)."
 )
