@@ -150,19 +150,23 @@ Support two modes: **Replay** (a stored past season, works offline from cache) a
 
 ## 12. Demo script (5 minutes)
 
-Updated in Phase 7 to match the results and the agent design (this section replaces the original script; the app opens on the right defaults: the 2025 peak day and Ludhiana, and `data/processed/demo.json` lists the three demo dates).
+Updated in Phase 13 for the Audit and Response modules (this replaces the earlier script).
 
-1. **Hook (30 s):** "Every winter Punjab's fires make headlines, but no one can see how a fire in Tarn Taran becomes smog in Ludhiana."
-2. **Replay (60 s):** open Replay map, play the 2025 season, pause on the peak day (2025-10-31). Point at Tarn Taran, Bathinda, Moga.
-3. **Forecast (45 s):** open Forecast, city Ludhiana, season 2025. Show tomorrow's PM2.5 with its 80% band, the 60 µg/m³ NAAQS line, and the upwind contributors for the selected day. Say it is an out-of-sample backtest and CAMS modelled PM2.5.
-4. **Proof (60 s):** open Evidence. Say the result as it is: **persistence is the best on MAE and pinball, and the fire features did not improve the forecast.** Give the reasons the page lists (CAMS already assimilates fires; only a few training seasons). Show that the 80% band is checked for coverage. A negative result reported honestly is the point.
-5. **Briefing (90 s):** open Daily Watch & Briefing on the peak day. Show the Sentinel watchlist and its reasons (rules, no LLM). Open the Ludhiana briefing, then walk through the right-hand tabs: **Agent trace** (the tools it called, with the date and filters fixed by the orchestrator), **Sources** (the retrieved chunks, the cited ones ticked), **Verifier report** (each number matched to a tool value), and finish on the **✅ Numbers verified** badge. Say what the badge does not prove: that a source supports the sentence.
-6. **Close (30 s):** limitations (heat anomalies, modelled PM2.5, short training window), and the detection-gap idea as future work.
+**Before you start:** `uv run streamlit run src/psw/app/main.py --server.address localhost`. No key is needed: every brief shown is saved. **Do not press a "Run" or "Regenerate" button during the demo.** It takes about a minute or more, uses your LLM key and, on the Watch page, can replace a saved briefing with the template. The Replay map's background needs a network.
 
-If the LLM is slow or the network is down, use the saved briefings: the demo needs no key.
+| Step | What to do | What to say | Time |
+|---|---|---|---|
+| 1. Hook | Home page | Daytime fire detections in Punjab fell about 91% from 2022 to 2025 (45,305 to 3,942). Night detections did not fall (82 to 96). "That is a lead, not proof. So how much has burning really fallen?" | 30 s |
+| 2. Audit | Audit page: the headline sentence, the 2025 card, "Burned area against detections", then the district table | S-NPP detections down 91.1%, burned area down 44.9%: detections per burned km² fell 77% to 84%, medium confidence. It is **not** the share of burning missed, there is no field check, and the burned-area product's own error is unknown. Districts are weaker: Ludhiana shows no sign of a gap, Tarn Taran is unclear. | 60 s |
+| 3. Response Planner | Opens on 2025-10-28 with 500 units. Change the units to 300, then switch "Plan on likely burning" off. Put both back. | With 500 units Fazilka gets 57. With 300 the limit per district drops to 75 and Fazilka gets 45. On detections only, Sangrur leads with 44. Likely burning moves Fazilka from 34 to 57 units, and the range behind that is **low** confidence. The rule places units; no language model does. | 90 s |
+| 4. Dispatch brief | Same page, "Dispatch brief": the badge, then Agent trace, Sources, Verifier report | Every number was checked against a tool output. The badge does **not** prove a source supports its sentence: an earlier brief passed while saying there were enough machines, the opposite of its source, and that is now checked too. | 45 s |
+| 5. Evidence | "Does the forecast help decide where units go?", then the fire-risk bullets | The forecast reaches 95.3% of a perfect-knowledge allocation, against 91.1% for splitting by last season and 80.5% for an equal split: real but modest, and it assumes what a unit achieves. Its ranking lead over "last 3 days" is unproven. Fire features did not help the PM2.5 forecast. | 45 s |
+| 6. Close | Stay on Evidence, "Limitations" | Triangulation, not ground truth. Support, not enforcement: nothing below a 5 km cell. Next: field checks and all-day geostationary fire data to settle the gap. | 30 s |
+
+If you change the planner inputs, the saved brief says it was written for other inputs. That is expected: say so, or put the inputs back first. If asked about the other pages, show the Watch page (it opens on the 2025 peak day with Ludhiana) and the Replay map.
 
 ## 13. Pitch lines for the teacher
 
-- **Problem:** fires, wind and smog are visible separately but never connected, and single-number fire counts hide detection uncertainty.
-- **Solution:** a verified pipeline from satellite data to a district briefing, with a forecast that says how sure it is.
-- **What is mine:** the upwind-pressure feature design, the backtest and ablation, and the number-checked report generator. Open data and libraries are credited.
+- **Problem:** fire counts fell sharply, but a satellite only sees what burns while it passes, so "how much fell" and "where is help needed" are both open.
+- **Solution:** a triangulated audit with a stated range, a 3-day allocation of help, and briefs whose numbers are checked by code.
+- **What is mine:** the detection-gap method, the allocator and its decision backtest, the upwind-pressure feature, and the number-checking Verifier. Open data and libraries are credited.

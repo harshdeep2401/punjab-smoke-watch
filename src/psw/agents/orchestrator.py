@@ -588,9 +588,10 @@ def load_reusable_dispatch(date: str, settings: Settings, district: str | None, 
         return None
 
 
-def _site_facts(found: list[dict]) -> tuple[dict, dict]:
-    """(district -> rain mm last and next, district -> cell ids) from the rain and hotspot calls that succeeded."""
-    rain, cells = {}, {}
+def _site_facts(found: list[dict]) -> tuple[dict, dict, dict]:
+    """(district -> rain mm last and next, district -> cell ids, cell id -> detections) from the rain and hotspot calls
+    that succeeded."""
+    rain, cells, detections = {}, {}, {}
     for r in found:
         res = r["result"]
         if _failed(res):
@@ -598,8 +599,10 @@ def _site_facts(found: list[dict]) -> tuple[dict, dict]:
         if r["tool"] == "get_rain_outlook":
             rain[res["district"]] = (res["rain_last_3_days_mm"], res["rain_next_3_days_mm"])
         elif r["tool"] == "get_hotspot_cells":
-            cells[res["district"]] = [int(c["cell"].split()[1]) for c in res["cells"]]
-    return rain, cells
+            found_cells = {int(c["cell"].split()[1]): c["detections"] for c in res["cells"]}
+            cells[res["district"]] = list(found_cells)
+            detections |= found_cells
+    return rain, cells, detections
 
 
 def _dispatch_check(allocation: dispatch_tools.Allocation, day: str, district: str | None, kb):
@@ -609,10 +612,22 @@ def _dispatch_check(allocation: dispatch_tools.Allocation, day: str, district: s
     def check(draft, found: list[dict]):
         evidence = Evidence.from_tool_results(found, dates=[day])
         words = own | lowercase_words(json.dumps(r["result"], ensure_ascii=False, default=str) for r in found)
-        rain, cells = _site_facts(found)
-        plan = replace(allocation.plan(words), rain=rain, cells=cells)
+        rain, cells, detections = _site_facts(found)
+        plan = replace(allocation.plan(words), rain=rain, cells=cells, cell_detections=detections)
         return verify_dispatch(draft, evidence, plan, district=district)
     return check
+
+
+def recheck_dispatch(record: dict, store: ResponseStore, kb):
+    """Run today's dispatch Verifier on a saved record, with only the record's own facts as evidence."""
+    settings = Settings(record["units"], record["max_share"], record["use_likely"])
+    allocation = dispatch_tools.plan_allocation(store, record["date"], settings)
+    check = _dispatch_check(allocation, record["date"], record["district"], kb)
+    found = [{"tool": name.split(" (")[0], "args": {}, "result": result} for name, result in record["facts"].items()]
+    draft = {k: record[k] for k in ("headline", "briefing", "citations")}
+    if record.get("district_paragraph"):
+        draft["district_paragraph"] = record["district_paragraph"]
+    return check(draft, found)
 
 
 def _dispatch_template_facts(store: ResponseStore, kb, day: str, settings: Settings,

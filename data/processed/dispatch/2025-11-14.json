@@ -1,0 +1,963 @@
+{
+ "date": "2025-11-14",
+ "units": 500,
+ "max_share": 0.25,
+ "use_likely": true,
+ "district": null,
+ "variant": "model",
+ "mode": "agent",
+ "headline": "Residue-management machine allocations and awareness team deployment for Punjab districts",
+ "briefing": "Where the units go:\nOf 500 units, the largest shares go to Fazilka (75 units), Moga (50 units), Sangrur (49 units), Sri Muktsar Sahib (43 units), and Bathinda (38 units); the other districts get smaller shares. The limit per district is 125 units.\n\nWhy:\nFazilka has 41 forecast detections, with an 80% band from 7 to 147. That is more than the 33 detections of the last 3 days. Its likely burning is estimated at 237. The adjustment moves Fazilka from 52 units to 75 units.\n\nHow sure we are:\nThe forecast is uncertain. Likely burning scales each forecast by the previous season's detection gap. The gap range behind Fazilka has low confidence. Likely burning is not a count of fires. What one unit achieves is assumed.\n\nWhat to watch:\nFazilka had 0.0 mm of rain in the last 3 days. The weather archive, standing in for a forecast, shows 0.0 mm for the next 3. Teams might start at cell 1021 (north-east Fazilka) (9 detections) and cell 797 (north-west Fazilka) (6 detections). The state says demand for straw machines falls almost entirely in the wheat sowing window of 15 to 20 days [K434].",
+ "district_paragraph": null,
+ "citations": [
+  "K434"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K434",
+   "title": "Managing paddy straw without burning, in-situ and ex-situ options and machines",
+   "doc_type": "curated"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   500.0,
+   75.0,
+   50.0,
+   49.0,
+   43.0,
+   38.0,
+   125.0,
+   41.0,
+   80.0,
+   7.0,
+   147.0,
+   33.0,
+   3.0,
+   237.0,
+   52.0,
+   75.0,
+   0.0,
+   3.0,
+   0.0,
+   3.0,
+   1021.0,
+   9.0,
+   797.0,
+   6.0,
+   15.0,
+   20.0
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "dispatcher",
+   "tool": "get_risk_forecast",
+   "args": {
+    "date": "2025-11-14",
+    "use_likely": true
+   },
+   "result_summary": "{\"date\": \"2025-11-14\", \"days_ahead\": 3, \"what_is_forecast\": \"satellite fire detections in each district over the next 3 days\", \"ranked_by\": \"likely burning\", \"top_districts\": [{\"d…",
+   "ms": 27
+  },
+  {
+   "step": 2,
+   "agent": "dispatcher",
+   "tool": "get_allocation",
+   "args": {
+    "date": "2025-11-14",
+    "units": 500,
+    "max_share": 0.25,
+    "use_likely": true
+   },
+   "result_summary": "{\"date\": \"2025-11-14\", \"days_ahead\": 3, \"units_available\": 500, \"units_placed\": 500, \"limit_per_district\": 125, \"planned_on\": \"likely burning\", \"districts\": [{\"district\": \"Fazilka…",
+   "ms": 46
+  },
+  {
+   "step": 3,
+   "agent": "dispatcher",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "managing paddy straw without burning, machines and timing",
+    "before": "2025-11-14"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K434\", \"title\": \"Managing paddy straw without burning, in-situ and ex-situ options and machines\", \"text\": \"# Why timing and placement matter\\n\\nThe stat…",
+   "ms": 30
+  },
+  {
+   "step": 4,
+   "agent": "dispatcher",
+   "tool": "get_rain_outlook",
+   "args": {
+    "district": "Fazilka",
+    "date": "2025-11-14"
+   },
+   "result_summary": "{\"district\": \"Fazilka\", \"date\": \"2025-11-14\", \"days\": 3, \"rain_last_3_days_mm\": 0.0, \"rain_next_3_days_mm\": 0.0, \"note\": \"The next 3 days are taken from the weather archive, stand…",
+   "ms": 12
+  },
+  {
+   "step": 5,
+   "agent": "dispatcher",
+   "tool": "get_hotspot_cells",
+   "args": {
+    "district": "Fazilka",
+    "date": "2025-11-14"
+   },
+   "result_summary": "{\"district\": \"Fazilka\", \"date\": \"2025-11-14\", \"window_days\": 7, \"district_detections\": 129, \"cells\": [{\"cell\": \"cell 1021 (north-east Fazilka)\", \"detections\": 9, \"share_of_distric…",
+   "ms": 64
+  },
+  {
+   "step": 6,
+   "agent": "dispatcher",
+   "tool": "get_gap_range",
+   "args": {
+    "district": "Fazilka",
+    "season": 2024
+   },
+   "result_summary": "{\"district\": \"Fazilka\", \"season\": 2024, \"what_the_gap_is\": \"the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed\", \"detected…",
+   "ms": 2
+  },
+  {
+   "step": 7,
+   "agent": "critic",
+   "tool": "review",
+   "args": {
+    "brief_type": "dispatch",
+    "chunks": [
+     "K434"
+    ]
+   },
+   "result_summary": "1 issue(s)",
+   "ms": 3235
+  }
+ ],
+ "facts": {
+  "get_risk_forecast": {
+   "date": "2025-11-14",
+   "days_ahead": 3,
+   "what_is_forecast": "satellite fire detections in each district over the next 3 days",
+   "ranked_by": "likely burning",
+   "top_districts": [
+    {
+     "district": "Fazilka",
+     "forecast_detections": 41,
+     "band_80_low": 7,
+     "band_80_high": 147,
+     "detections_last_3_days": 33,
+     "compared_with_last_3_days": "more",
+     "likely_burning": 237,
+     "likely_low": 183,
+     "likely_high": 334,
+     "detection_gap_from": "its own district range",
+     "confidence_of_its_gap_range": "low"
+    },
+    {
+     "district": "Moga",
+     "forecast_detections": 39,
+     "band_80_low": 1,
+     "band_80_high": 91,
+     "detections_last_3_days": 7,
+     "compared_with_last_3_days": "more",
+     "likely_burning": 69,
+     "likely_low": 64,
+     "likely_high": 73,
+     "detection_gap_from": "its own district range",
+     "confidence_of_its_gap_range": "low"
+    },
+    {
+     "district": "Sangrur",
+     "forecast_detections": 33,
+     "band_80_low": 2,
+     "band_80_high": 87,
+     "detections_last_3_days": 8,
+     "compared_with_last_3_days": "more",
+     "likely_burning": 67,
+     "likely_low": 63,
+     "likely_high": 73,
+     "detection_gap_from": "its own district range",
+     "confidence_of_its_gap_range": "low"
+    },
+    {
+     "district": "Sri Muktsar Sahib",
+     "forecast_detections": 23,
+     "band_80_low": 3,
+     "band_80_high": 136,
+     "detections_last_3_days": 20,
+     "compared_with_last_3_days": "more",
+     "likely_burning": 48,
+     "likely_low": 34,
+     "likely_high": 82,
+     "detection_gap_from": "its own district range",
+     "confidence_of_its_gap_range": "low"
+    },
+    {
+     "district": "Bathinda",
+     "forecast_detections": 23,
+     "band_80_low": 3,
+     "band_80_high": 89,
+     "detections_last_3_days": 18,
+     "compared_with_last_3_days": "more",
+     "likely_burning": 39,
+     "likely_low": 33,
+     "likely_high": 46,
+     "detection_gap_from": "its own district range",
+     "confidence_of_its_gap_range": "low"
+    },
+    {
+     "district": "Tarn Taran",
+     "forecast_detections": 22,
+     "band_80_low": 5,
+     "band_80_high": 41,
+     "detections_last_3_days": 21,
+     "compared_with_last_3_days": "more",
+     "likely_burning": 37,
+     "likely_low": 31,
+     "likely_high": 44,
+     "detection_gap_from": "the Punjab range",
+     "confidence_of_its_gap_range": "medium"
+    },
+    {
+     "district": "Ferozepur",
+     "forecast_detections": 19,
+     "band_80_low": 1,
+     "band_80_high": 52,
+     "detections_last_3_days": 9,
+     "compared_with_last_3_days": "more",
+     "likely_burning": 33,
+     "likely_low": 27,
+     "likely_high": 42,
+     "detection_gap_from": "its own district range",
+     "confidence_of_its_gap_range": "low"
+    },
+    {
+     "district": "Faridkot",
+     "forecast_detections": 15,
+     "band_80_low": 0,
+     "band_80_high": 24,
+     "detections_last_3_days": 2,
+     "compared_with_last_3_days": "more",
+     "likely_burning": 29,
+     "likely_low": 25,
+     "likely_high": 35,
+     "detection_gap_from": "its own district range",
+     "confidence_of_its_gap_range": "low"
+    }
+   ],
+   "number_of_districts": 22,
+   "uncertainty": "The 80% band is the forecast's own uncertainty.",
+   "rain_note": "Rain over the next 3 days is taken from the weather archive, standing in for a forecast. A real forecast is less accurate, so backtest results using it are optimistic.",
+   "likely_note": "Likely burning scales the forecast by the previous season's detection gap. It estimates what would have been detected at the base season's detections per burned km2. It is not a count of fires."
+  },
+  "get_allocation": {
+   "date": "2025-11-14",
+   "days_ahead": 3,
+   "units_available": 500,
+   "units_placed": 500,
+   "limit_per_district": 125,
+   "planned_on": "likely burning",
+   "districts": [
+    {
+     "district": "Fazilka",
+     "units": 75,
+     "likely_burning": 237
+    },
+    {
+     "district": "Moga",
+     "units": 50,
+     "likely_burning": 69
+    },
+    {
+     "district": "Sangrur",
+     "units": 49,
+     "likely_burning": 67
+    },
+    {
+     "district": "Sri Muktsar Sahib",
+     "units": 43,
+     "likely_burning": 48
+    },
+    {
+     "district": "Bathinda",
+     "units": 38,
+     "likely_burning": 39
+    },
+    {
+     "district": "Tarn Taran",
+     "units": 37,
+     "likely_burning": 37
+    },
+    {
+     "district": "Ferozepur",
+     "units": 35,
+     "likely_burning": 33
+    },
+    {
+     "district": "Faridkot",
+     "units": 33,
+     "likely_burning": 29
+    }
+   ],
+   "other_districts_with_units": {
+    "number": 9,
+    "units_they_share": 140
+   },
+   "note": "The split was computed by a fixed rule; you explain it and cannot change it. How much one unit achieves is an assumption, not a measurement.",
+   "moved_by_the_likely_adjustment": [
+    {
+     "district": "Fazilka",
+     "units_with_adjustment": 75,
+     "units_without_adjustment": 52,
+     "change_in_words": "23 more units with the adjustment",
+     "confidence_of_its_gap_range": "low"
+    },
+    {
+     "district": "Barnala",
+     "units_with_adjustment": 27,
+     "units_without_adjustment": 8,
+     "change_in_words": "19 more units with the adjustment",
+     "confidence_of_its_gap_range": "low"
+    },
+    {
+     "district": "Amritsar",
+     "units_with_adjustment": 11,
+     "units_without_adjustment": 23,
+     "change_in_words": "12 fewer units with the adjustment",
+     "confidence_of_its_gap_range": "low"
+    }
+   ]
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K434",
+     "title": "Managing paddy straw without burning, in-situ and ex-situ options and machines",
+     "text": "# Why timing and placement matter\n\nThe state says the number of machines is enough for the paddy area by their field capacity, but almost all the demand falls in the wheat sowing window of 15 to 20 days, so a machine may not be available when a farmer wants it. Machines also wear out, and some are discarded every year. These are the state's own statements and have not been checked independently here."
+    },
+    {
+     "chunk_id": "K432",
+     "title": "Managing paddy straw without burning, in-situ and ex-situ options and machines",
+     "text": "# In-situ and ex-situ management\n\nPunjab's status report of 26 November 2024 to the National Green Tribunal says paddy covers about 32 lakh hectares and leaves about 19.7 million tonnes of straw. In-situ management deals with the straw in the field, using seeding machines such as the super seeder to sow wheat. Ex-situ management collects the straw, mainly with balers, and takes it away for industrial and other uses. The state's action plan put in-situ management at 11.50 million tonnes in 2023 and 12.70 million tonnes (estimate) in 2024, ex-situ at 3.66 and 5.96 million tonnes, and fodder at 0.70 and 0.86 million tonnes."
+    },
+    {
+     "chunk_id": "K433",
+     "title": "Managing paddy straw without burning, in-situ and ex-situ options and machines",
+     "text": "# Machines and custom hiring\n\nThe report says 146,540 crop-residue machines, 61,951 of them super seeders, had been provided on subsidy under the Crop Residue Management scheme since 2018-19, including 2,183 balers and 2,039 rakes. Custom Hiring Centres are being promoted so that farmers do not have to buy the machinery and so that each machine is used closer to its capacity."
+    },
+    {
+     "chunk_id": "K022",
+     "title": "Why residue is burned in Punjab - the harvest to sowing window",
+     "text": "# Management options (in general terms)\n\n- **In-situ management:** the residue is handled in the field, for example by machines that sow wheat directly through the straw (such as the Happy Seeder), or by mixing the straw into the soil.\n- **Ex-situ management:** the straw is baled and removed from the field, then used for example as fuel in biomass plants and industry, or as fodder or packing material.\n\nBoth routes need machines, transport and a buyer or user for the straw. The cost and availability of these are a common part of the policy discussion."
+    }
+   ]
+  },
+  "get_rain_outlook": {
+   "district": "Fazilka",
+   "date": "2025-11-14",
+   "days": 3,
+   "rain_last_3_days_mm": 0.0,
+   "rain_next_3_days_mm": 0.0,
+   "note": "The next 3 days are taken from the weather archive, standing in for a forecast. Rain can delay burning."
+  },
+  "get_hotspot_cells": {
+   "district": "Fazilka",
+   "date": "2025-11-14",
+   "window_days": 7,
+   "district_detections": 129,
+   "cells": [
+    {
+     "cell": "cell 1021 (north-east Fazilka)",
+     "detections": 9,
+     "share_of_district_pct": 7.0
+    },
+    {
+     "cell": "cell 797 (north-west Fazilka)",
+     "detections": 6,
+     "share_of_district_pct": 4.7
+    },
+    {
+     "cell": "cell 911 (north Fazilka)",
+     "detections": 5,
+     "share_of_district_pct": 3.9
+    },
+    {
+     "cell": "cell 566 (west Fazilka)",
+     "detections": 4,
+     "share_of_district_pct": 3.1
+    },
+    {
+     "cell": "cell 572 (east Fazilka)",
+     "detections": 4,
+     "share_of_district_pct": 3.1
+    }
+   ],
+   "note": "Cells come from satellite detections in the last 7 days. They cannot show burning that was not detected."
+  },
+  "get_gap_range": {
+   "district": "Fazilka",
+   "season": 2024,
+   "what_the_gap_is": "the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed",
+   "detected_change_pct": -86.0,
+   "reference_change_pct": 14.3,
+   "changes_are_for": "S-NPP detections against 2022",
+   "changes_in_words": "counts fell 86.0% and burned area rose 14.3%",
+   "gap_low_pct": 77.7,
+   "gap_high_pct": 87.8,
+   "methods": "S-NPP detections against burned area, base season 2022; official counts against burned area, base season 2022 (start date not stated); S-NPP detections against burned area, base season 2023; official counts against burned area, base season 2023 (start date not stated)",
+   "confidence": "low",
+   "direction": "counts fell more than burned area",
+   "reason": null,
+   "timing_evidence": "Punjab-wide only. Night share of S-NPP detections: 1.6% (95% interval 1.4% to 1.9%) in 2024 against 0.2% (0.1% to 0.2%) in 2022: supports a shift in timing. MODIS change relative to the S-NPP change since 2022: 1.91 times (rule: at least 1.5): supports a shift in timing. MODIS passes at other times (Terra in the morning, Aqua drifting later in the afternoon), which is a confound.",
+   "other_explanations": "A fall in detections per burned area fits three explanations: burning moved outside satellite pass times, fires became smaller or cooler, or the sensitivity of the burned-area product changed.",
+   "caveat": "The range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification.",
+   "used_for": "This is the previous season's range, which scales this season's forecast. A negative value is treated as no adjustment."
+  }
+ },
+ "allocation": [
+  {
+   "district": "Fazilka",
+   "units": 75,
+   "risk_used": 236.83,
+   "basis": "likely",
+   "covered_share": 0.9765,
+   "marginal_gain_last": 0.2856,
+   "reason": "likely burning 236.8 over the next 3 days, rank 1 of 22"
+  },
+  {
+   "district": "Moga",
+   "units": 50,
+   "risk_used": 68.63,
+   "basis": "likely",
+   "covered_share": 0.9179,
+   "marginal_gain_last": 0.2888,
+   "reason": "likely burning 68.6 over the next 3 days, rank 2 of 22"
+  },
+  {
+   "district": "Sangrur",
+   "units": 49,
+   "risk_used": 67.32,
+   "basis": "likely",
+   "covered_share": 0.9137,
+   "marginal_gain_last": 0.2978,
+   "reason": "likely burning 67.3 over the next 3 days, rank 3 of 22"
+  },
+  {
+   "district": "Sri Muktsar Sahib",
+   "units": 43,
+   "risk_used": 48.37,
+   "basis": "likely",
+   "covered_share": 0.8835,
+   "marginal_gain_last": 0.2889,
+   "reason": "likely burning 48.4 over the next 3 days, rank 4 of 22"
+  },
+  {
+   "district": "Bathinda",
+   "units": 38,
+   "risk_used": 38.7,
+   "basis": "likely",
+   "covered_share": 0.8504,
+   "marginal_gain_last": 0.2968,
+   "reason": "likely burning 38.7 over the next 3 days, rank 5 of 22"
+  },
+  {
+   "district": "Tarn Taran",
+   "units": 37,
+   "risk_used": 36.86,
+   "basis": "likely",
+   "covered_share": 0.8428,
+   "marginal_gain_last": 0.2972,
+   "reason": "likely burning 36.9 over the next 3 days, rank 6 of 22"
+  },
+  {
+   "district": "Ferozepur",
+   "units": 35,
+   "risk_used": 32.55,
+   "basis": "likely",
+   "covered_share": 0.8262,
+   "marginal_gain_last": 0.29,
+   "reason": "likely burning 32.5 over the next 3 days, rank 7 of 22"
+  },
+  {
+   "district": "Faridkot",
+   "units": 33,
+   "risk_used": 28.91,
+   "basis": "likely",
+   "covered_share": 0.808,
+   "marginal_gain_last": 0.2847,
+   "reason": "likely burning 28.9 over the next 3 days, rank 8 of 22"
+  },
+  {
+   "district": "Barnala",
+   "units": 27,
+   "risk_used": 21.65,
+   "basis": "likely",
+   "covered_share": 0.7408,
+   "marginal_gain_last": 0.2878,
+   "reason": "likely burning 21.6 over the next 3 days, rank 9 of 22"
+  },
+  {
+   "district": "Mansa",
+   "units": 24,
+   "risk_used": 18.95,
+   "basis": "likely",
+   "covered_share": 0.6988,
+   "marginal_gain_last": 0.2926,
+   "reason": "likely burning 18.9 over the next 3 days, rank 10 of 22"
+  },
+  {
+   "district": "Kapurthala",
+   "units": 22,
+   "risk_used": 17.46,
+   "basis": "likely",
+   "covered_share": 0.6671,
+   "marginal_gain_last": 0.298,
+   "reason": "likely burning 17.5 over the next 3 days, rank 11 of 22"
+  },
+  {
+   "district": "Ludhiana",
+   "units": 22,
+   "risk_used": 16.84,
+   "basis": "likely",
+   "covered_share": 0.6671,
+   "marginal_gain_last": 0.2874,
+   "reason": "likely burning 16.8 over the next 3 days, rank 12 of 22"
+  },
+  {
+   "district": "Fatehgarh Sahib",
+   "units": 14,
+   "risk_used": 11.69,
+   "basis": "likely",
+   "covered_share": 0.5034,
+   "marginal_gain_last": 0.2976,
+   "reason": "likely burning 11.7 over the next 3 days, rank 13 of 22"
+  },
+  {
+   "district": "Jalandhar",
+   "units": 12,
+   "risk_used": 10.59,
+   "basis": "likely",
+   "covered_share": 0.4512,
+   "marginal_gain_last": 0.298,
+   "reason": "likely burning 10.6 over the next 3 days, rank 14 of 22"
+  },
+  {
+   "district": "Amritsar",
+   "units": 11,
+   "risk_used": 9.82,
+   "basis": "likely",
+   "covered_share": 0.4231,
+   "marginal_gain_last": 0.2905,
+   "reason": "likely burning 9.8 over the next 3 days, rank 15 of 22"
+  },
+  {
+   "district": "Patiala",
+   "units": 4,
+   "risk_used": 6.91,
+   "basis": "likely",
+   "covered_share": 0.1813,
+   "marginal_gain_last": 0.2901,
+   "reason": "likely burning 6.9 over the next 3 days, rank 16 of 22"
+  },
+  {
+   "district": "Gurdaspur",
+   "units": 4,
+   "risk_used": 6.86,
+   "basis": "likely",
+   "covered_share": 0.1813,
+   "marginal_gain_last": 0.288,
+   "reason": "likely burning 6.9 over the next 3 days, rank 17 of 22"
+  },
+  {
+   "district": "Hoshiarpur",
+   "units": 0,
+   "risk_used": 3.1,
+   "basis": "likely",
+   "covered_share": 0.0,
+   "marginal_gain_last": 0.0,
+   "reason": "likely burning 3.1 over the next 3 days, rank 18 of 22; every unit adds more elsewhere"
+  },
+  {
+   "district": "SBS Nagar (Nawanshahr)",
+   "units": 0,
+   "risk_used": 1.8,
+   "basis": "likely",
+   "covered_share": 0.0,
+   "marginal_gain_last": 0.0,
+   "reason": "likely burning 1.8 over the next 3 days, rank 19 of 22; every unit adds more elsewhere"
+  },
+  {
+   "district": "Rupnagar",
+   "units": 0,
+   "risk_used": 0.65,
+   "basis": "likely",
+   "covered_share": 0.0,
+   "marginal_gain_last": 0.0,
+   "reason": "likely burning 0.7 over the next 3 days, rank 20 of 22; every unit adds more elsewhere"
+  },
+  {
+   "district": "Pathankot",
+   "units": 0,
+   "risk_used": 0.32,
+   "basis": "likely",
+   "covered_share": 0.0,
+   "marginal_gain_last": 0.0,
+   "reason": "likely burning 0.3 over the next 3 days, rank 21 of 22; every unit adds more elsewhere"
+  },
+  {
+   "district": "SAS Nagar (Mohali)",
+   "units": 0,
+   "risk_used": 0.27,
+   "basis": "likely",
+   "covered_share": 0.0,
+   "marginal_gain_last": 0.0,
+   "reason": "likely burning 0.3 over the next 3 days, rank 22 of 22; every unit adds more elsewhere"
+  }
+ ],
+ "detected_only": [
+  {
+   "district": "Fazilka",
+   "units": 52,
+   "risk_used": 40.9,
+   "basis": "detected",
+   "covered_share": 0.9257,
+   "marginal_gain_last": 0.1558,
+   "reason": "forecast detections 40.9 over the next 3 days, rank 1 of 22"
+  },
+  {
+   "district": "Moga",
+   "units": 51,
+   "risk_used": 38.88,
+   "basis": "detected",
+   "covered_share": 0.9219,
+   "marginal_gain_last": 0.1556,
+   "reason": "forecast detections 38.9 over the next 3 days, rank 2 of 22"
+  },
+  {
+   "district": "Sangrur",
+   "units": 48,
+   "risk_used": 33.12,
+   "basis": "detected",
+   "covered_share": 0.9093,
+   "marginal_gain_last": 0.154,
+   "reason": "forecast detections 33.1 over the next 3 days, rank 3 of 22"
+  },
+  {
+   "district": "Sri Muktsar Sahib",
+   "units": 41,
+   "risk_used": 23.41,
+   "basis": "detected",
+   "covered_share": 0.8713,
+   "marginal_gain_last": 0.1545,
+   "reason": "forecast detections 23.4 over the next 3 days, rank 4 of 22"
+  },
+  {
+   "district": "Bathinda",
+   "units": 40,
+   "risk_used": 22.82,
+   "basis": "detected",
+   "covered_share": 0.8647,
+   "marginal_gain_last": 0.1583,
+   "reason": "forecast detections 22.8 over the next 3 days, rank 5 of 22"
+  },
+  {
+   "district": "Tarn Taran",
+   "units": 39,
+   "risk_used": 22.13,
+   "basis": "detected",
+   "covered_share": 0.8577,
+   "marginal_gain_last": 0.1614,
+   "reason": "forecast detections 22.1 over the next 3 days, rank 6 of 22"
+  },
+  {
+   "district": "Ferozepur",
+   "units": 37,
+   "risk_used": 19.12,
+   "basis": "detected",
+   "covered_share": 0.8428,
+   "marginal_gain_last": 0.1541,
+   "reason": "forecast detections 19.1 over the next 3 days, rank 7 of 22"
+  },
+  {
+   "district": "Faridkot",
+   "units": 31,
+   "risk_used": 14.51,
+   "basis": "detected",
+   "covered_share": 0.7878,
+   "marginal_gain_last": 0.1579,
+   "reason": "forecast detections 14.5 over the next 3 days, rank 8 of 22"
+  },
+  {
+   "district": "Mansa",
+   "units": 29,
+   "risk_used": 13.3,
+   "basis": "detected",
+   "covered_share": 0.7654,
+   "marginal_gain_last": 0.16,
+   "reason": "forecast detections 13.3 over the next 3 days, rank 9 of 22"
+  },
+  {
+   "district": "Kapurthala",
+   "units": 24,
+   "risk_used": 10.48,
+   "basis": "detected",
+   "covered_share": 0.6988,
+   "marginal_gain_last": 0.1618,
+   "reason": "forecast detections 10.5 over the next 3 days, rank 10 of 22"
+  },
+  {
+   "district": "Ludhiana",
+   "units": 24,
+   "risk_used": 10.11,
+   "basis": "detected",
+   "covered_share": 0.6988,
+   "marginal_gain_last": 0.1561,
+   "reason": "forecast detections 10.1 over the next 3 days, rank 11 of 22"
+  },
+  {
+   "district": "Amritsar",
+   "units": 23,
+   "risk_used": 9.82,
+   "basis": "detected",
+   "covered_share": 0.6834,
+   "marginal_gain_last": 0.1594,
+   "reason": "forecast detections 9.8 over the next 3 days, rank 12 of 22"
+  },
+  {
+   "district": "Fatehgarh Sahib",
+   "units": 16,
+   "risk_used": 7.02,
+   "basis": "detected",
+   "covered_share": 0.5507,
+   "marginal_gain_last": 0.1617,
+   "reason": "forecast detections 7.0 over the next 3 days, rank 13 of 22"
+  },
+  {
+   "district": "Patiala",
+   "units": 16,
+   "risk_used": 6.91,
+   "basis": "detected",
+   "covered_share": 0.5507,
+   "marginal_gain_last": 0.1592,
+   "reason": "forecast detections 6.9 over the next 3 days, rank 14 of 22"
+  },
+  {
+   "district": "Jalandhar",
+   "units": 15,
+   "risk_used": 6.36,
+   "basis": "detected",
+   "covered_share": 0.5276,
+   "marginal_gain_last": 0.154,
+   "reason": "forecast detections 6.4 over the next 3 days, rank 15 of 22"
+  },
+  {
+   "district": "Barnala",
+   "units": 8,
+   "risk_used": 4.69,
+   "basis": "detected",
+   "covered_share": 0.3297,
+   "marginal_gain_last": 0.1612,
+   "reason": "forecast detections 4.7 over the next 3 days, rank 16 of 22"
+  },
+  {
+   "district": "Gurdaspur",
+   "units": 6,
+   "risk_used": 4.12,
+   "basis": "detected",
+   "covered_share": 0.2592,
+   "marginal_gain_last": 0.1565,
+   "reason": "forecast detections 4.1 over the next 3 days, rank 17 of 22"
+  },
+  {
+   "district": "Hoshiarpur",
+   "units": 0,
+   "risk_used": 1.86,
+   "basis": "detected",
+   "covered_share": 0.0,
+   "marginal_gain_last": 0.0,
+   "reason": "forecast detections 1.9 over the next 3 days, rank 18 of 22; every unit adds more elsewhere"
+  },
+  {
+   "district": "SBS Nagar (Nawanshahr)",
+   "units": 0,
+   "risk_used": 1.08,
+   "basis": "detected",
+   "covered_share": 0.0,
+   "marginal_gain_last": 0.0,
+   "reason": "forecast detections 1.1 over the next 3 days, rank 19 of 22; every unit adds more elsewhere"
+  },
+  {
+   "district": "Rupnagar",
+   "units": 0,
+   "risk_used": 0.39,
+   "basis": "detected",
+   "covered_share": 0.0,
+   "marginal_gain_last": 0.0,
+   "reason": "forecast detections 0.4 over the next 3 days, rank 20 of 22; every unit adds more elsewhere"
+  },
+  {
+   "district": "Pathankot",
+   "units": 0,
+   "risk_used": 0.19,
+   "basis": "detected",
+   "covered_share": 0.0,
+   "marginal_gain_last": 0.0,
+   "reason": "forecast detections 0.2 over the next 3 days, rank 21 of 22; every unit adds more elsewhere"
+  },
+  {
+   "district": "SAS Nagar (Mohali)",
+   "units": 0,
+   "risk_used": 0.16,
+   "basis": "detected",
+   "covered_share": 0.0,
+   "marginal_gain_last": 0.0,
+   "reason": "forecast detections 0.2 over the next 3 days, rank 22 of 22; every unit adds more elsewhere"
+  }
+ ],
+ "moved": [
+  {
+   "district": "Fazilka",
+   "units_with_adjustment": 75,
+   "units_without_adjustment": 52,
+   "change_in_words": "23 more units with the adjustment",
+   "confidence_of_its_gap_range": "low"
+  },
+  {
+   "district": "Barnala",
+   "units_with_adjustment": 27,
+   "units_without_adjustment": 8,
+   "change_in_words": "19 more units with the adjustment",
+   "confidence_of_its_gap_range": "low"
+  },
+  {
+   "district": "Amritsar",
+   "units_with_adjustment": 11,
+   "units_without_adjustment": 23,
+   "change_in_words": "12 fewer units with the adjustment",
+   "confidence_of_its_gap_range": "low"
+  },
+  {
+   "district": "Patiala",
+   "units_with_adjustment": 4,
+   "units_without_adjustment": 16,
+   "change_in_words": "12 fewer units with the adjustment",
+   "confidence_of_its_gap_range": "low"
+  },
+  {
+   "district": "Mansa",
+   "units_with_adjustment": 24,
+   "units_without_adjustment": 29,
+   "change_in_words": "5 fewer units with the adjustment",
+   "confidence_of_its_gap_range": "low"
+  },
+  {
+   "district": "Jalandhar",
+   "units_with_adjustment": 12,
+   "units_without_adjustment": 15,
+   "change_in_words": "3 fewer units with the adjustment",
+   "confidence_of_its_gap_range": "medium"
+  },
+  {
+   "district": "Bathinda",
+   "units_with_adjustment": 38,
+   "units_without_adjustment": 40,
+   "change_in_words": "2 fewer units with the adjustment",
+   "confidence_of_its_gap_range": "low"
+  },
+  {
+   "district": "Faridkot",
+   "units_with_adjustment": 33,
+   "units_without_adjustment": 31,
+   "change_in_words": "2 more units with the adjustment",
+   "confidence_of_its_gap_range": "low"
+  },
+  {
+   "district": "Fatehgarh Sahib",
+   "units_with_adjustment": 14,
+   "units_without_adjustment": 16,
+   "change_in_words": "2 fewer units with the adjustment",
+   "confidence_of_its_gap_range": "medium"
+  },
+  {
+   "district": "Ferozepur",
+   "units_with_adjustment": 35,
+   "units_without_adjustment": 37,
+   "change_in_words": "2 fewer units with the adjustment",
+   "confidence_of_its_gap_range": "low"
+  },
+  {
+   "district": "Gurdaspur",
+   "units_with_adjustment": 4,
+   "units_without_adjustment": 6,
+   "change_in_words": "2 fewer units with the adjustment",
+   "confidence_of_its_gap_range": "medium"
+  },
+  {
+   "district": "Kapurthala",
+   "units_with_adjustment": 22,
+   "units_without_adjustment": 24,
+   "change_in_words": "2 fewer units with the adjustment",
+   "confidence_of_its_gap_range": "medium"
+  },
+  {
+   "district": "Ludhiana",
+   "units_with_adjustment": 22,
+   "units_without_adjustment": 24,
+   "change_in_words": "2 fewer units with the adjustment",
+   "confidence_of_its_gap_range": "medium"
+  },
+  {
+   "district": "Sri Muktsar Sahib",
+   "units_with_adjustment": 43,
+   "units_without_adjustment": 41,
+   "change_in_words": "2 more units with the adjustment",
+   "confidence_of_its_gap_range": "low"
+  },
+  {
+   "district": "Tarn Taran",
+   "units_with_adjustment": 37,
+   "units_without_adjustment": 39,
+   "change_in_words": "2 fewer units with the adjustment",
+   "confidence_of_its_gap_range": "medium"
+  },
+  {
+   "district": "Moga",
+   "units_with_adjustment": 50,
+   "units_without_adjustment": 51,
+   "change_in_words": "1 fewer units with the adjustment",
+   "confidence_of_its_gap_range": "low"
+  },
+  {
+   "district": "Sangrur",
+   "units_with_adjustment": 49,
+   "units_without_adjustment": 48,
+   "change_in_words": "1 more units with the adjustment",
+   "confidence_of_its_gap_range": "low"
+  }
+ ],
+ "units_not_placed": 0,
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-27T15:48:53+00:00",
+ "caveat": "Decision support for residue-management help. Not for enforcement. No farms or farmers identified. The split was computed by a fixed rule, and what one unit achieves is an assumption.",
+ "first_attempt_errors": [],
+ "revision_errors": [],
+ "llm_error": null,
+ "label": null,
+ "critic": {
+  "ok": false,
+  "issues": [
+   {
+    "type": "overclaim",
+    "sentence": "Its likely burning is estimated at 237.",
+    "note": "Treats likely burning as observed or counted burning in a dispatch brief.",
+    "by": "critic"
+   }
+  ],
+  "rewrite_used": false,
+  "error": null,
+  "rewrite_rejected": [],
+  "original_briefing": null,
+  "warning": null
+ }
+}

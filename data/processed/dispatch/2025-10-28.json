@@ -5,9 +5,9 @@
  "use_likely": true,
  "district": null,
  "variant": "model",
- "mode": "agent_revised",
- "headline": "Residue-management machine dispatch brief for Punjab control room",
- "briefing": "Where the units go: Of 500 units, the largest shares go to Fazilka (57 units), Sangrur (46 units), Tarn Taran (41 units), Ferozepur (40 units), and Bathinda (39 units). The other districts get smaller shares, up to the limit per district. All available units were placed.\nWhy: Fazilka has 35 forecast detections with the 80% band [3, 59], which is more compared with the last 3 days. Its likely burning is 204. The adjustment moves Fazilka from 34 units to 57 units.\nHow sure we are: The forecast is uncertain. Likely burning scales each forecast by the previous season's detection gap. The gap range behind Fazilka has low confidence. Likely burning is not a count of fires. What one unit achieves is assumed.\nWhat to watch: Rain in Fazilka over the last 3 days was 0.0 mm, and the next 3 days are 0.0 mm from the weather archive standing in for a forecast. Awareness teams might start at cell 1070 (north Fazilka) with 6 detections, and cell 1022 (north-east Fazilka) with 5 detections. Almost all the demand falls in the wheat sowing window of 15 to 20 days [K434].",
+ "mode": "agent",
+ "headline": "Dispatch brief for residue-management machines and awareness teams in Punjab",
+ "briefing": "Where the units go:\nOf 500 units, the largest shares go to Fazilka (57 units), Sangrur (46 units), Tarn Taran (41 units), Ferozepur (40 units), and Bathinda (39 units); the other districts get smaller shares. The limit per district is 125 units.\n\nWhy:\nFazilka has 35 forecast detections, with an 80% band from 3 to 59. That is more than the 12 detections of the last 3 days. Its likely burning is estimated at 204. The adjustment moves Fazilka from 34 units to 57 units.\n\nHow sure we are:\nThe forecast is uncertain. Likely burning scales each forecast by the previous season's detection gap. The gap range behind Fazilka has low confidence. Likely burning is not a count of fires. What one unit achieves is assumed.\n\nWhat to watch:\nFazilka had 0.0 mm of rain in the last 3 days. The weather archive, standing in for a forecast, shows 0.0 mm for the next 3. Teams might start at cell 1070 (north Fazilka), with 6 detections, and at cell 1022 (north-east Fazilka), with 5 detections. The state says demand for straw machines falls almost entirely in the wheat sowing window of 15 to 20 days [K434].",
  "district_paragraph": null,
  "citations": [
   "K434"
@@ -29,18 +29,20 @@
    41.0,
    40.0,
    39.0,
+   125.0,
    35.0,
    80.0,
    3.0,
    59.0,
+   12.0,
    3.0,
    204.0,
    34.0,
    57.0,
-   3.0,
    0.0,
    3.0,
    0.0,
+   3.0,
    1070.0,
    6.0,
    1022.0,
@@ -59,7 +61,7 @@
     "use_likely": true
    },
    "result_summary": "{\"date\": \"2025-10-28\", \"days_ahead\": 3, \"what_is_forecast\": \"satellite fire detections in each district over the next 3 days\", \"ranked_by\": \"likely burning\", \"top_districts\": [{\"d…",
-   "ms": 23
+   "ms": 24
   },
   {
    "step": 2,
@@ -72,7 +74,7 @@
     "use_likely": true
    },
    "result_summary": "{\"date\": \"2025-10-28\", \"days_ahead\": 3, \"units_available\": 500, \"units_placed\": 500, \"limit_per_district\": 125, \"planned_on\": \"likely burning\", \"districts\": [{\"district\": \"Fazilka…",
-   "ms": 45
+   "ms": 52
   },
   {
    "step": 3,
@@ -83,32 +85,21 @@
     "district": "Fazilka"
    },
    "result_summary": "{\"district\": \"Fazilka\", \"date\": \"2025-10-28\", \"days\": 3, \"rain_last_3_days_mm\": 0.0, \"rain_next_3_days_mm\": 0.0, \"note\": \"The next 3 days are taken from the weather archive, stand…",
-   "ms": 68
+   "ms": 12
   },
   {
    "step": 4,
    "agent": "dispatcher",
    "tool": "get_hotspot_cells",
    "args": {
-    "district": "Fazilka",
-    "date": "2025-10-28"
+    "date": "2025-10-28",
+    "district": "Fazilka"
    },
    "result_summary": "{\"district\": \"Fazilka\", \"date\": \"2025-10-28\", \"window_days\": 7, \"district_detections\": 20, \"cells\": [{\"cell\": \"cell 1070 (north Fazilka)\", \"detections\": 6, \"share_of_district_pct\"…",
-   "ms": 312
+   "ms": 71
   },
   {
    "step": 5,
-   "agent": "dispatcher",
-   "tool": "get_gap_range",
-   "args": {
-    "district": "Fazilka",
-    "season": 2024
-   },
-   "result_summary": "{\"district\": \"Fazilka\", \"season\": 2024, \"what_the_gap_is\": \"the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed\", \"detected…",
-   "ms": 3
-  },
-  {
-   "step": 6,
    "agent": "dispatcher",
    "tool": "search_knowledge",
    "args": {
@@ -116,10 +107,10 @@
     "before": "2025-10-28"
    },
    "result_summary": "{\"results\": [{\"chunk_id\": \"K434\", \"title\": \"Managing paddy straw without burning, in-situ and ex-situ options and machines\", \"text\": \"# Why timing and placement matter\\n\\nThe stat…",
-   "ms": 556
+   "ms": 80
   },
   {
-   "step": 7,
+   "step": 6,
    "agent": "critic",
    "tool": "review",
    "args": {
@@ -128,8 +119,8 @@
      "K434"
     ]
    },
-   "result_summary": "1 issue(s)",
-   "ms": 3058
+   "result_summary": "1 issue(s), rewrite rejected",
+   "ms": 3730
   }
  ],
  "facts": {
@@ -353,25 +344,6 @@
     }
    ],
    "note": "Cells come from satellite detections in the last 7 days. They cannot show burning that was not detected."
-  },
-  "get_gap_range": {
-   "district": "Fazilka",
-   "season": 2024,
-   "what_the_gap_is": "the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed",
-   "detected_change_pct": -86.0,
-   "reference_change_pct": 14.3,
-   "changes_are_for": "S-NPP detections against 2022",
-   "changes_in_words": "counts fell 86.0% and burned area rose 14.3%",
-   "gap_low_pct": 77.7,
-   "gap_high_pct": 87.8,
-   "methods": "S-NPP detections against burned area, base season 2022; official counts against burned area, base season 2022 (start date not stated); S-NPP detections against burned area, base season 2023; official counts against burned area, base season 2023 (start date not stated)",
-   "confidence": "low",
-   "direction": "counts fell more than burned area",
-   "reason": null,
-   "timing_evidence": "Punjab-wide only. Night share of S-NPP detections: 1.6% (95% interval 1.4% to 1.9%) in 2024 against 0.2% (0.1% to 0.2%) in 2022: supports a shift in timing. MODIS change relative to the S-NPP change since 2022: 1.91 times (rule: at least 1.5): supports a shift in timing. MODIS passes at other times (Terra in the morning, Aqua drifting later in the afternoon), which is a confound.",
-   "other_explanations": "A fall in detections per burned area fits three explanations: burning moved outside satellite pass times, fires became smaller or cooler, or the sensitivity of the burned-area product changed.",
-   "caveat": "The range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification.",
-   "used_for": "This is the previous season's range, which scales this season's forecast. A negative value is treated as no adjustment."
   },
   "search_knowledge": {
    "results": [
@@ -921,12 +893,9 @@
  ],
  "units_not_placed": 0,
  "model": "gemini-3.5-flash-lite",
- "generated_at": "2026-11-27T14:13:56+00:00",
+ "generated_at": "2026-11-27T16:15:38+00:00",
  "caveat": "Decision support for residue-management help. Not for enforcement. No farms or farmers identified. The split was computed by a fixed rule, and what one unit achieves is an assumption.",
- "first_attempt_errors": [
-  "raw field name in briefing: 'get_allocation' (write it in plain words)",
-  "raw field name in briefing: 'units_not_placed' (write it in plain words)"
- ],
+ "first_attempt_errors": [],
  "revision_errors": [],
  "llm_error": null,
  "label": null,
@@ -935,14 +904,16 @@
   "issues": [
    {
     "type": "overclaim",
-    "sentence": "Awareness teams might start at cell 1070 (north Fazilka) with 6 detections, and cell 1022 (north-east Fazilka) with 5 detections.",
-    "note": "Dispatch briefs must not claim that a cell shows where burning will be or is observed burning.",
+    "sentence": "Teams might start at cell 1070 (north Fazilka), with 6 detections, and at cell 1022 (north-east Fazilka), with 5 detections.",
+    "note": "Dispatch briefs must not treat a cell as showing where burning will be.",
     "by": "critic"
    }
   ],
   "rewrite_used": false,
   "error": null,
-  "rewrite_rejected": [],
+  "rewrite_rejected": [
+   "it fails the Verifier: say where awareness teams might start in Fazilka, naming a cell that was returned for it"
+  ],
   "original_briefing": null,
   "warning": null
  }

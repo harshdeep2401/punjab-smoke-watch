@@ -408,9 +408,15 @@ def cmd_demo_cache(args) -> None:
     except LLMError as e:
         llm = None
         print(f"No LLM ({e}); briefings that are not already saved will use the template.")
-    out = demo.build_demo_cache(llm=llm, store=DataStore(), kb=KnowledgeBase(), top_n=args.top_n, force=args.force, use_planner=args.plan)
-    bad = [x for v in out["briefed"].values() for x in v if not x.split("+")[0].endswith(("agent", "agent_revised"))]
+    kb = KnowledgeBase()
+    first = demo.build_demo_cache(llm=llm, store=DataStore(), kb=kb, top_n=args.top_n, force=args.force, use_planner=args.plan)
+    out = demo.build_part2_cache(llm=llm, kb=kb, force=args.force, redo_dispatch=args.redo_dispatch)
+    bad = [x for v in first["briefed"].values() for x in v if not x.split("+")[0].endswith(("agent", "agent_revised"))]
+    bad += [f"audit {a['district']} {a['season']}" for a in out["audits"] if a["mode"] == "template"]
+    bad += [f"dispatch {d['date']}" for d in out["dispatches"] if d["mode"] == "template"]
     print(f"Saved data/processed/demo.json. Not written by the agent: {bad or 'none'}")
+    if llm is not None:
+        print("token usage:", llm.usage)
 
 
 DECISION_FILE = "decision_backtest.json"
@@ -547,6 +553,7 @@ def main() -> None:
     p.add_argument("--critic", action="store_true", help="brief: have the Critic read each briefing (one extra LLM call each)")
     p.add_argument("--no-critic", action="store_true", help="audit / dispatch: skip the Critic (it is on by default)")
     p.add_argument("--force", action="store_true", help="demo-cache / audit / dispatch: regenerate what is already saved")
+    p.add_argument("--redo-dispatch", action="store_true", help="demo-cache: regenerate the dispatches only")
     p.add_argument("--no-llm", action="store_true", help="brief / audit / dispatch: skip the LLM and use the template fallback")
     p.add_argument("--machines", type=int, default=500, help="dispatch: units available (machines or teams)")
     p.add_argument("--max-share", type=float, default=0.25, help="dispatch: most one district may take, as a share")

@@ -19,5 +19,57 @@
    "Tarn Taran:agent"
   ]
  },
- "generated_at": "2026-11-25T07:41:19+00:00"
+ "generated_at": "2026-11-27T15:58:00+00:00",
+ "audits": [
+  {
+   "district": "Punjab",
+   "season": 2024,
+   "mode": "agent",
+   "verified": true
+  },
+  {
+   "district": "Punjab",
+   "season": 2025,
+   "mode": "agent_revised",
+   "verified": true
+  },
+  {
+   "district": "Tarn Taran",
+   "season": 2025,
+   "mode": "agent",
+   "verified": true
+  },
+  {
+   "district": "Sangrur",
+   "season": 2025,
+   "mode": "agent_revised",
+   "verified": true
+  },
+  {
+   "district": "Amritsar",
+   "season": 2025,
+   "mode": "agent_revised+critic",
+   "verified": true
+  }
+ ],
+ "dispatches": [
+  {
+   "date": "2025-10-28",
+   "units": 500,
+   "mode": "agent_revised",
+   "verified": true
+  },
+  {
+   "date": "2025-10-31",
+   "units": 500,
+   "mode": "agent",
+   "verified": true
+  },
+  {
+   "date": "2025-11-14",
+   "units": 500,
+   "mode": "agent",
+   "verified": true
+  }
+ ]
 }

@@ -333,6 +333,7 @@ class Plan:
     # what the run actually fetched; None means the rain and cell checks are not made
     rain: dict[str, tuple[float, float]] | None = None  # district -> (mm over the last 3 days, over the next 3)
     cells: dict[str, list[int]] | None = None  # district -> cell ids offered to awareness teams (may be empty)
+    cell_detections: dict[int, int] | None = None  # cell id -> its detections, which must be given when it is named
 
 
 def _names(district: str) -> list[str]:
@@ -497,10 +498,53 @@ NO_CLUSTER = re.compile(r"\bno\s+(?:\w+\s+)?(?:cluster|cell)\b", re.I)
 COPIED = re.compile(r"saying in the same sentence|\bif there are no cells\b|\bsay that\b", re.I)
 
 
+ENOUGH = re.compile(r"\b(enough|sufficient|adequate|ample|plentiful)\b", re.I)
+MACHINE = re.compile(r"\b(machines?|machinery|equipment|units|balers?|seeders?)\b", re.I)
+
+
+def _sufficiency_errors(text: str) -> list[str]:
+    """No brief may say there are enough machines: nothing here measures that, and it is the opposite of the need."""
+    return [f"do not say whether there are enough machines: nothing here measures it ('{m.group(0)}')"
+            for s in sentences(CITATION.sub(" ", text)) if MACHINE.search(s) and (m := ENOUGH.search(s))]
+
+
+# "likely burning is 437 detections", "437 detections of likely burning": the estimate stated as something observed
+LIKELY_AS_COUNT = re.compile(r"likely burning[^.;]{0,40}?\b\d[\d,]*\s+(?:\w+\s+)?(?:detections?|fires?)\b"
+                             r"|\b\d[\d,]*\s+(?:\w+\s+)?(?:detections?|fires?)\s+of\s+likely burning", re.I)
+
+
+def _likely_as_count_errors(text: str) -> list[str]:
+    """Likely burning is an estimate and "not a count of fires", so its figure is never a number of detections."""
+    return [f"do not give likely burning as a number of detections or fires, it is an estimate: '{m.group(0)}'"
+            for s in sentences(CITATION.sub(" ", text)) if (m := LIKELY_AS_COUNT.search(s))]
+
+
+DEMAND = re.compile(r"\bdemand\b", re.I)
+
+
+def _demand_errors(text: str) -> list[str]:
+    """A sentence about demand says what is demanded and when, or it means nothing to the reader."""
+    return ["say in the same sentence that it is demand for straw machines, in the wheat sowing window"
+            for s in sentences(CITATION.sub(" ", text))
+            if DEMAND.search(s) and not (MACHINE.search(s) and re.search(r"\bsowing\b", s, re.I))][:1]
+
+
 def _leaders(plan: Plan) -> list[str]:
     """The district or districts with the most units. Empty if nothing was placed."""
     most = max(plan.units.values(), default=0)
     return sorted(d for d, n in plan.units.items() if n == most and most > 0)
+
+
+def _missing_counts(text: str, cells: list[int], detections: dict[int, int]) -> list[str]:
+    """A cell is named with its detections, in the same sentence: a team should know how thin the cluster is."""
+    errors = []
+    for sentence in sentences(CITATION.sub(" ", text)):
+        rest = CELL_ID.sub(" ", sentence)
+        for m in CELL_ID.finditer(sentence):
+            n = detections.get(int(m.group(1))) if int(m.group(1)) in cells else None
+            if n is not None and not (re.search(rf"(?<![\d.]){n}(?![\d.])", rest) and re.search("detection", rest, re.I)):
+                errors.append(f"give the {n} detections of cell {m.group(1)} in the sentence that names it")
+    return errors
 
 
 def _site_errors(text: str, districts: list[str], plan: Plan, need_cell: bool) -> list[str]:
@@ -521,6 +565,7 @@ def _site_errors(text: str, districts: list[str], plan: Plan, need_cell: bool) -
                for m in CELL_ID.finditer(text) if int(m.group(1)) not in cells]
     if cells and (m := NO_CLUSTER.search(text)):
         errors.append(f"'{m.group(0)}' is wrong: {name} has cells with clusters of detections")
+    errors += _missing_counts(text, cells, plan.cell_detections or {})
     if cells and need_cell and not CELL_ID.search(text):
         errors.append(f"say where awareness teams might start in {name}, naming a cell that was returned for it")
     return errors
@@ -590,6 +635,7 @@ def verify_dispatch(briefing: dict, evidence: Evidence, plan: Plan, district: st
         errors += _dispatch_banned("briefing", text) + _dispatch_content_errors(text, plan)
         errors += unit_errors(text, plan, _where_part(text)) + name_errors(text, plan) + _archive_rain_errors(text)
         errors += _site_errors(text, _leaders(plan), plan, need_cell=True) + _why_errors(text, plan)
+        errors += _sufficiency_errors(text) + _demand_errors(text) + _likely_as_count_errors(text)
         if m := COPIED.search(text):
             errors.append(f"an instruction was copied into the brief: '{m.group(0)}'")
     if district:
@@ -602,7 +648,8 @@ def verify_dispatch(briefing: dict, evidence: Evidence, plan: Plan, district: st
             found = [e for e in part.errors if "citation" not in e]  # the brief's citations are checked above
             found += _dispatch_banned("paragraph", paragraph) + unit_errors(paragraph, plan)
             found += name_errors(paragraph, plan) + _archive_rain_errors(paragraph)
-            found += _site_errors(paragraph, [district], plan, need_cell=False)
+            found += _site_errors(paragraph, [district], plan, need_cell=False) + _sufficiency_errors(paragraph)
+            found += _likely_as_count_errors(paragraph)
             errors += [f"district paragraph: {e}" for e in found]
     elif _is_text(paragraph):
         errors.append("no district_paragraph was asked for")

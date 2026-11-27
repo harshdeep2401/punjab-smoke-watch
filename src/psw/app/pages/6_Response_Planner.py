@@ -6,6 +6,7 @@ import streamlit as st
 
 from psw import config
 from psw.agents import dispatch_tools, orchestrator
+from psw.agents.demo import load_demo
 from psw.agents.dispatch_tools import ResponseStore, Settings, plan_allocation
 from psw.app import planner_charts as charts
 from psw.app import planner_view as view
@@ -44,6 +45,8 @@ use_likely = st.sidebar.toggle("Plan on likely burning", value=True,
                                help="On: the forecast adjusted for last season's detection gap. Off: forecast "
                                     "detections only.")
 st.sidebar.caption("Forecasts are issued from 15 September to 27 November of each test season.")
+if saved_days := [d["date"] for d in (load_demo(config.PROCESSED) or {}).get("dispatches", [])]:
+    st.sidebar.caption(f"Dates with a saved dispatch brief: {', '.join(saved_days)}.")
 
 if not isinstance(day, Date) or day not in set(dates):
     st.warning(f"No fire-risk forecast was issued on {day}. Pick a date from 15 September to 27 November of "

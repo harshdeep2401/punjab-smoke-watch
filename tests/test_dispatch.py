@@ -1,11 +1,13 @@
 """Dispatcher tools, template, Verifier checks and orchestrator, on the committed data with a scripted LLM. No network."""
 import json
 import re
+from dataclasses import replace
 from datetime import date
 
 import pandas as pd
 import pytest
 
+from psw import config
 from psw.agents import dispatch_template, dispatch_tools, dispatcher, orchestrator, verifier
 from psw.agents.dispatch_tools import ResponseStore, Settings
 from psw.agents.verifier import (FIELD_NAME, Evidence, Plan, lowercase_words, name_errors, unit_errors,
@@ -40,6 +42,13 @@ class KB:
 @pytest.fixture
 def kb():
     return KB()
+
+
+class RealChunks:
+    """The committed knowledge base, without the embedding model: a re-check only reads the chunk texts."""
+
+    def __init__(self):
+        self.chunks = pd.read_parquet(config.PROCESSED / "kb_chunks.parquet")
 
 
 def good_draft(store, day=DAY, district=None, settings=Settings()) -> tuple[dict, str]:
@@ -355,15 +364,7 @@ def test_the_dispatcher_spec_requires_the_planned_tools(store, kb):
 # ---------- the saved record keeps every figure, so it can be checked again ----------
 
 def _recheck(rec, store, kb, facts):
-    """Run the dispatch Verifier on a saved record, with only the record's own facts as evidence."""
-    settings = Settings(rec.units, rec.max_share, rec.use_likely)
-    allocation = dispatch_tools.plan_allocation(store, rec.date, settings)
-    check = orchestrator._dispatch_check(allocation, rec.date, rec.district, kb)
-    found = [{"tool": name.split(" (")[0], "args": {}, "result": result} for name, result in facts.items()]
-    draft = {"headline": rec.headline, "briefing": rec.briefing, "citations": rec.citations}
-    if rec.district_paragraph:
-        draft["district_paragraph"] = rec.district_paragraph
-    return check(draft, found)
+    return orchestrator.recheck_dispatch({**rec.to_dict(), "facts": facts}, store, kb)
 
 
 def test_a_record_with_two_districts_can_be_checked_again_from_its_facts(store, kb, tmp_path):
@@ -424,6 +425,32 @@ def test_site_claims_are_checked_against_what_was_fetched(text, message):
     assert any(message in e for e in verifier._site_errors(text, ["Fazilka"], SITE, need_cell=True))
 
 
+def test_a_named_cell_must_come_with_its_detections():
+    """Seen in the demo run: every brief named cells and none said how many detections they had."""
+    plan = replace(SITE, cell_detections={1070: 6, 1022: 5})
+    check = lambda text: verifier._site_errors(text, ["Fazilka"], plan, need_cell=True)  # noqa: E731
+    bare = check("Start at cell 1070 (north Fazilka) and cell 1022 (north-east Fazilka).")
+    assert len(bare) == 2 and "give the 6 detections of cell 1070" in bare[0]
+    assert check("Start at cell 1070, with 6 detections, and cell 1022, with 5 detections.") == []
+    assert check("Cell 1070 and cell 1022 had 6 and 5 detections.") == []
+    assert check("Start at cell 1070. It had 6 detections.")  # not in the sentence that names it
+
+
+@pytest.mark.parametrize("sentence", [
+    "The state says the number of machines is enough for the paddy area by their field capacity.",
+    "Machinery is sufficient in this district.",
+    "There are adequate balers.",
+])
+def test_a_brief_cannot_say_there_are_enough_machines(sentence):
+    """Seen in the demo run: half a source sentence was quoted, saying the opposite of what it says."""
+    assert verifier._sufficiency_errors(sentence)
+
+
+def test_the_timing_constraint_itself_is_allowed():
+    assert verifier._sufficiency_errors("A machine may not be available when a farmer wants it.") == []
+    assert verifier._sufficiency_errors("There is not enough evidence for a range.") == []
+
+
 def test_site_claims_that_match_pass():
     good = "Fazilka had 1.5 mm and then 0.0 mm. Start at cell 1022 (north Fazilka)."
     assert verifier._site_errors(good, ["Fazilka"], SITE, need_cell=True) == []
@@ -444,3 +471,94 @@ def test_why_must_explain_the_district_with_the_most_units():
     assert any("start 'Why' with Fazilka" in e for e in verifier._why_errors(wrong, SITE))
     right = "Why: Fazilka has 35 forecast detections. Barnala moves too. How sure we are: not very."
     assert verifier._why_errors(right, SITE) == []
+
+
+# ---------- demo cache, Part 2 ----------
+
+def test_demo_dispatch_dates_and_audit_targets_follow_fixed_rules(store):
+    from psw.agents import demo
+    days = demo.dispatch_dates(store.daily, date(2025, 10, 31), set(store.dates))
+    assert [str(d) for d in days] == ["2025-10-28", "2025-10-31", "2025-11-14"]
+    totals = store.daily[store.daily["season"] == 2025].groupby("date")["fire_count"].sum().rolling(3, min_periods=1).sum()
+    late = days[-1]
+    assert totals[late] < totals.max() / 4 and all(totals[d] >= totals.max() / 4 for d in totals.index
+                                                   if days[1] < d < late)
+    assert demo.audit_targets(store.audit, [2024, 2025]) == [
+        ("Punjab", 2024), ("Punjab", 2025), ("Tarn Taran", 2025), ("Sangrur", 2025), ("Amritsar", 2025)]
+
+
+def test_demo_cache_never_replaces_an_agent_brief_with_the_template(store, kb, tmp_path):
+    from psw.agents import demo
+    (tmp_path / "demo.json").write_text(json.dumps({"peak": "2025-10-31"}))
+    draft, leader = good_draft(store)
+    orchestrator.run_dispatch(DAY, llm=FakeLLM([tool_turn(leader), final(draft)]), store=store, kb=kb, root=tmp_path,
+                              use_critic=False)
+    saved = orchestrator.dispatch_path(DAY, tmp_path).read_text()
+    log = []
+    out = demo.build_part2_cache(llm=FakeLLM([LLMError("down")] * 20), audit_store=store.audit, response_store=store,
+                                 kb=kb, root=tmp_path, redo_dispatch=True, log=log.append)
+    assert orchestrator.dispatch_path(DAY, tmp_path).read_text() == saved
+    assert any("kept the saved one" in line for line in log)
+    modes = {d["date"]: d["mode"] for d in out["dispatches"]}
+    assert modes[DAY] == "agent" and modes["2025-10-31"] == "template"  # nothing was saved for it before
+    assert len(out["audits"]) == 5 and all(a["verified"] for a in out["audits"])
+    assert json.loads((tmp_path / "demo.json").read_text())["dispatches"] == out["dispatches"]
+
+
+def test_demo_cache_reuses_a_saved_agent_brief_without_calling_the_llm(store, kb, tmp_path):
+    from psw.agents import demo
+    rec, what = demo._cached("SAVED", False, lambda: pytest.fail("ran the agent"), lambda r: pytest.fail("saved"))
+    assert (rec, what) == ("SAVED", "reused")
+
+
+# ---------- what is committed ----------
+
+@pytest.mark.parametrize("path", sorted((config.PROCESSED / "dispatch").glob("*.json")), ids=lambda p: p.stem)
+def test_every_committed_dispatch_passes_the_current_verifier(path, store):
+    """If a check is tightened, the saved demo briefs must be regenerated, not left behind."""
+    result = orchestrator.recheck_dispatch(json.loads(path.read_text()), store, RealChunks())
+    assert result.ok, result.errors
+
+
+@pytest.mark.parametrize("sentence", [
+    "Its likely burning is 437 detections.",
+    "Likely burning is estimated at 237 forecast detections.",
+    "Sangrur has 437 detections of likely burning.",
+    "Its likely burning is about 1,204 fires.",
+])
+def test_likely_burning_is_never_given_as_a_count(sentence):
+    """Seen in the committed 2025-10-31 brief, against its own caveat that likely burning is not a count of fires."""
+    assert verifier._likely_as_count_errors(sentence)
+
+
+@pytest.mark.parametrize("sentence", [
+    "Its likely burning is estimated at 437.",
+    "Likely burning is not a count of fires.",
+    "Sangrur leads with likely burning of 437; it has 215 detections forecast.",
+    "Likely burning scales each forecast by the previous season's detection gap.",
+])
+def test_likely_burning_wording_that_is_allowed(sentence):
+    assert verifier._likely_as_count_errors(sentence) == []
+
+
+def test_a_sentence_about_demand_must_say_for_what_and_when():
+    assert verifier._demand_errors("Demand falls within 15 to 20 days.")
+    assert verifier._demand_errors("Almost all the demand falls in the wheat sowing window.")
+    assert verifier._demand_errors("The state says demand for straw machines falls in the wheat sowing window.") == []
+
+
+def test_the_demo_cache_drops_a_saved_brief_that_no_longer_passes(store, kb, tmp_path):
+    from psw.agents import demo
+    (tmp_path / "demo.json").write_text(json.dumps({"peak": "2025-10-31"}))
+    draft, leader = good_draft(store)
+    orchestrator.run_dispatch(DAY, llm=FakeLLM([tool_turn(leader), final(draft)]), store=store, kb=kb, root=tmp_path,
+                              use_critic=False)
+    path = orchestrator.dispatch_path(DAY, tmp_path)
+    record = json.loads(path.read_text())
+    record["briefing"] += " The number of machines is enough."  # as if written before the check existed
+    path.write_text(json.dumps(record))
+    log = []
+    out = demo.build_part2_cache(llm=FakeLLM([LLMError("down")] * 20), audit_store=store.audit, response_store=store,
+                                 kb=kb, root=tmp_path, log=log.append)
+    assert any("no longer passes" in line for line in log)
+    assert {d["date"]: d["mode"] for d in out["dispatches"]}[DAY] == "template"

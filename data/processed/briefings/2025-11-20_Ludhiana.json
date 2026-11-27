@@ -1,0 +1,247 @@
+{
+ "district": "Ludhiana",
+ "date": "2025-11-20",
+ "mode": "agent",
+ "headline": "Ludhiana District Air Quality and Stubble Fire Briefing",
+ "briefing": "On 2025-11-20, Ludhiana district recorded 4 stubble fire detections and a total fire radiative power of 29.0 MW, ranking 1 among Punjab's districts, where the total across Punjab was 19. Fire detections are a lower bound due to missed fires, cloud cover, and overpass timing [K101]. Winds blew from the ENE at a speed of 1.7 km/h, with upwind fire pressure driven primarily by Fatehgarh Sahib at 55.1% and Outside Punjab at 44.9%. The next-day PM2.5 forecast expects a p50 level of 126.0 ug/m3, compared with a persistence baseline of 131.7 ug/m3 and today's value of 131.7 ug/m3. The 80% forecast interval ranges from an uncertainty band of p10 at 85.5 ug/m3 to p90 at 148.7 ug/m3. Forecast results from so few seasons are noisy because only four seasons have complete fire and PM2.5 data [K036].",
+ "citations": [
+  "K101",
+  "K036"
+ ],
+ "sources": [
+  {
+   "chunk_id": "K101",
+   "title": "Ludhiana fire season 2024",
+   "doc_type": "season_summary"
+  },
+  {
+   "chunk_id": "K036",
+   "title": "Limitations of this project",
+   "doc_type": "curated"
+  }
+ ],
+ "verification": {
+  "ok": true,
+  "errors": [],
+  "checked_numbers": [
+   2025.0,
+   11.0,
+   20.0,
+   4.0,
+   29.0,
+   1.0,
+   19.0,
+   1.7,
+   55.1,
+   44.9,
+   126.0,
+   131.7,
+   131.7,
+   80.0,
+   85.5,
+   148.7
+  ]
+ },
+ "trace": [
+  {
+   "step": 1,
+   "agent": "planner",
+   "tool": "plan",
+   "args": {
+    "sentinel_flags": [
+     "smog_risk"
+    ]
+   },
+   "result_summary": "{'steps': ['Examine the wind direction, wind speed, and upwind fire pressure for Ludhiana using the wind and upwind tool.', 'Search the knowledge base for Ludhiana 2025 season con…",
+   "ms": 1994
+  },
+  {
+   "step": 2,
+   "agent": "analyst",
+   "tool": "get_district_snapshot",
+   "args": {
+    "district": "Ludhiana",
+    "date": "2025-11-20"
+   },
+   "result_summary": "{\"district\": \"Ludhiana\", \"date\": \"2025-11-20\", \"fire_count\": 4, \"frp_sum_mw\": 29.0, \"fire_count_7d_mean\": 4.1, \"change_vs_7d_pct\": -3.4, \"rank_in_punjab\": 1, \"punjab_total\": 19, \"…",
+   "ms": 16
+  },
+  {
+   "step": 3,
+   "agent": "analyst",
+   "tool": "get_city_forecast",
+   "args": {
+    "date": "2025-11-20",
+    "city": "Ludhiana"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"issue_date\": \"2025-11-20\", \"target_date\": \"2025-11-21\", \"p10\": 85.5, \"p50\": 126.0, \"p90\": 148.7, \"pm25_today\": 131.7, \"persistence_p50\": 131.7, \"band_width\":…",
+   "ms": 4
+  },
+  {
+   "step": 4,
+   "agent": "analyst",
+   "tool": "get_wind_and_upwind",
+   "args": {
+    "city": "Ludhiana",
+    "date": "2025-11-20"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"date\": \"2025-11-20\", \"wind_dir_from_deg\": 74.0, \"wind_dir_compass\": \"ENE\", \"wind_speed_kmh\": 1.7, \"upwind_frp_l0\": 3.6, \"top_upwind_districts\": [{\"district\":…",
+   "ms": 12
+  },
+  {
+   "step": 5,
+   "agent": "analyst",
+   "tool": "get_model_reliability",
+   "args": {
+    "city": "Ludhiana"
+   },
+   "result_summary": "{\"city\": \"Ludhiana\", \"test_seasons\": [2024, 2025], \"mae\": 11.0, \"coverage_80_pct\": 87.7, \"mae_persistence\": 10.3, \"mae_no_fire\": 10.8, \"n_forecasts\": 154}",
+   "ms": 0
+  },
+  {
+   "step": 6,
+   "agent": "analyst",
+   "tool": "search_knowledge",
+   "args": {
+    "query": "Ludhiana 2024 season limitations model card",
+    "before": "2025-11-20",
+    "district": "Ludhiana"
+   },
+   "result_summary": "{\"results\": [{\"chunk_id\": \"K311\", \"title\": \"Ludhiana burning audit, season 2024\", \"text\": \"## Detection gap\\n\\nInsufficient evidence for Ludhiana in 2024: no range is given, becau…",
+   "ms": 660
+  }
+ ],
+ "facts": {
+  "get_district_snapshot": {
+   "district": "Ludhiana",
+   "date": "2025-11-20",
+   "fire_count": 4,
+   "frp_sum_mw": 29.0,
+   "fire_count_7d_mean": 4.1,
+   "change_vs_7d_pct": -3.4,
+   "rank_in_punjab": 1,
+   "punjab_total": 19,
+   "last_7_days": [
+    {
+     "date": "2025-11-14",
+     "count": 4
+    },
+    {
+     "date": "2025-11-15",
+     "count": 8
+    },
+    {
+     "date": "2025-11-16",
+     "count": 8
+    },
+    {
+     "date": "2025-11-17",
+     "count": 5
+    },
+    {
+     "date": "2025-11-18",
+     "count": 0
+    },
+    {
+     "date": "2025-11-19",
+     "count": 0
+    },
+    {
+     "date": "2025-11-20",
+     "count": 4
+    }
+   ],
+   "nearest_city": "Ludhiana",
+   "data_as_of": "2025-11-20"
+  },
+  "get_city_forecast": {
+   "city": "Ludhiana",
+   "issue_date": "2025-11-20",
+   "target_date": "2025-11-21",
+   "p10": 85.5,
+   "p50": 126.0,
+   "p90": 148.7,
+   "pm25_today": 131.7,
+   "persistence_p50": 131.7,
+   "band_width": 63.2,
+   "exceeds_naaqs_60_prob_hint": "p50 above 60"
+  },
+  "get_wind_and_upwind": {
+   "city": "Ludhiana",
+   "date": "2025-11-20",
+   "wind_dir_from_deg": 74.0,
+   "wind_dir_compass": "ENE",
+   "wind_speed_kmh": 1.7,
+   "upwind_frp_l0": 3.6,
+   "top_upwind_districts": [
+    {
+     "district": "Fatehgarh Sahib",
+     "share_pct": 55.1
+    },
+    {
+     "district": "Outside Punjab",
+     "share_pct": 44.9
+    },
+    {
+     "district": "Bathinda",
+     "share_pct": 0.0
+    }
+   ]
+  },
+  "get_model_reliability": {
+   "city": "Ludhiana",
+   "test_seasons": [
+    2024,
+    2025
+   ],
+   "mae": 11.0,
+   "coverage_80_pct": 87.7,
+   "mae_persistence": 10.3,
+   "mae_no_fire": 10.8,
+   "n_forecasts": 154
+  },
+  "search_knowledge": {
+   "results": [
+    {
+     "chunk_id": "K311",
+     "title": "Ludhiana burning audit, season 2024",
+     "text": "## Detection gap\n\nInsufficient evidence for Ludhiana in 2024: no range is given, because of burned area under 50 km² in 2024 (15 km²).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Season window Sep 15 to Nov 30."
+    },
+    {
+     "chunk_id": "K036",
+     "title": "Limitations of this project",
+     "text": "**Cities.** Forecasts exist for four cities only: Ludhiana, Amritsar, Patiala and Bathinda. District briefings use the fires of a district and the PM2.5 and wind of the cities, so a district without a city has no PM2.5 forecast of its own.\n\n**Data size.** Only four seasons (2022 to 2025) have complete fire and PM2.5 data. The forecast is tested on the last two seasons, and each test fold is trained on only two or three seasons. Results from so few seasons are noisy. Fires also fell a lot from 2022 to 2025, so the seasons are not alike.\n\n**Forecast skill.** See the model card for the measured results, including how the model compares with a persistence baseline and with a model without fire features.\n\n**Use.** This is a student project. It is not a regulatory or health tool and gives no medical advice. It does not identify any individual farm or farmer."
+    },
+    {
+     "chunk_id": "K101",
+     "title": "Ludhiana fire season 2024",
+     "text": "# Ludhiana: fire detections, season 2024\n\nIn the 2024 season (Sep 15 to Nov 30), satellite fire detection (VIIRS S-NPP) recorded 339 fire detections in Ludhiana district, with a total fire radiative power of 1,428 MW. Among the 22 districts it ranked number 12 by detections.\n\nThe busiest day was 2024-11-18, with 51 detections.\n\nCompared with the previous season: -78% compared with 2023 (1,512 detections).\n\n_Generated by the pipeline from processed data. Do not edit by hand._ Detections are a lower bound (missed fires, cloud, overpass timing)."
+    },
+    {
+     "chunk_id": "K042",
+     "title": "Model card for the PM2.5 forecast",
+     "text": "# Model card: next-day PM2.5 forecast\n\nThe model is LightGBM quantile regression (p10, p50, p90) for the next-day mean PM2.5 in 4 cities. Test seasons: [2024, 2025]. Backtest folds (2024: trained on [2022, 2023], 2025: trained on [2022, 2023, 2024]). Each fold uses only earlier seasons for training, so the training sets are small (two to three seasons). Number of test rows per variant: 616.\n\nNote on as_of: this card describes the method and the backtest result. Its date is the start of the first test season so that briefings about the test seasons can cite it."
+    }
+   ]
+  }
+ },
+ "model": "gemini-3.5-flash-lite",
+ "generated_at": "2026-11-27T16:11:26+00:00",
+ "nearest_city": "Ludhiana",
+ "first_attempt_errors": [],
+ "llm_error": null,
+ "label": null,
+ "plan": {
+  "steps": [
+   "Examine the wind direction, wind speed, and upwind fire pressure for Ludhiana using the wind and upwind tool.",
+   "Search the knowledge base for Ludhiana 2025 season context and review a model limitation note."
+  ],
+  "questions_to_answer": [
+   "What is the expected PM2.5 level in Ludhiana and how does it compare to the persistence baseline?",
+   "What do the wind patterns and upwind fire sources indicate about local air quality context?",
+   "How many stubble fires were detected in Ludhiana, and what is their context relative to past seasons?"
+  ]
+ },
+ "planner_error": null,
+ "critic": null
+}

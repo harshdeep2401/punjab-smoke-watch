@@ -2,21 +2,15 @@
  "district": "Punjab",
  "season": 2025,
  "mode": "agent_revised",
- "headline": "Punjab Stubble Fire Audit Brief 2025",
- "briefing": "What detections say: VIIRS S-NPP recorded 4038 detections, which was down 91.1% from 2022. VIIRS NOAA-20 recorded 4153 detections, down 91.4% from 2022. MODIS recorded 3051 detections, down 71.1% from 2022. The night share of S-NPP detections was 2.4% in 2025 against 0.2% in 2022 [K425].\n\nWhat other signals say: MODIS burned area was down 44.9% from 2022. The official count was 5114, which was down 89.8% from 2022. The official count is satellite-based too, so agreeing with it is not independent confirmation [K424].\n\nOur best range and how sure we are: The fall in counts per burned km² was 77.0% to 83.8%. Confidence is medium. Counts fell more than burned area. This range does not include the error of the burned-area product, which is unknown and is the largest uncertainty [K426].\n\nWhat would settle it: Field verification and checking by geostationary satellites that watch all day would help. A fall in detections per burned area fits three explanations: burning moved outside satellite pass times, fires became smaller or cooler, or the burned-area product's sensitivity changed, and none is proven [K426]. This is triangulation of satellite and official signals, not field verification [K426].",
+ "headline": "Punjab stubble fire audit brief for 2025 season",
+ "briefing": "What detections say: S-NPP detections were down 91.1% from 2022, NOAA-20 detections were down 91.4% from 2022, NOAA-21 detections were down 87.0% from 2023, and MODIS detections were down 71.1% from 2022. For Punjab, the night share was 2.4% in 2025 against 0.2% in 2022.\n\nWhat other signals say: Burned area was down 44.9% from 2022, and the official count was down 89.8% from 2022. The official count is satellite-based, so agreeing with it is not independent confirmation.\n\nOur best range and how sure we are: The fall in counts per burned km² measures the relative loss of detection since the base season [K423]. The range is 77.0% to 83.8%, with confidence medium. Counts fell more than burned area. This range leaves out the burned-area error [K426].\n\nWhat would settle it: Ground checks would help, and a geostationary satellite that watches all day. A fall in detections per burned area could mean burning moved outside pass times, fires became smaller or cooler, or product sensitivity changed, and none is proven [K426]. This is triangulation, not field verification [K426].",
  "citations": [
-  "K424",
-  "K425",
+  "K423",
   "K426"
  ],
  "sources": [
   {
-   "chunk_id": "K424",
-   "title": "How this project estimates the detection gap, and its weaknesses",
-   "doc_type": "curated"
-  },
-  {
-   "chunk_id": "K425",
+   "chunk_id": "K423",
    "title": "How this project estimates the detection gap, and its weaknesses",
    "doc_type": "curated"
   },
@@ -31,13 +25,12 @@
   "errors": [],
   "checked_numbers": [
    2025.0,
-   4038.0,
    91.1,
    2022.0,
-   4153.0,
    91.4,
    2022.0,
-   3051.0,
+   87.0,
+   2023.0,
    71.1,
    2022.0,
    2.4,
@@ -46,7 +39,6 @@
    2022.0,
    44.9,
    2022.0,
-   5114.0,
    89.8,
    2022.0,
    77.0,
@@ -63,7 +55,7 @@
     "season": 2025
    },
    "result_summary": "{\"district\": \"Punjab\", \"season\": 2025, \"sensors\": [{\"satellite\": \"VIIRS S-NPP\", \"detections\": 4038, \"base_season\": 2022, \"change_vs_base_pct\": -91.1, \"change_in_words\": \"down 91.1…",
-   "ms": 13
+   "ms": 6
   },
   {
    "step": 2,
@@ -74,7 +66,7 @@
     "district": "Punjab"
    },
    "result_summary": "{\"district\": \"Punjab\", \"season\": 2025, \"base_season\": 2022, \"snpp_passes\": [{\"pass\": \"afternoon ~13:30\", \"detections\": 3942, \"share_pct\": 97.6}, {\"pass\": \"night ~01:30\", \"detectio…",
-   "ms": 2
+   "ms": 4
   },
   {
    "step": 3,
@@ -92,11 +84,11 @@
    "agent": "auditor",
    "tool": "get_official_vs_satellite",
    "args": {
-    "district": "Punjab",
-    "season": 2025
+    "season": 2025,
+    "district": "Punjab"
    },
    "result_summary": "{\"district\": \"Punjab\", \"season\": 2025, \"official_count\": 5114, \"snpp_detections\": 4038, \"official_to_snpp_ratio\": 1.27, \"source_url\": \"https://ppcb.punjab.gov.in/media/documents/C…",
-   "ms": 0
+   "ms": 4
   },
   {
    "step": 5,
@@ -107,7 +99,7 @@
     "district": "Punjab"
    },
    "result_summary": "{\"district\": \"Punjab\", \"season\": 2025, \"what_the_gap_is\": \"the fall in fire counts per burned km2 since the base season; it is not the share of burning that is missed\", \"detected_…",
-   "ms": 0
+   "ms": 2
   },
   {
    "step": 6,
@@ -121,7 +113,7 @@
     "place": "Punjab"
    },
    "result_summary": "{\"results\": [{\"chunk_id\": \"K426\", \"title\": \"How this project estimates the detection gap, and its weaknesses\", \"text\": \"# Weaknesses\\n\\nThe range does not include the error of the…",
-   "ms": 19
+   "ms": 86
   },
   {
    "step": 7,
@@ -130,13 +122,12 @@
    "args": {
     "brief_type": "audit",
     "chunks": [
-     "K425",
-     "K424",
+     "K423",
      "K426"
     ]
    },
-   "result_summary": "1 issue(s)",
-   "ms": 3459
+   "result_summary": "0 issue(s)",
+   "ms": 3169
   }
  ],
  "facts": {
@@ -256,7 +247,7 @@
    "changes_in_words": "counts fell 91.1% and burned area fell 44.9%",
    "gap_low_pct": 77.0,
    "gap_high_pct": 83.8,
-   "methods": "S-NPP detections against burned area, base season 2022; official counts against burned area, base season 2022; S-NPP detections against burned area, base season 2023; official counts against burned area, base season 2023",
+   "methods": "S-NPP detections against burned area, base season 2022; official counts against burned area, base season 2022 (start date not stated); S-NPP detections against burned area, base season 2023; official counts against burned area, base season 2023 (start date not stated)",
    "confidence": "medium",
    "direction": "counts fell more than burned area",
    "reason": null,
@@ -290,14 +281,10 @@
   }
  },
  "model": "gemini-3.5-flash-lite",
- "generated_at": "2026-11-27T12:13:10+00:00",
+ "generated_at": "2026-11-27T16:12:55+00:00",
  "caveat": "The range shows only how the result changes with the count series and the base season. It does not include the error of the MODIS burned-area product, which is unknown and is the largest uncertainty. This is triangulation of satellite and official signals, not field verification.",
  "first_attempt_errors": [
-  "raw field name in briefing: 'get_diurnal_profile' (write it in plain words)",
-  "raw field name in briefing: 'get_official_vs_satellite' (write it in plain words)",
-  "citation get_diurnal_profile was not retrieved",
-  "citation get_official_vs_satellite was not retrieved",
-  "banned content (a bracketed marker that is not a citation): '[get_diurnal_profile]'"
+  "word count 206 outside 150-200"
  ],
  "revision_errors": [],
  "llm_error": null,
@@ -305,19 +292,13 @@
  "plan": null,
  "planner_error": null,
  "critic": {
-  "ok": false,
-  "issues": [
-   {
-    "type": "unsupported_citation",
-    "sentence": "The night share of S-NPP detections was 2.4% in 2025 against 0.2% in 2022 [K425].",
-    "note": "K425 does not contain the figures 2.4 or 0.2",
-    "by": "critic"
-   }
-  ],
+  "ok": true,
+  "issues": [],
   "rewrite_used": false,
   "error": null,
   "rewrite_rejected": [],
   "original_briefing": null,
-  "warning": "⚠️ Critic: citation may not support sentence"
- }
+  "warning": null
+ },
+ "manual_edits": []
 }
