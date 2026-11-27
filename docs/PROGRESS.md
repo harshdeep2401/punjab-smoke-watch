@@ -2,7 +2,7 @@
 
 Update this file at the end of every phase. Newest notes go at the top of each section.
 
-**Current phase:** Part 1 (0–7) done, plus Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). **Part 2 (Audit + Response) planned on 2026-11-26. Phase 8 done on 2026-11-26, Phases 9 and 10 on 2026-11-27. Opus review of the gap formula done (D23). Next: Phase 11.** See AGENTS.md §1b and PLAN.md Part 2.
+**Current phase:** Part 1 (0–7) done, plus Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). **Part 2 (Audit + Response) planned on 2026-11-26. Phase 8 done on 2026-11-26, Phases 9, 10 and 11 on 2026-11-27. Opus review of the gap formula done (D23). Next: Phase 12 (read the first open question below first).** See AGENTS.md §1b and PLAN.md Part 2.
 
 **Part 2 motivating finding** (Opus, from `fires.parquet`, S-NPP, Indian Punjab):
 
@@ -28,12 +28,24 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - [x] Phase 8: Feasibility for the new data (**user decision point open**, see below)
 - [x] Phase 9: Audit data (multi-sensor FIRMS, burned area, manual CSVs, district rain)
 - [x] Phase 10: Audit analytics, gap ranges, Auditor agent (+ optional Planner, Critic on by default for audits)
-- [ ] Phase 11: Harvest signal and 3-day fire-risk forecast
+- [x] Phase 11: Harvest signal and 3-day fire-risk forecast
 - [ ] Phase 12: Allocator, 5 km grid, Dispatcher agent
 - [ ] Phase 13: Audit and Response Planner pages, Evidence, docs, demo
 - [ ] Part 2 stretch
 
 ## Results (fill in during the phases)
+- Phase 11, **3-day fire-risk backtest** (target: S-NPP detections per district over t+1 to t+3; train on seasons < S, test on 2024 and 2025; 22 districts, 3,256 district-days; MAE, pinball and coverage on counts; ranking on the 128 days with at least 20 detections statewide):
+
+  | variant | MAE | pinball | 80% coverage | top-5 hit | Spearman | top-5 2024 / 2025 |
+  |---|---|---|---|---|---|---|
+  | model (LightGBM) | 10.72 | 3.56 | 87.6% | **63.7%** | **0.73** | 69.4% / 57.6% |
+  | persistence (last 3 days) | **9.61** | 3.56 | 84.4% | 59.7% | 0.66 | 61.5% / 57.8% |
+  | climatology (last season, scaled) | 13.34 | 5.35 | 81.3% | 57.1% | 0.63 | 59.6% / 54.4% |
+
+  **Honest reading: the model ranks districts best, but not by much, and it is not the most accurate.** Picking 5 of 22 at random would score about 23%, so all three carry real signal. Persistence has the lower MAE and the same pinball. One-off check (7-day block bootstrap of the daily difference, model minus persistence): top-5 hit +3.9 points, 95% interval -0.2 to +7.8, so **not clearly different**; Spearman +0.07 (0.03 to 0.11), which is clearer. In 2025 the top-5 hit rates are the same. The best-ranking variant (what the allocator will use) is `model`; it was picked on the test seasons, so its lead is if anything flattering. The strongest features are day of season and the 3-day and 7-day counts. The conformal widening was applied in both folds (raw inner coverage 56% and 68%).
+- Phase 11, **rain look-ahead** (one-off check, not saved): without `rain_next3_mm` the model scored MAE 9.22, top-5 64.4%, Spearman 0.73. So its ranking does **not** depend on the optimistic rain assumption. I kept the feature as PLAN says; dropping it because of this result would be choosing the model on test data.
+- Phase 11, **"likely burning" columns:** they change the order. The two top-5 lists (detected, likely) share 4.4 districts on average in 2024 and 4.2 in 2025, and the first district differs on 30 of 66 days and 32 of 62. In 2025 the multipliers (from the 2024 gaps) reach 5.8 for Fazilka and 4.6 for Barnala, and are 1.0 for 2 districts with a negative gap. See the first open question.
+- Phase 11 acceptance: the Evidence page names the selected variant (read from `risk_metrics.json`). I first reported the phase as done without this; the user caught it. 332 tests pass offline. `pipeline risk-train` writes `risk_forecasts.parquet` and `risk_metrics.json`; a rerun gave identical forecasts.
 - Phase 10, **Punjab gap ranges** (gap = fall in counts per burned km2 since the base season; it is **not** the share of burning missed). Triangulation, not field verification. The range does **not** include MCD64A1's own error, which is unknown and the largest uncertainty.
 
   | Season | S-NPP vs 2022 | Burned area vs 2022 | Gap range | Confidence | Night share of S-NPP (2022: 0.2%) | MODIS vs S-NPP change (rule 1.5) |
@@ -111,6 +123,14 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - Planner: the first real run produced no usable plan once (reason not recorded, because the error text was vague). Two later calls with the same input gave good plans. I made the cleaner allow the Verifier's constants (7-day, 80%, p10/p50/p90, 24-hour), since the tool descriptions in the prompt contain "7-day" and the model repeats it, and I made the failure reason specific (`planner_error` now says why). A plan with no usable steps is still possible and is simply skipped.
 
 ## Deviations from PLAN.md
+- Phase 11: the Evidence page has a short fire-risk section (selected variant, ranking scores, caveats). The backtest table and the decision backtest are still Phase 13, which should extend this section rather than add a second one.
+- Phase 11: the target and counts are **S-NPP only** (from `district_daily.parquet`), the fallback PLAN allows, because NOAA-21 has no 2022 data and an all-VIIRS sum would not compare across seasons.
+- Phase 11: no `mandi_arrivals_daily` or arrivals features (Phase 8 no-go). "Previous season" is the previous calendar year, so the two features that use it are empty for 2022. `days_since_first_fire` is -1 before the first day with 3 detections.
+- Phase 11: issue dates run from 15 Sep to **27 Nov**, the last day whose 3-day window is inside the season. There is no forecast for 28 to 30 Nov, so the Phase 13 date picker should stop at 27 Nov.
+- Phase 11: `risk_forecasts.parquet` has extra columns `likely_p50` (Phase 12's allocator needs it), `gap_low`, `gap_high` (after clipping) and `gap_source` ("district" or "Punjab"). `likely_low` / `likely_high` are the p50 scaled by the two ends of the gap range, so they do **not** include the forecast's own uncertainty.
+- Phase 11, ranking rules PLAN did not fix: a quiet day is one with under 20 detections statewide **in the 3 days forecast**; ties are scored by their expected value; a district with no detections never counts as an actual top-5 district; Spearman is 0 when a forecast ties every district.
+- Phase 11: quantiles are clipped at 0 and rounded to 2 decimals. The baselines' bands come from the 10th and 90th percentile of their training error on the log scale. Climatology falls back to the statewide to-date ratio for a district with nothing to date last season.
+- Phase 11: `models/train.fit_with_conformal` got a `target` argument (default unchanged). The variant is named `model`. No final model file is saved: the planner will read the backtest forecasts.
 - Phase 10, gap tables: every table has a `district` column with `Punjab` rows; extra table `gap_estimates` (one row per count series and base, used or not); `gap_range` also has `detected_basis`, `direction` and `caveat`. `detected_change_pct` and `reference_change_pct` describe one pair, named in `detected_basis`. Timing indicators compare with 2022 only. Methods using an official table with no stated start date end in "(start date not stated)". The summary JSON gives both night shares (all VIIRS and S-NPP).
 - Phase 10, knowledge base: `Doc` has a `part` field and new documents are `part: 2`, so chunk ids K000 to K136 did not move. **Within part 2 the audit documents sort first**, so if their chunk count ever changes, the curated Part 2 ids move and saved audit citations break. Give later notes (Phase 12 `crm_options.md`) `part: 3`.
 - Phase 10, evening-burning notes: three instead of one, because of the `as_of` rule: `evening_burning_reports.md` (Nov 2024), `evening_burning_study.md` (ISRO paper, 25 Nov 2025) and `evening_burning_debate.md` (Dec 2025). No audit of 2022 to 2025 can retrieve the third.
@@ -197,6 +217,7 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - Phase 5: `LLM_MODEL=gemini-2.5-flash` (the default in PLAN and AGENTS.md) returns a 404 ("no longer available to new users"). `gemini-3.8-flash` returned 503 "high demand" for every request. All live runs used `gemini-3.5-flash`, set per command with the `LLM_MODEL` environment variable. `.env.example` was changed by the user to `gemini-3.8-flash`.
 
 ## Open questions / user actions needed
+- **Decide before Phase 12 (Opus or you): should planning default to "likely burning"?** PLAN has `allocate(use_likely=True)`. The adjustment rests on district gaps that are "low" confidence at best, from a burned-area product that is weak on cropland. It moves a lot: on 2025-10-28 (peak minus 3) Fazilka goes from 35 forecast detections (6th) to 204 likely (1st). Nothing can check this against data. My recommendation: keep the planned default, since planning for likely burning is the point of connecting the two modules, but have the planner show the detected-only allocation beside it and name the districts the adjustment moved.
 - **Review the 7 new notes in `kb/curated/`** (PLAN asks for it). NASA's FIRMS FAQ puts NOAA-20/21 about 50 minutes ahead of S-NPP, but Phase 8 measured all three within about 25 minutes; `overpass_times.md` states both.
 - **Read the audits before showing them to anyone.** "Verified" means the numbers exist in the evidence and the required statements are there. It does not mean each citation supports its sentence.
 - **Decide:** the 2025 audit can cite the ISRO study (25 Nov 2025) but not the published dissent (3 Dec 2025), because retrieval stops at 1 Dec of the season. Kept as is; changing it changes the no-leakage rule.

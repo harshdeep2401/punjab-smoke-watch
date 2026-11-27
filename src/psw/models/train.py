@@ -49,7 +49,7 @@ def coverage(p10, p90, y) -> float:
     return float(np.mean((y >= p10) & (y <= p90)))
 
 
-def fit_with_conformal(train: pd.DataFrame, features: list[str]) -> dict:
+def fit_with_conformal(train: pd.DataFrame, features: list[str], target: str = TARGET) -> dict:
     """Fit on all of `train`; calibrate the band on an inner split (train on seasons < last, validate on last).
 
     Returns {models, correction, applied, inner_coverage}. The correction is applied only if the inner
@@ -60,13 +60,13 @@ def fit_with_conformal(train: pd.DataFrame, features: list[str]) -> dict:
     if len(seasons) >= 2:
         inner_tr = train[train["season"] < seasons[-1]]
         inner_va = train[train["season"] == seasons[-1]]
-        inner_models = fit_quantile_models(inner_tr, inner_tr[TARGET], features)
+        inner_models = fit_quantile_models(inner_tr, inner_tr[target], features)
         q = predict_quantiles(inner_models, inner_va, features)
-        inner_cov = coverage(q["p10"], q["p90"], inner_va[TARGET])
+        inner_cov = coverage(q["p10"], q["p90"], inner_va[target])
         if not (COVERAGE_OK[0] <= inner_cov <= COVERAGE_OK[1]):
-            correction = cqr_correction(q["p10"], q["p90"], inner_va[TARGET])
+            correction = cqr_correction(q["p10"], q["p90"], inner_va[target])
             applied = True
-    models = fit_quantile_models(train, train[TARGET], features)
+    models = fit_quantile_models(train, train[target], features)
     return {"models": models, "correction": correction, "applied": applied, "inner_coverage": inner_cov}
 
 

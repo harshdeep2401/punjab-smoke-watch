@@ -277,3 +277,35 @@ def interpret_retrieval(rep: dict) -> list[str]:
     out.append(f"The queries were written by us after reading the corpus and there are only {n}, so treat this as a sanity check, not a benchmark. "
                "Keyword search is expected to matter most for exact names, years and terms, which is why the Analyst is told to put them in its queries.")
     return out
+
+
+# ---------- Part 2: fire-risk forecast ----------
+
+RISK_LABEL = {"model": "LightGBM model", "persistence": "persistence (the last 3 days)",
+              "climatology": "climatology (last season, scaled)"}
+
+
+def load_risk_metrics(root: Path | None = None) -> dict | None:
+    path = Path(root or config.PROCESSED) / "risk_metrics.json"
+    return json.loads(path.read_text()) if path.exists() else None
+
+
+def interpret_risk(m: dict) -> list[str]:
+    """Which fire-risk variant was selected and what that does not show, from risk_metrics.json."""
+    ov = {v: s["overall"] for v, s in m["variants"].items()}
+    best = m["best_ranking_variant"]
+    scores = "; ".join(f"{RISK_LABEL[v]} {o['top5_hit']:.1%} and {o['spearman']:.2f}" for v, o in ov.items())
+    out = [f"**Best-ranking variant, the one to allocate with: {RISK_LABEL[best]}.** Rule: {m['best_ranking_rule']} "
+           f"({_seasons_text(m['seasons_test'])}).",
+           f"Top-5 hit rate and Spearman rank correlation: {scores}. Scored on {ov[best]['n_days']} days "
+           f"({m['ranking_days_rule']})."]
+    lowest = min(ov, key=lambda v: ov[v]["mae"])
+    if lowest == best:
+        out.append(f"It also has the lowest MAE ({ov[best]['mae']:.2f} detections per district over 3 days).")
+    else:
+        out.append(f"**It is not the most accurate:** {RISK_LABEL[lowest]} has the lower MAE "
+                   f"({ov[lowest]['mae']:.2f} against {ov[best]['mae']:.2f} detections per district over 3 days).")
+    out.append("The variant was picked on the same test seasons it is scored on, so its lead may be flattering.")
+    if best == "model":
+        out.append(m["rain_assumption"])
+    return out

@@ -1,0 +1,176 @@
+{
+ "target": "S-NPP VIIRS detections per district over the next 3 days",
+ "seasons_test": [
+  2024,
+  2025
+ ],
+ "folds": {
+  "2024": [
+   2022,
+   2023
+  ],
+  "2025": [
+   2022,
+   2023,
+   2024
+  ]
+ },
+ "variants": {
+  "model": {
+   "overall": {
+    "n": 3256,
+    "mae": 10.720512899262898,
+    "pinball": 3.5564331490581487,
+    "coverage80": 0.8756142506142506,
+    "band_width": 37.857444717444714,
+    "top5_hit": 0.6367373511904761,
+    "spearman": 0.7306978089781737,
+    "n_days": 128
+   },
+   "by_season": {
+    "2024": {
+     "n": 1628,
+     "mae": 16.429121621621622,
+     "pinball": 5.348709868959869,
+     "coverage80": 0.8538083538083538,
+     "band_width": 49.62686732186733,
+     "top5_hit": 0.6942279942279942,
+     "spearman": 0.7715922650591026,
+     "n_days": 66
+    },
+    "2025": {
+     "n": 1628,
+     "mae": 5.011904176904176,
+     "pinball": 1.7641564291564287,
+     "coverage80": 0.8974201474201474,
+     "band_width": 26.08802211302211,
+     "top5_hit": 0.5755376344086023,
+     "spearman": 0.6871650008920235,
+     "n_days": 62
+    }
+   }
+  },
+  "persistence": {
+   "overall": {
+    "n": 3256,
+    "mae": 9.609029484029485,
+    "pinball": 3.5609543407043405,
+    "coverage80": 0.8442874692874693,
+    "band_width": 38.84727272727273,
+    "top5_hit": 0.5974416786916786,
+    "spearman": 0.659400109165523,
+    "n_days": 128
+   },
+   "by_season": {
+    "2024": {
+     "n": 1628,
+     "mae": 14.557125307125308,
+     "pinball": 5.365559787059787,
+     "coverage80": 0.8046683046683046,
+     "band_width": 51.22004914004914,
+     "top5_hit": 0.6154015625227747,
+     "spearman": 0.6821265465627822,
+     "n_days": 66
+    },
+    "2025": {
+     "n": 1628,
+     "mae": 4.660933660933661,
+     "pinball": 1.7563488943488939,
+     "coverage80": 0.8839066339066339,
+     "band_width": 26.474496314496317,
+     "top5_hit": 0.5783230926779312,
+     "spearman": 0.6352074500006989,
+     "n_days": 62
+    }
+   }
+  },
+  "climatology": {
+   "overall": {
+    "n": 3256,
+    "mae": 13.344388820638821,
+    "pinball": 5.352830466830466,
+    "coverage80": 0.8126535626535627,
+    "band_width": 75.34018120393121,
+    "top5_hit": 0.5705871568124857,
+    "spearman": 0.6342122356874413,
+    "n_days": 128
+   },
+   "by_season": {
+    "2024": {
+     "n": 1628,
+     "mae": 17.407825552825553,
+     "pinball": 6.949763104013104,
+     "coverage80": 0.8028255528255528,
+     "band_width": 97.57630835380834,
+     "top5_hit": 0.5957759412304867,
+     "spearman": 0.6535742176369985,
+     "n_days": 66
+    },
+    "2025": {
+     "n": 1628,
+     "mae": 9.280952088452091,
+     "pinball": 3.75589782964783,
+     "coverage80": 0.8224815724815725,
+     "band_width": 53.10405405405405,
+     "top5_hit": 0.5437732895288074,
+     "spearman": 0.6136010936121064,
+     "n_days": 62
+    }
+   }
+  }
+ },
+ "best_ranking_variant": "model",
+ "best_ranking_rule": "highest top-5 hit rate on the test seasons, then Spearman",
+ "ranking_days_rule": "days with at least 20 detections statewide in the 3 days forecast",
+ "rain_assumption": "Rain over the next 3 days is taken from the weather archive, standing in for a forecast. A real forecast is less accurate, so backtest results using it are optimistic.",
+ "likely_note": "'Likely' columns divide the forecast by (1 - gap), using the previous season's detection gap clipped to 0 to 0.9. They estimate what would have been detected at the base season's detections per burned km2. They are not a count of fires, cannot be checked against satellite data and are not in any score.",
+ "feature_importance": {
+  "2024": {
+   "day_of_season": 7075.532871365547,
+   "count_3d": 6278.112087190151,
+   "count_today": 1984.7669995427132,
+   "count_7d": 1772.4055910110474,
+   "district": 1631.7096650004387,
+   "rain_next3_mm": 1065.2318272590637,
+   "temp_mean": 1039.8869619369507,
+   "count_slope_7d": 881.9019318223,
+   "rh_mean": 744.7257235646248,
+   "rain_last3_mm": 648.3928773999214,
+   "last_season_curve_t": 536.5952433347702,
+   "season_progress": 463.0311923623085,
+   "days_since_first_fire": 408.0199571251869,
+   "wind_speed_mean": 392.01353496313095,
+   "district_prev_share": 381.09146851301193
+  },
+  "2025": {
+   "day_of_season": 6411.450475335121,
+   "count_7d": 6007.0380892157555,
+   "count_3d": 4602.307961165905,
+   "district": 2498.183529496193,
+   "count_today": 1693.2469369769096,
+   "temp_mean": 1237.7076023817062,
+   "rain_next3_mm": 1206.9892683029175,
+   "rh_mean": 1090.936583340168,
+   "rain_last3_mm": 1057.995914697647,
+   "days_since_first_fire": 843.2450186014175,
+   "season_progress": 772.4868285655975,
+   "last_season_curve_t": 705.1814924478531,
+   "count_slope_7d": 611.3580633401871,
+   "district_prev_share": 533.8664210438728,
+   "wind_speed_mean": 296.903037071228
+  }
+ },
+ "conformal": {
+  "2024": {
+   "applied": true,
+   "inner_coverage": 0.5638820638820639,
+   "correction": 0.3741931765358904
+  },
+  "2025": {
+   "applied": true,
+   "inner_coverage": 0.6762899262899262,
+   "correction": 0.18262396536652759
+  }
+ },
+ "generated_at": "2026-11-27T12:32:22+00:00"
+}

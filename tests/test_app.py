@@ -198,3 +198,30 @@ def test_watch_page_shows_the_plan_and_survives_old_records_without_one(monkeypa
     monkeypatch.setattr(helpers, "find_briefing", lambda d, dist, root=None: failed)
     at = AppTest.from_file(page, default_timeout=60).run()
     assert not at.exception and any("produced no usable plan" in c.value for c in at.caption)
+
+
+# ---------- fire-risk variant on the Evidence page ----------
+
+
+def _risk_metrics(best, mae):
+    overall = lambda hit, m: {"top5_hit": hit, "spearman": 0.5, "mae": m, "n_days": 10}  # noqa: E731
+    return {"best_ranking_variant": best, "best_ranking_rule": "highest top-5 hit rate", "seasons_test": [2024, 2025],
+            "ranking_days_rule": "busy days", "rain_assumption": "RAIN CAVEAT",
+            "variants": {v: {"overall": overall(0.6, mae[v])} for v in ("model", "persistence", "climatology")}}
+
+
+def test_interpret_risk_names_whichever_variant_was_selected():
+    text = " ".join(helpers.interpret_risk(_risk_metrics("persistence", {"model": 3, "persistence": 2, "climatology": 4})))
+    assert "allocate with: persistence" in text and "lowest MAE" in text and "RAIN CAVEAT" not in text
+    text = " ".join(helpers.interpret_risk(_risk_metrics("model", {"model": 3, "persistence": 2, "climatology": 4})))
+    assert "allocate with: LightGBM model" in text and "not the most accurate" in text and "RAIN CAVEAT" in text
+
+
+def test_evidence_page_says_which_risk_variant_was_selected(monkeypatch):
+    from streamlit.testing.v1 import AppTest
+
+    saved = helpers.load_risk_metrics()
+    at = AppTest.from_file(str(config.ROOT / "src/psw/app/pages/4_Evidence.py"), default_timeout=60).run()
+    assert not at.exception
+    shown = " ".join(x.value for x in at.markdown)
+    assert f"allocate with: {helpers.RISK_LABEL[saved['best_ranking_variant']]}" in shown

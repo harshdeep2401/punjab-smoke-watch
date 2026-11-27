@@ -6,12 +6,13 @@ import streamlit as st
 from psw import config
 from psw.app.common import CREDITS, LIMITATIONS, load_metrics
 from psw.app.helpers import (VARIANT_LABEL, VARIANTS, by_city_frame, importance_frame, interpret, interpret_retrieval,
-                             load_retrieval_report, metrics_frame, reliability, retrieval_frame, retrieval_queries)
+                             interpret_risk, load_retrieval_report, load_risk_metrics, metrics_frame, reliability,
+                             retrieval_frame, retrieval_queries)
 
 st.set_page_config(page_title="Evidence", layout="wide")
 st.title("Evidence")
-st.caption("Everything on this page is computed from `data/processed/metrics.json` and the saved briefings. "
-           "The target is CAMS modelled PM2.5 (via Open-Meteo), not a ground monitor.")
+st.caption("Everything on this page is computed from the metrics files in `data/processed/` and the saved briefings. "
+           "The PM2.5 target is CAMS modelled PM2.5 (via Open-Meteo), not a ground monitor.")
 
 m = load_metrics()
 mf = metrics_frame(m)
@@ -75,6 +76,16 @@ for line in interpret(m):
     st.markdown(f"- {line}")
 st.caption("Feature importance describes the final model trained on all seasons. It shows what the model used, "
            "not what causes PM2.5. Settings were not tuned on the test seasons.")
+
+# ---------- fire-risk forecast ----------
+st.header("3-day fire-risk forecast: which variant ranks districts best?")
+risk_ = load_risk_metrics()
+if risk_ is None:
+    st.info("No fire-risk backtest found. Run `uv run python -m psw.pipeline risk-train`.")
+else:
+    st.write(f"Target: {risk_['target']}. For where to send help, the order of districts matters more than the exact counts.")
+    for line in interpret_risk(risk_):
+        st.markdown(f"- {line}")
 
 # ---------- retrieval ----------
 st.header("Retrieval: embeddings, keywords and hybrid")

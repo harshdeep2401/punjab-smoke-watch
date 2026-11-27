@@ -404,6 +404,25 @@ def cmd_demo_cache(args) -> None:
     print(f"Saved data/processed/demo.json. Not written by the agent: {bad or 'none'}")
 
 
+def cmd_risk_train(_args) -> None:
+    import pandas as pd
+
+    from psw.response import risk
+
+    P = config.PROCESSED
+    m = risk.run_all(pd.read_parquet(P / "district_daily.parquet"), pd.read_parquet(P / "district_weather_daily.parquet"),
+                     pd.read_parquet(P / "audit" / "gap_range.parquet"))
+    print(f"target: {m['target']}; test seasons {m['seasons_test']}")
+    print(f"{'variant':12s} {'MAE':>7s} {'pinball':>8s} {'cov80':>7s} {'top5':>7s} {'spearman':>9s} {'days':>5s}")
+    for name in risk.VARIANTS:
+        for label, o in [("", m["variants"][name]["overall"])] + [(f" {s}", v) for s, v in m["variants"][name]["by_season"].items()]:
+            print(f"{(name if not label else label):12s} {o['mae']:7.2f} {o['pinball']:8.2f} {o['coverage80']:7.1%} "
+                  f"{o['top5_hit']:7.1%} {o['spearman']:9.2f} {o['n_days']:5d}")
+    print(f"best ranking: {m['best_ranking_variant']} ({m['best_ranking_rule']})")
+    print(m["rain_assumption"])
+    print(f"Saved data/processed/{risk.FORECAST_FILE} and {risk.METRICS_FILE}")
+
+
 COMMANDS = {
     "ingest": cmd_ingest,
     "process": cmd_process,
@@ -414,6 +433,7 @@ COMMANDS = {
     "demo-cache": cmd_demo_cache,
     "audit-ingest": cmd_audit_ingest,
     "audit": cmd_audit,
+    "risk-train": cmd_risk_train,
 }
 
 
