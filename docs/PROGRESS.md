@@ -2,7 +2,7 @@
 
 Update this file at the end of every phase. Newest notes go at the top of each section.
 
-**Current phase:** Part 1 (0–7) done, plus Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). **Part 2 (Audit + Response) planned on 2026-11-26. Phase 8 done on 2026-11-26, Phases 9, 10 and 11 on 2026-11-27. Opus review of the gap formula done (D23). Next: Phase 12 (read the first open question below first).** See AGENTS.md §1b and PLAN.md Part 2.
+**Current phase:** Part 1 (0–7) done, plus Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). **Part 2 (Audit + Response) planned on 2026-11-26. Phase 8 done on 2026-11-26, Phases 9, 10 and 11 on 2026-11-27. Opus review of the gap formula done (D23). Phase 12 in progress: step 1 of 4 (allocator and decision backtest) done.** See AGENTS.md §1b and PLAN.md Part 2.
 
 **Part 2 motivating finding** (Opus, from `fires.parquet`, S-NPP, Indian Punjab):
 
@@ -34,6 +34,18 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - [ ] Part 2 stretch
 
 ## Results (fill in during the phases)
+- Phase 12, step 1, **decision backtest** (does the forecast help decide where units go?). 500 units, k = 20, at most 25% per district, 148 issue days in 2024 and 2025. Score = detections seen in the next 3 days x cover(units), as a share of an allocation that knew them in advance:
+
+  | allocation | pooled | 2024 | 2025 |
+  |---|---|---|---|
+  | model forecast | **95.3%** | 95.5% | 95.0% |
+  | share of last season's fires (the naive baseline) | 91.1% | 90.9% | 91.5% |
+  | climatology forecast | 90.1% | 92.8% | 84.3% |
+  | persistence forecast | 87.6% | 85.1% | 93.0% |
+  | equal split | 80.5% | 80.5% | 80.7% |
+  | apart: model on likely burning (the default) | 94.4% | | |
+
+  **Honest reading:** the model's allocation beats the naive one by 4.2 points (95% interval 2.2 to 7.1, 7-day block bootstrap, one-off). That is a real but modest gain, and an equal split already reaches 80.5%. **cover(u) and k are assumptions**, so this compares allocations and does not measure fires prevented. One-off sensitivity: only units / k matters; the model's lead over the naive split is 16 points with 100 units, 4 with 500 and 2 with 2000 (k = 20), and it leads at every setting tried. The 25% limit hardly binds. The likely-burning allocation is scored against detections only, which cannot see what it plans for.
 - Phase 11, **3-day fire-risk backtest** (target: S-NPP detections per district over t+1 to t+3; train on seasons < S, test on 2024 and 2025; 22 districts, 3,256 district-days; MAE, pinball and coverage on counts; ranking on the 128 days with at least 20 detections statewide):
 
   | variant | MAE | pinball | 80% coverage | top-5 hit | Spearman | top-5 2024 / 2025 |
@@ -123,6 +135,8 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - Planner: the first real run produced no usable plan once (reason not recorded, because the error text was vague). Two later calls with the same input gave good plans. I made the cleaner allow the Verifier's constants (7-day, 80%, p10/p50/p90, 24-hour), since the tool descriptions in the prompt contain "7-day" and the model repeats it, and I made the failure reason specific (`planner_error` now says why). A plan with no usable steps is still possible and is simply skipped.
 
 ## Deviations from PLAN.md
+- Phase 12: `allocate` also returns `basis` ("likely" or "detected" per district). The limit per district is `floor(max_share x units)`, at least 1. If every district with expected burning is at its limit, the rest stays **unplaced**, so the total can be below `units`. `compare_to_proportional(allocation, last_season)` uses the whole previous season and applies no limit.
+- Phase 12: the decision backtest runs inside `pipeline risk-train` and writes `data/processed/decision_backtest.json` (PLAN names no file). It adds an equal-split row, so the percentages have a floor, and reports the likely-burning allocation apart from the comparison (PLAN keeps the gap adjustment out of the metrics).
 - Phase 11: the Evidence page has a short fire-risk section (selected variant, ranking scores, caveats). The backtest table and the decision backtest are still Phase 13, which should extend this section rather than add a second one.
 - Phase 11: the target and counts are **S-NPP only** (from `district_daily.parquet`), the fallback PLAN allows, because NOAA-21 has no 2022 data and an all-VIIRS sum would not compare across seasons.
 - Phase 11: no `mandi_arrivals_daily` or arrivals features (Phase 8 no-go). "Previous season" is the previous calendar year, so the two features that use it are empty for 2022. `days_since_first_fire` is -1 before the first day with 3 detections.
@@ -217,7 +231,7 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - Phase 5: `LLM_MODEL=gemini-2.5-flash` (the default in PLAN and AGENTS.md) returns a 404 ("no longer available to new users"). `gemini-3.8-flash` returned 503 "high demand" for every request. All live runs used `gemini-3.5-flash`, set per command with the `LLM_MODEL` environment variable. `.env.example` was changed by the user to `gemini-3.8-flash`.
 
 ## Open questions / user actions needed
-- **Decide before Phase 12 (Opus or you): should planning default to "likely burning"?** PLAN has `allocate(use_likely=True)`. The adjustment rests on district gaps that are "low" confidence at best, from a burned-area product that is weak on cropland. It moves a lot: on 2025-10-28 (peak minus 3) Fazilka goes from 35 forecast detections (6th) to 204 likely (1st). Nothing can check this against data. My recommendation: keep the planned default, since planning for likely burning is the point of connecting the two modules, but have the planner show the detected-only allocation beside it and name the districts the adjustment moved.
+- **Decided 2026-11-27 (user):** planning defaults to **likely burning**. As recommended, the detected-only allocation is shown beside it and the districts the adjustment moved are named (`allocate.compare_to_detected`; the dispatch record in step 4, the page in Phase 13).
 - **Review the 7 new notes in `kb/curated/`** (PLAN asks for it). NASA's FIRMS FAQ puts NOAA-20/21 about 50 minutes ahead of S-NPP, but Phase 8 measured all three within about 25 minutes; `overpass_times.md` states both.
 - **Read the audits before showing them to anyone.** "Verified" means the numbers exist in the evidence and the required statements are there. It does not mean each citation supports its sentence.
 - **Decide:** the 2025 audit can cite the ISRO study (25 Nov 2025) but not the published dissent (3 Dec 2025), because retrieval stops at 1 Dec of the season. Kept as is; changing it changes the no-leakage rule.

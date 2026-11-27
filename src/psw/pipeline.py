@@ -404,6 +404,9 @@ def cmd_demo_cache(args) -> None:
     print(f"Saved data/processed/demo.json. Not written by the agent: {bad or 'none'}")
 
 
+DECISION_FILE = "decision_backtest.json"
+
+
 def cmd_risk_train(_args) -> None:
     import pandas as pd
 
@@ -421,6 +424,27 @@ def cmd_risk_train(_args) -> None:
     print(f"best ranking: {m['best_ranking_variant']} ({m['best_ranking_rule']})")
     print(m["rain_assumption"])
     print(f"Saved data/processed/{risk.FORECAST_FILE} and {risk.METRICS_FILE}")
+    _decision_backtest()
+
+
+def _decision_backtest() -> None:
+    import json
+
+    import pandas as pd
+
+    from psw.response import allocate, risk
+
+    P = config.PROCESSED
+    d = allocate.decision_backtest(pd.read_parquet(P / risk.FORECAST_FILE), pd.read_parquet(P / "district_daily.parquet"))
+    (P / DECISION_FILE).write_text(json.dumps(d, indent=1, allow_nan=False))
+    print(f"\ndecision backtest: {d['units']} units, k = {d['k']:g}, at most {d['max_share']:.0%} per district, "
+          f"{d['n_days']} issue days (% of an allocation that knew the next 3 days)")
+    for name, value in d["pct_of_oracle"].items():
+        by = ", ".join(f"{s} {v[name]:.1f}" for s, v in d["by_season"].items())
+        print(f"  {name:18s} {value:6.1f}   ({by})")
+    if "likely_check" in d:
+        print(f"  apart: model on likely burning {d['likely_check']['pct_of_oracle']:.1f} (scored against detections only)")
+    print(f"Saved data/processed/{DECISION_FILE}")
 
 
 COMMANDS = {

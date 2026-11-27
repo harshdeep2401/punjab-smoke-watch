@@ -1,0 +1,43 @@
+{
+ "units": 500,
+ "k": 20.0,
+ "max_share": 0.25,
+ "n_days": 148,
+ "seasons": [
+  2024,
+  2025
+ ],
+ "score_note": "Score: for each issue day, the sum over districts of the detections actually seen in the next 3 days times cover(units). Shown as a percentage of an allocation that knew those detections in advance, summed over all days. cover() and k are assumptions, so this compares allocations; it does not measure fires prevented.",
+ "pct_of_oracle": {
+  "climatology": 90.1,
+  "model": 95.31,
+  "persistence": 87.61,
+  "last_season_share": 91.11,
+  "equal_split": 80.54
+ },
+ "by_season": {
+  "2024": {
+   "climatology": 92.78,
+   "model": 95.46,
+   "persistence": 85.11,
+   "last_season_share": 90.94,
+   "equal_split": 80.46
+  },
+  "2025": {
+   "climatology": 84.31,
+   "model": 94.99,
+   "persistence": 92.99,
+   "last_season_share": 91.5,
+   "equal_split": 80.72
+  }
+ },
+ "oracle_covered_pct_of_detections": 84.15,
+ "likely_check": {
+  "pct_of_oracle": 94.39,
+  "by_season": {
+   "2024": 94.98,
+   "2025": 93.13
+  },
+  "note": "Allocation on likely burning (the planner's default), scored the same way against detections. Detections cannot show the undetected burning it plans for, so this does not say whether it helps more or less; it shows how far it departs from what satellites later saw."
+ }
+}
