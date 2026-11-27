@@ -5,6 +5,7 @@ Shared by the Watch, Audit and Response Planner pages.
 from __future__ import annotations
 
 import json
+import re
 
 import pandas as pd
 import streamlit as st
@@ -27,7 +28,9 @@ def show_text(rec: dict) -> None:
                                        "verification.")
         if rec.get("llm_error"):
             st.caption(f"Reason: {rec['llm_error']}")
-    st.markdown(rec["briefing"])
+    st.markdown(re.sub(r"\n+", "\n\n", rec["briefing"]))
+    if rec.get("district_paragraph"):
+        st.markdown(f"**{rec['district']}:** {rec['district_paragraph']}")
     if (rec.get("critic") or {}).get("warning"):
         st.warning(rec["critic"]["warning"])
 

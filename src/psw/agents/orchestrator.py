@@ -570,6 +570,10 @@ def dispatch_path(date: str, root: Path | None = None) -> Path:
     return Path(root or config.PROCESSED) / "dispatch" / f"{date}.json"
 
 
+def save_dispatch(record: DispatchRecord, root: Path | None = None) -> None:
+    _write_json(dispatch_path(record.date, root), record.to_dict())
+
+
 def load_reusable_dispatch(date: str, settings: Settings, district: str | None, root: Path | None = None
                            ) -> DispatchRecord | None:
     """A saved agent-written, verified dispatch for exactly these inputs."""
@@ -707,5 +711,5 @@ def run_dispatch(date, units: int = 500, max_share: float = 0.25, use_likely: bo
         label=draft.get("label") if mode == "template" else None, critic=review_info,
     )
     if save:
-        _write_json(dispatch_path(date, root), record.to_dict())
+        save_dispatch(record, root)
     return record

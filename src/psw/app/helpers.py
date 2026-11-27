@@ -90,7 +90,8 @@ def _tool_numbers(result) -> list[float]:
 
 
 def explain_numbers(rec: dict) -> pd.DataFrame:
-    """One row per number written in the headline and briefing: the number, the evidence value it matched, and where.
+    """One row per number written in the headline, briefing and district paragraph: the number, the evidence value it
+    matched, and where.
 
     Re-runs the Verifier's matching rule (`Evidence.matches`) against each tool's output on its own.
     """
@@ -102,7 +103,8 @@ def explain_numbers(rec: dict) -> pd.DataFrame:
     constants |= {float(date.year): "briefing date", float(date.month): "briefing date", float(date.day): "briefing date"}
 
     rows = []
-    for label, text in (("headline", rec.get("headline", "")), ("briefing", rec.get("briefing", ""))):
+    for label, text in (("headline", rec.get("headline", "")), ("briefing", rec.get("briefing", "")),
+                        ("district paragraph", rec.get("district_paragraph") or "")):
         for n in extract_numbers(text):
             best: tuple[float, str] | None = None
             for tool, nums in pools.items():
