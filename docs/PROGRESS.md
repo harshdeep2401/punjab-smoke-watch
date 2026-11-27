@@ -2,7 +2,7 @@
 
 Update this file at the end of every phase. Newest notes go at the top of each section.
 
-**Current phase:** Part 1 (0–7) done, plus Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). **Part 2 (Audit + Response) planned on 2026-11-26. Next: Phase 8** (see AGENTS.md §1b and PLAN.md Part 2).
+**Current phase:** Part 1 (0–7) done, plus Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). **Part 2 (Audit + Response) planned on 2026-11-26. Phase 8 done on 2026-11-26. Waiting for the user's go-ahead (decision point, see Open questions) before Phase 9.** See AGENTS.md §1b and PLAN.md Part 2.
 
 **Part 2 motivating finding** (Opus, from `fires.parquet`, S-NPP, Indian Punjab):
 
@@ -24,16 +24,27 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - [x] Phase 5: Agents (tools, Sentinel, Analyst, Verifier)
 - [x] Phase 6: Forecast, Watch & Briefing, Evidence pages
 - [x] Phase 7: Demo cache, README, rehearsal (screenshots and the clean-clone check are yours, see below)
-- [x] Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). Item 7 (Critic) moved to Part 2 stretch 1. Item 8 (Comparison) superseded by the Auditor. Old item 3 (detection-gap panel) superseded by Phases 9–10.
-- [ ] Phase 8: Feasibility for the new data (**user decision point** at the end)
+- [x] Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). Item 7 (Critic) moved into Phase 10 (D21). Item 8 (Comparison) superseded by the Auditor. Old item 3 (detection-gap panel) superseded by Phases 9–10.
+- [x] Phase 8: Feasibility for the new data (**user decision point open**, see below)
 - [ ] Phase 9: Audit data (multi-sensor FIRMS, burned area, manual CSVs, district rain)
-- [ ] Phase 10: Audit analytics, gap ranges, Auditor agent
+- [ ] Phase 10: Audit analytics, gap ranges, Auditor agent (+ optional Planner, Critic on by default for audits)
 - [ ] Phase 11: Harvest signal and 3-day fire-risk forecast
 - [ ] Phase 12: Allocator, 5 km grid, Dispatcher agent
 - [ ] Phase 13: Audit and Response Planner pages, Evidence, docs, demo
 - [ ] Part 2 stretch
 
 ## Results (fill in during the phases)
+- Phase 8 (full table in `docs/feasibility.md` Part 2). **Go:** NOAA-20 (2022–25), NOAA-21 (2023–25), MODIS Aqua, MODIS Terra (weak), MCD64A1 burned area via the University of Maryland SFTP server (all months 2022–25), district rain. Also **go** (found 2026-11-27 in National Green Tribunal filings): official district counts for 2022–25 and district CRM machine counts. **No-go:** MCD64A1 via Planetary Computer (Sep 2023 and Sep–Oct 2025 missing), Sentinel-2 dNBR (measures harvest: 86.6% of Sangrur has dNBR > 0.27), mandi arrivals (HTTP 403). Tests: 178 pass (no source code changed).
+- Phase 8, state totals side by side (inputs for Phase 10, **not an audit result**):
+
+  | Season | S-NPP detections | MCD64A1 burned km² | PPCB official count |
+  |---|---|---|---|
+  | 2022 | 45,387 | 16,537 | 49,922 |
+  | 2023 | 30,390 | 14,998 | 36,663 |
+  | 2024 | 8,672 | 6,347 | 10,909 |
+  | 2025 | 4,038 | 9,102 | 5,114 |
+
+  Burned area fell less than detections (2025 vs 2022: −45% against −91%) and **rose** from 2024 to 2025 while detections halved. Official counts fell about as much as detections (−90%). MCD64A1 is low confidence in cropland, so this is a lead, not proof.
 - Ingest (Phase 1): fires 139,419 rows after dropping 6,707 low-confidence (2022: 59,162; 2023: 41,962; 2024: 21,812; 2025: 16,483). Daily PM2.5 and weather: 1,472 rows each (4 cities × 92 days × 4 seasons), 0 NaN. First run about 3 min, cached rerun about 1 s.
 - Peak-window (Oct 25 to Nov 15) top districts: 2022 Sangrur 5014, Bathinda 3819, Ferozepur 2805, Moga 2689; 2025 Tarn Taran 437, Sangrur 434, Ferozepur 233. This matches public reporting (Sangrur, Bathinda, Ferozepur, Moga, Tarn Taran). Fires fall sharply from 2022 to 2025, which also matches reporting. 88,487 of 139,419 fires fall inside the 22 districts.
 - Usable seasons: 2022, 2023, 2024, 2025 (2026 has FIRMS only to about Nov 2). Test on 2024 and 2025.
@@ -67,6 +78,11 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - Planner: the first real run produced no usable plan once (reason not recorded, because the error text was vague). Two later calls with the same input gave good plans. I made the cleaner allow the Verifier's constants (7-day, 80%, p10/p50/p90, 24-hour), since the tool descriptions in the prompt contain "7-day" and the model repeats it, and I made the failure reason specific (`planner_error` now says why). A plan with no usable steps is still possible and is simply skipped.
 
 ## Deviations from PLAN.md
+- Phase 8: **D17 does not work as written.** Planetary Computer is missing Sep 2023 and Sep–Oct 2025, so the proposed burned-area path is the monthly `burndate` GeoTIFFs from the University of Maryland SFTP server (window 18). Phase 9 would add `rasterio` and `paramiko` instead of `pystac-client` + `planetary-computer` + `rasterio`. Not yet approved, and nothing was added to `pyproject.toml`.
+- Phase 8: the checks are in a new `scripts/feasibility_part2.py` (`firms | burned | burned_umd | s2 | rain`). The extra packages are passed with `uv run --with ...`. The official-count, mandi, machinery and licence checks were done by hand and are only recorded in `docs/feasibility.md`.
+- Phase 8: the SFTP host, login and password are in the script. They are the shared ones printed in the MCD64A1 user guide §4.1, not a secret of ours.
+- Phase 8: downloaded rasters are cached in `data/raw/burned/mcd64_win18/` and FIRMS windows in `data/raw/firms/` (both gitignored).
+- Phase 8: the plan expected the VIIRS satellites to add different pass times. They do not (all about 13:30 IST). Phase 9 `pass_label` windows need to be wide (Aqua is at about 15:15 in 2025).
 - Stretch 6: new `agents/planner.py` (`build_planner`, `make_plan`, `clean_plan`, `plan_text`, `flag_kinds`). PLAN says the plan shows at the top of the Agent trace tab: done, as a block above the table when `plan` is in the record. The Planner also appears as the first row of the trace (agent `planner`, tool `plan`). `BriefingRecord` has two new fields, `plan` and `planner_error`; old saved briefings lack them and the page handles that. `run_briefing`, `run_daily_watch` and `build_demo_cache` take `use_planner` (default False); the CLI flag is `--plan` on `brief` and `demo-cache`; the app's Run agent / Regenerate button has a "Plan first" checkbox. `analyst.analyse` and `user_message` take an optional `plan_text`. `reuse=True` returns a saved briefing even if it has no plan, so use `--force` to add plans to the demo set.
 - Planner input: it gets the **kinds** of Sentinel flag (spike, high_count, smog_risk), not their text, so no number can enter the plan from there. PLAN did not say what the Planner sees.
 - D10 fallback applied: 22 districts, no Malerkotla (neither source has it). Source is geoBoundaries (ODbL), not udit-001, because the latter has no licence file.
@@ -129,6 +145,14 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - Phase 5: `LLM_MODEL=gemini-2.5-flash` (the default in PLAN and AGENTS.md) returns a 404 ("no longer available to new users"). `gemini-3.8-flash` returned 503 "high demand" for every request. All live runs used `gemini-3.5-flash`, set per command with the `LLM_MODEL` environment variable. `.env.example` was changed by the user to `gemini-3.8-flash`.
 
 ## Open questions / user actions needed
+- **Decided 2026-11-26 (decision 1):** the user approved the University of Maryland server for MCD64A1, with new deps `rasterio` and `paramiko`. Add them and log the decision in AGENTS.md in Phase 9.
+- **Decision 2 resolved (2026-11-27): district counts found for all four seasons.** 2022 and 2023: [PPCB action taken report, 19 Mar 2024](https://www.greentribunal.gov.in/sites/default/files/news_updates/Action%20Taken%20Report%20on%20behalf%20of%20Punjab%20Pollution%20Control%20Board%20in%20OA%20No.%20632%20of%202023%20%28In%20re%20%20News%20item%20appearing%20in%20Hindu%20dated%2006.10.2023%20....pdf), PDF page 57. 2024 and 2025: the PPCB reports in `docs/feasibility.md` §3. To be entered in `official_counts.csv` in Phase 9; nothing entered yet.
+- Phase 9/12: district CRM machine counts exist (`docs/feasibility.md` §5). The first Phase 8 check found none. Decide whether `crm_machines.csv` holds them; fleet size stays a user input (D19).
+- **Opus (before Phase 10, not blocking Phase 9): the signals are not independent, and the gap formula needs a review.** The three VIIRS satellites share the same pass time, MCD64A1 is guided by MODIS active fires, and official counts are satellite-based. A rough state-level run of the PLAN formula for 2025 against 2022 gives implied under-detection of about 0.13 (official), 0.84 (burned area) and 0.92 (night detections, which rest on 82 and 96 counts). So the range would be very wide, and "confidence = number of signals agreeing in sign" would overstate it. This arithmetic is a design check, not an audit result. I have not changed the interface.
+- User (Phase 9, if approved): the PPCB reports state no licence. We would cite the address on each row of `official_counts.csv`. Malerkotla's row gets added to Sangrur (D10).
+- User (Phase 8): optional, only if you want a real harvest signal: download historical paddy arrivals from the Agmarknet site in a browser. It refused my script (HTTP 403).
+- Phase 13: Open-Meteo data is CC BY 4.0 and asks for a link where it is shown. The app names Open-Meteo but does not link to it, and neither README nor app states the licence.
+- Not verified: the ISRO *Current Science* paper (only two news reports about it were opened). Open it before writing `evening_burning_reports.md` in Phase 10.
 - User (Phase 3): decide whether the negative result is acceptable for the demo. Plan: the Evidence page shows it as is. Say if you want an extra experiment (not tuned on test seasons) before Phase 4.
 - User (Phase 2): run `uv run streamlit run src/psw/app/main.py`, open Replay Map, and check that it looks right and Play works.
 - User (Stretch 6): the committed demo briefings were written **without** the planner, so the Plan block does not show in the app yet. To show it, run `uv run python -m psw.pipeline brief --date 2025-10-31 --district Ludhiana --plan` (overwrites that one saved briefing; about 3 LLM calls), or `demo-cache --plan --force` for the whole set. Read the result first: I have no evidence yet that plans make briefings better.

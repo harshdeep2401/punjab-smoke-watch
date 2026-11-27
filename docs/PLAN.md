@@ -21,7 +21,7 @@ Read `AGENTS.md` first. Run the phases **in order**. Each phase has tasks, inter
 | **Part 2** | **Audit + Response (AGENTS.md §1b, D15–D20)** | |
 | 8 | Feasibility for the new data | 1.0 h |
 | 9 | Audit data: multi-sensor FIRMS, burned area, manual CSVs | 1.5 h |
-| 10 | Audit analytics, gap ranges, Auditor agent | 2.0 h |
+| 10 | Audit analytics, gap ranges, Auditor agent (+ Planner option, Critic) | 2.75 h |
 | 11 | Response: harvest signal and 3-day fire-risk forecast | 2.0 h |
 | 12 | Response: allocator, 5 km grid, Dispatcher agent | 2.0 h |
 | 13 | Audit and Response Planner pages, Evidence, docs, demo | 1.5 h |
@@ -525,12 +525,38 @@ Outputs: `data/processed/audit/*.parquet` and `data/processed/audit_summary.json
 - It must say that this is triangulation, not field truth.
 - **Verifier:** the same, plus a check that the 4 labels are present. The word limit is configurable per agent (an `AgentSpec`-level `word_range`; add it if it's not there and log it as a deviation).
 - **Template:** a fixed audit paragraph from the tool results.
-- **Orchestrator:** `run_audit(district|"Punjab", season)` writes `data/processed/audits/{season}_{district}.json`, with the same record shape as briefings (mode, text, citations, sources, verification, trace).
+- **Orchestrator:** `run_audit(district|"Punjab", season, use_planner=False, use_critic=True)` writes `data/processed/audits/{season}_{district}.json`, with the same record shape as briefings (mode, text, citations, sources, verification, trace, plus `plan`, `critic`).
+- **Planner for the Auditor (optional, off by default; reuses `agents/planner.py`):**
+  - Give `make_plan` a mode or prompt variant for audits. Its input is only the **names of the signals available** for that district-season (e.g. `["snpp", "noaa20", "modis", "burned_area"]`, no numbers), and it returns which signals to check first and the questions to answer.
+  - The plan goes into the Auditor's first message and the trace, as for the Analyst.
+  - A failed plan never blocks an audit (D14).
+  - CLI: `pipeline audit --plan`.
+
+**`src/psw/agents/critic.py`: the Critic (moved here from stretch; D21)**
+- `AgentSpec(name="critic", tools=[], json_output=True)`.
+- **Input:** the verified text, plus the **text of every chunk it cites** (so it can judge support) and the brief type (`"audit"`, or later `"briefing"` and `"dispatch"`).
+- **Output:** `{"ok": bool, "issues": [{"type": "unsupported_citation"|"overclaim"|"missing_caveat"|"unclear"|"tone", "sentence": str, "note": str}], "suggested_text": str | null}`.
+  - For audits, `overclaim` covers claims like "farmers are hiding fires" or "official numbers are wrong" that the signals don't support, and any "ground truth" claim that implies field verification.
+- **Rules:**
+  1. The Critic **never adds numbers**. It may only delete, reorder or reword.
+  2. If it returns `suggested_text`, **run the Verifier again**, and also check that every number in the new text appears in the old text. Use the rewrite only if both pass. Otherwise keep the original and store the issues.
+  3. An `unsupported_citation` issue with no accepted rewrite keeps the badge but adds a "⚠️ Critic: citation may not support sentence" note.
+  4. If the Critic fails (LLM error or bad JSON), the original brief stands and `critic_error` is recorded.
+- The record gets `critic: {ok, issues, rewrite_used: bool, error}` and a `mode` suffix such as `agent+critic` when a rewrite is used.
+- Default: **on for audits** (`use_critic=True`). The Analyst and Dispatcher get it too via `use_critic`, off by default for now to save free-tier calls. Phase 12 turns it on for dispatch briefs if the quota allows.
+- **Cost:** one extra LLM call per brief.
 
 **Tests:**
 - gap_range on synthetic data: detections −90% and burned area −30% gives a gap of about 0.86; two signals disagreeing in sign gives low confidence; one signal gives "insufficient evidence";
 - clipping;
 - the auditor runs with a FakeLLM, including the label check;
+- auditor with the planner on: the plan reaches the first message; a failing planner doesn't block the audit;
+- critic, with a FakeLLM:
+  - a rewrite that passes is used;
+  - a rewrite that adds a new number is rejected even if that number is in the evidence;
+  - a rewrite that fails the Verifier is rejected and the original is kept;
+  - bad critic JSON leaves the original and records `critic_error`;
+  - the Critic's input contains the cited chunk texts;
 - the template passes the Verifier.
 
 **Acceptance:**
@@ -538,7 +564,9 @@ Outputs: `data/processed/audit/*.parquet` and `data/processed/audit_summary.json
 - Paste the Punjab gap ranges into PROGRESS.md **with their methods and confidence**.
 - If the signals say detection is *not* hiding burning, report that just as plainly.
 
-**Review checklist:** no range is reported from fewer than 2 signals; every number in the audit brief traces to a tool; curated notes cite sources that were actually opened; "ground truth" wording never claims field verification.
+**Review checklist:** no range is reported from fewer than 2 signals; every number in the audit brief traces to a tool; curated notes cite sources that were actually opened; "ground truth" wording never claims field verification; the Critic can't introduce numbers, a rewrite is always re-verified, and a Critic failure never removes a verified brief; the Planner sees signal names only, never values.
+
+**Also in acceptance:** run the 2024 and 2025 Punjab audits and the top-5 district audits with the Critic on. Report in PROGRESS.md how many issues it raised by type, and how many rewrites were accepted or rejected. Read 2 of the flagged issues yourself and say whether the Critic was right.
 
 ---
 
@@ -687,7 +715,7 @@ def compare_to_proportional(...)   # the naive "share of last season's fires" al
 ---
 
 ## Stretch (in this order, only after Phase 13)
-1. **Critic agent** (was item 7, below). It now reviews briefings, audits and dispatch briefs.
+1. **Critic everywhere:** turn `use_critic` on by default for district briefings and dispatch briefs, and add a Critic stats row to the Evidence page. (The Critic itself is built in Phase 10.)
 2. **Season-end check ("did help work?"):** for districts that got more units, did burning (all signals) fall more than in comparable districts? It's descriptive only, and you need to say why it isn't causal.
 3. **Live mode:** FIRMS NRT for the last 7 days, the forecast API for weather and AQ, and the saved final model predicts tomorrow. A sidebar toggle. It only makes sense until Nov 30.
 4. **Delhi** as a 5th city (it's a target only; keep the bbox as it is).
