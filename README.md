@@ -103,11 +103,23 @@ Expanding-window backtest: for each test season (2024 and 2025) the model is tra
 
 **Agent reliability.** On 12 sampled flagged district-days from the two test seasons (seed 42), all 12 briefings passed the Verifier, all written by the agent (none by the template, none needing a revision). That sample is small and it checks numbers and citations, not the quality of the writing. Two checks found real problems while building this: a briefing quoted a source that did not support its sentence, and two briefings printed a raw tool field name. The second is now caught by the Verifier.
 
+## Screenshots
+
+Taken from a clean copy of the repo with no `.env` (offline, cached data only).
+
+| Replay map | Daily Watch & Briefing |
+|---|---|
+| ![Replay map](docs/screenshots/2_replay_map.png) | ![Ludhiana briefing, 2025-10-31](docs/screenshots/5_briefing_ludhiana.png) |
+| **Forecast** | **Evidence** |
+| ![Forecast](docs/screenshots/3_forecast.png) | ![Evidence](docs/screenshots/6_evidence.png) |
+
+More in [`docs/screenshots/`](docs/screenshots/).
+
 ## Data sources and credits
 
 - **Fire detections:** NASA FIRMS, VIIRS S-NPP 375 m, archive product (low-confidence detections dropped). https://firms.modaps.eosdis.nasa.gov
-- **PM2.5 (the forecast target):** Copernicus Atmosphere Monitoring Service (CAMS) global atmospheric composition forecasts, retrieved through the Open-Meteo air-quality API. This is modelled PM2.5, not a ground monitor.
-- **Weather:** Open-Meteo historical weather (ERA5 reanalysis, Copernicus Climate Change Service). https://open-meteo.com
+- **PM2.5 (the forecast target):** Copernicus Atmosphere Monitoring Service (CAMS) global atmospheric composition forecasts, retrieved through the Open-Meteo air-quality API (data by [Open-Meteo.com](https://open-meteo.com/), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). This is modelled PM2.5, not a ground monitor.
+- **Weather:** weather data by [Open-Meteo.com](https://open-meteo.com/) (ERA5 reanalysis, Copernicus Climate Change Service), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - **District boundaries:** geoBoundaries IND ADM2 (gbOpen), licence Open Data Commons Open Database License (ODbL) 1.0, attribution to geoBoundaries (wmgeolab). https://www.geoboundaries.org
 - **Embeddings:** `BAAI/bge-small-en-v1.5`, run locally with fastembed.
 - **PM2.5 reference line:** India's National Ambient Air Quality Standards, 24-hour value of 60 µg/m³.

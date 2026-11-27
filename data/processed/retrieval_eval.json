@@ -82,8 +82,8 @@
      "rank": 1,
      "got": [
       "grap",
-      "standards_pm25",
-      "grap"
+      "grap",
+      "standards_pm25"
      ]
     },
     {
@@ -312,8 +312,8 @@
      "rank": 1,
      "got": [
       "grap",
-      "method_upwind_pressure",
-      "grap"
+      "grap",
+      "method_upwind_pressure"
      ]
     },
     {
@@ -477,7 +477,7 @@
      "got": [
       "limitations",
       "crop_residue_context",
-      "grap"
+      "crop_residue_context"
      ]
     },
     {
@@ -543,7 +543,7 @@
      "got": [
       "grap",
       "standards_pm25",
-      "cams_pm25"
+      "grap"
      ]
     },
     {
@@ -568,8 +568,8 @@
      "rank": 1,
      "got": [
       "standards_pm25",
-      "cams_pm25",
-      "cams_pm25"
+      "city_season_2023_Bathinda",
+      "city_season_2023_Ludhiana"
      ]
     },
     {

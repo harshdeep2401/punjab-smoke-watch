@@ -2,7 +2,7 @@
 
 Update this file at the end of every phase. Newest notes go at the top of each section.
 
-**Current phase:** Part 1 (0–7) done, plus Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). **Part 2 (Audit + Response) planned on 2026-11-26. Phase 8 done on 2026-11-26. Waiting for the user's go-ahead (decision point, see Open questions) before Phase 9.** See AGENTS.md §1b and PLAN.md Part 2.
+**Current phase:** Part 1 (0–7) done, plus Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). **Part 2 (Audit + Response) planned on 2026-11-26. Phase 8 done on 2026-11-26, Phase 9 on 2026-11-27. Opus review of the gap formula done (D23). Next: Phase 10.** See AGENTS.md §1b and PLAN.md Part 2.
 
 **Part 2 motivating finding** (Opus, from `fires.parquet`, S-NPP, Indian Punjab):
 
@@ -26,7 +26,7 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - [x] Phase 7: Demo cache, README, rehearsal (screenshots and the clean-clone check are yours, see below)
 - [x] Part 1 stretch 5 (hybrid retrieval) and 6 (Planner). Item 7 (Critic) moved into Phase 10 (D21). Item 8 (Comparison) superseded by the Auditor. Old item 3 (detection-gap panel) superseded by Phases 9–10.
 - [x] Phase 8: Feasibility for the new data (**user decision point open**, see below)
-- [ ] Phase 9: Audit data (multi-sensor FIRMS, burned area, manual CSVs, district rain)
+- [x] Phase 9: Audit data (multi-sensor FIRMS, burned area, manual CSVs, district rain)
 - [ ] Phase 10: Audit analytics, gap ranges, Auditor agent (+ optional Planner, Critic on by default for audits)
 - [ ] Phase 11: Harvest signal and 3-day fire-risk forecast
 - [ ] Phase 12: Allocator, 5 km grid, Dispatcher agent
@@ -45,6 +45,21 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
   | 2025 | 4,038 | 9,102 | 5,114 |
 
   Burned area fell less than detections (2025 vs 2022: −45% against −91%) and **rose** from 2024 to 2025 while detections halved. Official counts fell about as much as detections (−90%). MCD64A1 is low confidence in cropland, so this is a lead, not proof.
+- Phase 9, multi-sensor fires (step 1 of 4): `fires_multisensor.parquet`, 408,056 rows (3.1 MB), 253,800 inside Punjab. MODIS rows below confidence 30 and VIIRS 'l' rows are dropped. S-NPP rows match `fires.parquet` one for one, districts included.
+
+  | Inside Punjab | 2022 | 2023 | 2024 | 2025 |
+  |---|---|---|---|---|
+  | S-NPP | 45,387 | 30,390 | 8,672 | 4,038 |
+  | NOAA-20 | 48,365 | 32,778 | 9,958 | 4,153 |
+  | NOAA-21 | none | 31,244 | 8,949 | 4,050 |
+  | MODIS | 10,565 | 8,347 | 3,853 | 3,051 |
+
+  Whole bounding box: S-NPP 59,162 / 41,962 / 21,812 / 16,483; NOAA-20 62,689 / 44,914 / 24,763 / 16,992; NOAA-21 – / 43,611 / 23,473 / 16,254; MODIS 13,156 / 10,940 / 6,398 / 5,447.
+
+- Phase 9, burned area (step 2 of 4): `burned_area.parquet`, 88 district-seasons (22 x 4). Punjab burned area for burn dates 15 Sep to 30 Nov: 16,532 / 14,980 / 6,343 / 9,102 km2 (2022 to 2025). That is down 45% from 2022 to 2025, against 91% for S-NPP detections. A lead for Phase 10, not a finding: MCD64A1 is low confidence in cropland. Some district values look implausibly low (Jalandhar 2024: 1.2 km2).
+- Phase 9, official counts (step 3 of 4): `data/manual/official_counts.csv`, 92 rows (23 districts x 4 seasons), generated from the three report PDFs, not retyped; each season adds up to the report's stated total (49,922 / 36,663 / 10,909 / 5,114). Official counts fell 90% from 2022 to 2025, close to S-NPP's 91%. Both are satellite-based, so this agreement is not independent confirmation.
+- Phase 9, district weather (step 4 of 4): `district_weather_daily.parquet`, 8,272 rows (22 districts, 1 Sep to 3 Dec, 2022 to 2025), no gaps. Median district rain for 15 Sep to 30 Nov: 122 / 94 / 16 / 51 mm, the same as Phase 8.
+- Phase 9 acceptance: 210 tests pass. `audit-ingest` rerun with the network blocked gives identical parquet files. Neither the FIRMS nor the LLM key appears in `src`, `tests`, `docs`, `data/manual` or `data/processed`.
 - Ingest (Phase 1): fires 139,419 rows after dropping 6,707 low-confidence (2022: 59,162; 2023: 41,962; 2024: 21,812; 2025: 16,483). Daily PM2.5 and weather: 1,472 rows each (4 cities × 92 days × 4 seasons), 0 NaN. First run about 3 min, cached rerun about 1 s.
 - Peak-window (Oct 25 to Nov 15) top districts: 2022 Sangrur 5014, Bathinda 3819, Ferozepur 2805, Moga 2689; 2025 Tarn Taran 437, Sangrur 434, Ferozepur 233. This matches public reporting (Sangrur, Bathinda, Ferozepur, Moga, Tarn Taran). Fires fall sharply from 2022 to 2025, which also matches reporting. 88,487 of 139,419 fires fall inside the 22 districts.
 - Usable seasons: 2022, 2023, 2024, 2025 (2026 has FIRMS only to about Nov 2). Test on 2024 and 2025.
@@ -78,6 +93,14 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - Planner: the first real run produced no usable plan once (reason not recorded, because the error text was vague). Two later calls with the same input gave good plans. I made the cleaner allow the Verifier's constants (7-day, 80%, p10/p50/p90, 24-hour), since the tool descriptions in the prompt contain "7-day" and the model repeats it, and I made the failure reason specific (`planner_error` now says why). A plan with no usable steps is still possible and is simply skipped.
 
 ## Deviations from PLAN.md
+- Phase 9: district weather covers 1 Sep to 3 Dec, so Phase 11 has trailing and next-3-day rain at the season's edges. Wind speed is km/h, as in `weather_daily.parquet`. It is ERA5 reanalysis at one centroid per district, not rain gauges.
+- Phase 9: the CSV keeps the sources' Malerkotla rows. `audit.official.load_official` adds them to Sangrur (D10) and returns 22 districts. District names in the CSV are the boundary file's spellings. No parquet is written; `audit-ingest` validates the CSV and stops on a bad row.
+- Phase 9: burned area comes from the University of Maryland server (D22, replaces D17). `s2_dnbr_district` was not written (optional; Phase 8 no-go).
+- Phase 9: in `burned_area.parquet`, `n_pixels` is the number of burned pixels. A pixel that burned in two months counts once, so state totals are up to 18 km2 below the Phase 8 figures (which added the months).
+- Phase 9: the SFTP download does not check the server's host key (public data, public password).
+- Phase 9: `pass_label` uses whole IST hours: morning 10–11, afternoon 12–15, night 0–3, else "other" (only Terra's evening passes, 6.6% of Terra rows).
+- Phase 9: `acq_date` stays the UTC date, as in `fires.parquet`, so a night pass (about 01:30 IST) carries the previous day's date.
+- Phase 9: `ingest.firms.fetch_season` takes a `product` argument (default S-NPP). `load_multisensor` raises if a sensor has no rows for a season where it should (NOAA-21 starts 2023).
 - Phase 8: **D17 does not work as written.** Planetary Computer is missing Sep 2023 and Sep–Oct 2025, so the proposed burned-area path is the monthly `burndate` GeoTIFFs from the University of Maryland SFTP server (window 18). Phase 9 would add `rasterio` and `paramiko` instead of `pystac-client` + `planetary-computer` + `rasterio`. Not yet approved, and nothing was added to `pyproject.toml`.
 - Phase 8: the checks are in a new `scripts/feasibility_part2.py` (`firms | burned | burned_umd | s2 | rain`). The extra packages are passed with `uv run --with ...`. The official-count, mandi, machinery and licence checks were done by hand and are only recorded in `docs/feasibility.md`.
 - Phase 8: the SFTP host, login and password are in the script. They are the shared ones printed in the MCD64A1 user guide §4.1, not a secret of ours.
@@ -145,32 +168,33 @@ Afternoon-pass (IST 12–14 h) detections fell about 91%, but night detections d
 - Phase 5: `LLM_MODEL=gemini-2.5-flash` (the default in PLAN and AGENTS.md) returns a 404 ("no longer available to new users"). `gemini-3.8-flash` returned 503 "high demand" for every request. All live runs used `gemini-3.5-flash`, set per command with the `LLM_MODEL` environment variable. `.env.example` was changed by the user to `gemini-3.8-flash`.
 
 ## Open questions / user actions needed
-- **Decided 2026-11-26 (decision 1):** the user approved the University of Maryland server for MCD64A1, with new deps `rasterio` and `paramiko`. Add them and log the decision in AGENTS.md in Phase 9.
-- **Decision 2 resolved (2026-11-27): district counts found for all four seasons.** 2022 and 2023: [PPCB action taken report, 19 Mar 2024](https://www.greentribunal.gov.in/sites/default/files/news_updates/Action%20Taken%20Report%20on%20behalf%20of%20Punjab%20Pollution%20Control%20Board%20in%20OA%20No.%20632%20of%202023%20%28In%20re%20%20News%20item%20appearing%20in%20Hindu%20dated%2006.10.2023%20....pdf), PDF page 57. 2024 and 2025: the PPCB reports in `docs/feasibility.md` §3. To be entered in `official_counts.csv` in Phase 9; nothing entered yet.
-- Phase 9/12: district CRM machine counts exist (`docs/feasibility.md` §5). The first Phase 8 check found none. Decide whether `crm_machines.csv` holds them; fleet size stays a user input (D19).
-- **Opus (before Phase 10, not blocking Phase 9): the signals are not independent, and the gap formula needs a review.** The three VIIRS satellites share the same pass time, MCD64A1 is guided by MODIS active fires, and official counts are satellite-based. A rough state-level run of the PLAN formula for 2025 against 2022 gives implied under-detection of about 0.13 (official), 0.84 (burned area) and 0.92 (night detections, which rest on 82 and 96 counts). So the range would be very wide, and "confidence = number of signals agreeing in sign" would overstate it. This arithmetic is a design check, not an audit result. I have not changed the interface.
-- User (Phase 9, if approved): the PPCB reports state no licence. We would cite the address on each row of `official_counts.csv`. Malerkotla's row gets added to Sangrur (D10).
-- User (Phase 8): optional, only if you want a real harvest signal: download historical paddy arrivals from the Agmarknet site in a browser. It refused my script (HTTP 403).
-- Phase 13: Open-Meteo data is CC BY 4.0 and asks for a link where it is shown. The app names Open-Meteo but does not link to it, and neither README nor app states the licence.
-- Not verified: the ISRO *Current Science* paper (only two news reports about it were opened). Open it before writing `evening_burning_reports.md` in Phase 10.
-- User (Phase 3): decide whether the negative result is acceptable for the demo. Plan: the Evidence page shows it as is. Say if you want an extra experiment (not tuned on test seasons) before Phase 4.
-- User (Phase 2): run `uv run streamlit run src/psw/app/main.py`, open Replay Map, and check that it looks right and Play works.
-- User (Stretch 6): the committed demo briefings were written **without** the planner, so the Plan block does not show in the app yet. To show it, run `uv run python -m psw.pipeline brief --date 2025-10-31 --district Ludhiana --plan` (overwrites that one saved briefing; about 3 LLM calls), or `demo-cache --plan --force` for the whole set. Read the result first: I have no evidence yet that plans make briefings better.
-- User (Phase 7): **take the screenshots** (home, Replay map, Forecast, Watch & Briefing on 2025-10-31 with the Ludhiana briefing, Evidence) into `docs/screenshots/` if you want them in the README or slides. I could not.
-- User (Phase 7): **check a clean clone** (needs your last commit to include `data/processed/`): `git clone . /tmp/psw-check && cd /tmp/psw-check && uv sync && uv run streamlit run src/psw/app/main.py` with no `.env`. Click through all four pages and the Ludhiana briefing.
-- User (Phase 7): read the Ludhiana and the two Tarn Taran demo briefings (`data/processed/briefings/2025-10-31_Ludhiana.json`, `2025-10-18_...`, `2025-10-26_...`) as a reader. They pass the Verifier; I read them and found no wrong figures, but the Verifier cannot judge the wording. One says "rank 1 in Punjab out of a total state count of 42", which is clumsy but correct.
-- User (Phase 7): `briefings/2025-10-23_Sangrur.json` is an old test run (agent_revised, verified) that is not part of the demo set. Keep it or delete it. It counts in the reliability table.
-- User (Phase 7): the demo briefings come from two models: the peak-day Tarn Taran, Bathinda and Moga from `gemini-3.5-flash`, the rest from `gemini-3.5-flash-lite`. Run `uv run python -m psw.pipeline demo-cache --force` if you want one model throughout (it spends free-tier quota).
-- User (Phase 6): run `uv run streamlit run src/psw/app/main.py` and look at Forecast, Watch & Briefing and Evidence. Things I could not see: the Plotly band and the "NAAQS 24 h" label, the green best-value highlighting, the layout of the two columns, and whether the briefing text reads well with `[K103]` citations.
-- User (Phase 6): the Evidence page tells the reader the Verifier does not check that a source supports a sentence, and that Sentinel flags can come from `smog_risk` alone. Say if you want that wording changed.
-- User (Phase 6): decide what to commit under `data/processed/`. The page now reads both `briefings/` (4 files) and `sample_run/briefings/` (12 files). If you commit only `briefings/`, the reliability table shows one row. Phase 7 `demo-cache` should decide the final set.
-- User (Phase 5): **set `LLM_MODEL=gemini-3.5-flash` in `.env`.** It still says `gemini-3.8-flash`, which returned 503 "high demand" on every request when I tested it. The key itself works. Tested live with `gemini-3.5-flash`: plain, JSON mode, tool calls, and a full agent run.
-- User (Phase 5): `gemini-3.5-flash` hit its free-tier quota (429 after all retries) during the first sample try, so I used `gemini-3.5-flash-lite` for the rest. Consider setting `LLM_MODEL=gemini-3.5-flash-lite` in `.env`. The retry backoff only costs time. Ollama on the P6000 is untested (you said you would set it up).
-- User (Phase 5): `data/processed/briefings/` and `watch/` hold the real 2025-10-31 watch (3 briefings written by the agent) and one template briefing for Sangrur from the `--no-llm` check (it is overwritten by the next run for the same district-day). `data/processed/sample_run/` and `brief_sample_report.json` come from the sample run. Decide what to commit. Phase 7 `demo-cache` rebuilds the demo set anyway.
-- User (Phase 5): read 2 or 3 saved briefings (`data/processed/briefings/*.json`) as a reader. The Verifier proves the numbers exist in the tool output. It does not prove the sentences use them correctly.
-- User: the 2026 FIRMS feed looks stale after about Nov 2. Decide if that matters (it only affects the stretch Live mode).
-- User (Phase 4): **review `kb/curated/*.md` for factual accuracy.** I wrote them from memory and did not browse. Check especially: the S-NPP overpass times (about 01:30 / 13:30), the CAMS note (coarse grid, GFAS fire emissions), NAAQS 60 and WHO 15 µg/m³ (24 h) and the annual values, the GRAP stage names (Poor / Very Poor / Severe / Severe+) and that GRAP covers Delhi-NCR, and the paddy harvest / wheat sowing dates. The `source_url` for `grap.md` (caqm.nic.in) and `crop_residue_context.md` (agri.punjab.gov.in) are site roots, not exact pages. Replace them with the exact page.
-- User (Phase 4): the first `pipeline kb` run downloaded the bge-small model (about 130 MB) to the local cache. Done on this machine already.
+- **Decided 2026-11-26 (decision 1):** the user approved the University of Maryland server for MCD64A1, with new deps `rasterio` and `paramiko`. Add them and log the decision in AGENTS.md in Phase 9. **Done (D22).**
+- **Decision 2 resolved (2026-11-27): district counts found for all four seasons.** 2022 and 2023: [PPCB action taken report, 19 Mar 2024](https://www.greentribunal.gov.in/sites/default/files/news_updates/Action%20Taken%20Report%20on%20behalf%20of%20Punjab%20Pollution%20Control%20Board%20in%20OA%20No.%20632%20of%202023%20%28In%20re%20%20News%20item%20appearing%20in%20Hindu%20dated%2006.10.2023%20....pdf), PDF page 57. 2024 and 2025: the PPCB reports in `docs/feasibility.md` §3. **Entered in `official_counts.csv` in Phase 9.**
+- **Settled 2026-11-27 (Opus, D24):** district CRM machine counts go in `data/manual/crm_machines.csv` in Phase 12, as context only (Dispatcher tool and page), never in the allocation maths. Fleet size stays a user input (D19).
+- **Settled 2026-11-27 (Opus, D23): gap method revised** (PLAN.md Phase 10). Burned area is the only reference; S-NPP and official counts are what gets measured against it; night share and MODIS-vs-S-NPP only set confidence; NOAA-20/21 are a robustness check. Range over count series × base season; no clipping; small-number rule; confidence never "high". Design check on Phase 9 data (Punjab, not a result): 2023 0.19–0.26, 2024 0.30–0.50, 2025 0.77–0.84. At district level, 15 of 22 districts pass the small-number rule in 2024 and 16 in 2025 (threshold applied to the season only); the 50 km² rule on both seasons will drop a few more. The range excludes MCD64A1's own error, so it must always be shown with that caveat.
+- **Closed 2026-11-27 (Opus):** official counts. The CSV is generated from the three report PDFs, every season matches its stated total, and the 2022–23 page was checked against the scanned image. No licence is stated; each row cites its address.
+- **Settled (Phase 10):** official counts are used as published. The 2022 and 2023 tables cover 15 Sep to 30 Nov; the 2024 and 2025 tables give no start date. `method_note` carries this, and any gap `methods` entry using official counts must say so. No adjustment.
+- **Closed 2026-11-27 (Opus):** Agmarknet arrivals not pursued. Phase 11 uses the proxies (`docs/feasibility.md` §4). Reopen only if you download arrivals by hand.
+- **Closed 2026-11-27 (Opus):** Open-Meteo attribution. The app credits line (every page), the Evidence sources table and the README now link to open-meteo.com and CC BY 4.0, as https://open-meteo.com/en/licence asks.
+- **Settled (Phase 10 task):** open the ISRO *Current Science* paper before writing `evening_burning_reports.md`. If it can't be opened, the note cites only the news reports that were opened, attributes the claim to them, and says the paper itself was not read.
+- **Closed 2026-11-27 (Opus):** the negative forecast result stays as it is on the Evidence page. No extra experiment.
+- **Closed 2026-11-27 (Opus):** Replay map checked in headless Chrome: it renders, and Play advances the date (2025-11-05 to 2025-11-13 in 6 s). Fixed a stale second "Play" button that showed while playing (the button now has a stable key).
+- **Closed 2026-11-27 (Opus):** the demo stays without the Planner. There is no evidence plans improve briefings, and each costs an extra LLM call.
+- **Closed 2026-11-27 (Opus):** screenshots taken from the clean copy (no `.env`) and saved to `docs/screenshots/` (home, Replay map, Forecast, watchlist, Ludhiana briefing, Evidence). Four are shown in the README.
+- **Closed 2026-11-27 (Opus):** clean-copy check. AI tools may not run `git clone` (D12), so the files that will be committed (`git ls-files -co --exclude-standard`) were copied to an empty folder, then `uv sync`, `pytest` (210 pass) and the app with no `.env` and no keys in the environment. All five pages load without errors, and the Ludhiana briefing shows with its verified badge, trace and sources. After your commit, the repo has exactly these files.
+- **Closed 2026-11-27 (Opus):** read the Ludhiana and both Tarn Taran briefings as a reader. Figures are right (e.g. Ludhiana's "rise" is 11 detections against a 7-day mean of 4.3), and every cited chunk contains the lower-bound caveat it supports. The "rank 1 ... out of a total state count of 42" wording stays.
+- **Closed 2026-11-27 (Opus):** kept. It is a real, verified agent run (revised once), so it belongs in the reliability table.
+- **Closed 2026-11-27 (Opus):** kept as they are. Each briefing records its model, and the app shows it.
+- **Closed 2026-11-27 (Opus):** looked at Forecast, Watch & Briefing and Evidence in screenshots. The Plotly band, the "NAAQS 24 h" line, the green best-value cells, the two-column briefing layout and the `[K101]` citations all render and read well.
+- **Closed 2026-11-27 (Opus):** Evidence wording kept. It is accurate.
+- **Closed 2026-11-27 (Opus):** already committed: `briefings/` (9), `sample_run/briefings/` (12), `watch/` (3).
+- **Closed 2026-11-27 (Opus):** `.env` already has `LLM_MODEL=gemini-3.5-flash-lite` (checked without printing keys).
+- **Closed 2026-11-27 (Opus):** flash-lite is the default (above). Ollama on the P6000 remains an untested option, not a task.
+- **Closed 2026-11-27 (Opus):** superseded by the Phase 7 demo cache, which is committed.
+- **Closed 2026-11-27 (Opus):** done with the Phase 7 reading above.
+- **Closed 2026-11-27 (Opus):** explained. The FIRMS FAQ says new S-NPP production ceased on 2 November 2026, and Terra observations cease on 1 December 2026. No effect on 2022–2025. Any future season must use NOAA-20/21 (and Aqua while it lasts).
+- **Closed 2026-11-27 (Opus):** curated notes checked against pages that were opened. **Confirmed:** VIIRS 375 m, low/nominal/high classes, S-NPP 13:30 / 01:30 mean local time (FIRMS FAQ; the note now says mid-latitudes get 3–4 looks a day near those times); CAMS global 0.4° (~45 km), from August 2022 (Open-Meteo docs); CAMS uses GFAS fire emissions (atmosphere.copernicus.eu); NAAQS PM2.5 60 (24 h) and 40 (annual), G.S.R. 826(E) of 16 Nov 2009 (scanned notification); GRAP Stages II–IV with AQI ranges and the CAQM name (newsonair.gov.in, Dec 2024); the 15–20 day sowing window (Punjab status report to the NGT, 2024). **Removed because no page could be read:** the WHO 15 and 5 µg/m³ figures (WHO's table is an image, other copies refused access; the note keeps only "much lower than India's standard" and the confirmed 3–4 exceedance days), the Stage I band name, and the harvest and sowing months. `grap.md`, `standards_pm25.md` and `crop_residue_context.md` now cite exact pages. KB rebuilt: chunk ids unchanged (saved briefings still resolve), retrieval eval unchanged (hybrid 17/17, 16 at rank 1).
+- **Closed 2026-11-27 (Opus):** nothing to do.
 
 ## Review notes (Reviewer: GPT 6 Luna)
 - Phase 2: `src/psw/app/pages/1_Replay_Map.py:54` builds the fire layer with a Python loop over every detection for the selected day. This conflicts with the Phase 2 review checklist requirement to avoid Python loops over fire rows; construct the layer data with vectorized columns instead.

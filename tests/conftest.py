@@ -7,5 +7,6 @@ from psw import config
 def isolated_raw(tmp_path, monkeypatch):
     """Every test writes its caches to a temp dir and never sleeps."""
     monkeypatch.setattr(config, "RAW", tmp_path / "raw")
-    from psw.ingest import firms
+    from psw.ingest import firms, weather
     monkeypatch.setattr(firms, "SLEEP", 0)
+    monkeypatch.setattr(weather, "SLEEP", 0)

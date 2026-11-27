@@ -18,7 +18,8 @@ LIMITATIONS = """
 """
 
 CREDITS = (
-    "Data: NASA FIRMS (VIIRS S-NPP), Open-Meteo (ERA5 weather, CAMS air quality), "
+    "Data: NASA FIRMS (VIIRS S-NPP); weather and air-quality data by [Open-Meteo.com](https://open-meteo.com/) "
+    "(ERA5 weather, CAMS air quality), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); "
     "district boundaries from geoBoundaries (ODbL)."
 )
 

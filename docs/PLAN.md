@@ -482,15 +482,32 @@ def sensor_trend(ms) -> df          # season × sensor → count, % change vs 20
 def night_share(ms) -> df           # season × district → night share (VIIRS night passes / all VIIRS)
 def burned_vs_detected(ms, ba) -> df  # district × season → detections, burned_km2, detections_per_km2, % changes
 def official_vs_satellite(ms, off) -> df  # district × season → official, snpp, ratio
-def gap_range(...) -> df            # district × season → detected_change_pct, gap_low, gap_high, methods, confidence
+def timing_indicators(ms) -> df     # Punjab × season → night_share with 95% Wilson interval, modis_vs_viirs, supports_night, supports_modis
+def gap_range(ms, ba, off, timing, bases=(2022, 2023)) -> df
+    # district|"Punjab" × season → detected_change_pct, reference_change_pct, gap_low, gap_high, methods,
+    #                               confidence, reason (why "insufficient evidence"), timing_evidence
 ```
-**Gap range (D16):** for each district-season after the base season, each available signal gives one estimate of "how much real burning changed":
-- (i) the change in burned area;
-- (ii) the change in the sensor with the most stable overpass mix (all VIIRS combined);
-- (iii) the change in night detections;
-- (iv) the change in official counts.
+**Gap range (D16, method revised by D23 on 2026-11-27).** The signals are not independent, so they get different roles:
 
-Implied under-detection = 1 − (detection change ratio / signal change ratio), clipped to [0, 0.95]. `gap_low` / `gap_high` are the min and max across the available signals, `methods` lists them, and `confidence` is "low", "medium" or "high" depending on whether 1, 2 or 3+ signals agree in sign. With fewer than 2 signals, report "insufficient evidence" and no range. **Write this formula and its weaknesses into a curated KB note** (`kb/curated/method_detection_gap.md`).
+| Role | Signals | Used for |
+|---|---|---|
+| **Count** (what claims rest on) | S-NPP detections; official counts | the numerator |
+| **Reference** (less tied to overpass time) | MCD64A1 burned area, the only one we have | the denominator |
+| **Timing indicators** (Punjab only) | night share of S-NPP detections; MODIS change vs S-NPP change | confidence, never a number in the range |
+| **Robustness check** | NOAA-20 and NOAA-21 | `sensor_trend` only: same pass time as S-NPP, so they show the drop is not one satellite's fault, nothing more |
+
+- **What the gap measures:** the fall in *detections per burned km²* relative to a base season: `gap = 1 − (C_t / B_t) / (C_base / B_base)`, where C is a count series and B is burned area. It is a **relative** loss of detection efficiency since the base season, **not** "the share of burning that is missed" (the base season's own miss rate is unknown). Equivalent plain reading, used in briefs: "counts fell X%; burned area fell Y%".
+- **Range:** one estimate per (count series ∈ {S-NPP, official}) × (base season ∈ {2022, 2023}, base < t). `gap_low` / `gap_high` are the min and max; `methods` names each pair, e.g. `"snpp / burned_area, base 2022"`. The range shows sensitivity to the count series and base season only. **It does not contain MCD64A1's own error**, which is unknown and the largest uncertainty; every output says so.
+- **No clipping.** A negative gap means burned area fell more than counts did ("no sign of a detection gap") and is reported as is.
+- **Small-number rule:** a (count, base) pair is used only if burned area is ≥ 50 km² in both seasons and the count is ≥ 100 in the base season. No usable pair → `confidence = "insufficient evidence"`, no range, and `reason` says which rule failed. (District-level MCD64A1 collapses implausibly in places, e.g. Ludhiana 2024: 15 km² against 332 official fires.)
+- **Timing indicators (Punjab-level; districts have too few night detections):** `supports_night` = the season's night-share 95% Wilson interval lies entirely above the base season's; `supports_modis` = (MODIS ratio t/base) / (S-NPP ratio t/base) ≥ 1.5. MODIS has different pass times (Terra about 10:30, Aqua drifting from about 13:30 to 15:15), which is a confound to state, not a reason to drop it. `timing_evidence` lists both with their values.
+- **Confidence:** never "high" (one reference signal, no field data).
+  - Punjab: "medium" if `gap_low ≥ 0.25` and both timing indicators support; "low" otherwise.
+  - Districts: "low" at most.
+  - Range straddling 0: "low", and briefs must say the direction is unclear.
+- A falling detections-per-km² ratio fits **three** explanations: burning moved outside pass times, fires got smaller or cooler, or MCD64A1's sensitivity changed. The timing indicators speak to the first only. Briefs must not present the gap as proof of hidden burning.
+
+**Write this method, the roles table and the weaknesses into a curated KB note** (`kb/curated/method_detection_gap.md`). Design check on Phase 9 data (Punjab, not a result): 2023 0.19 to 0.26, 2024 0.30 to 0.50, 2025 0.77 to 0.84.
 
 Outputs: `data/processed/audit/*.parquet` and `data/processed/audit_summary.json` (Punjab-level headline numbers per season).
 
@@ -513,7 +530,7 @@ Outputs: `data/processed/audit/*.parquet` and `data/processed/audit_summary.json
   | `get_diurnal_profile` | district\|"Punjab", season | counts and shares by pass_label, night share, and the night share's change vs the base |
   | `get_burned_area_comparison` | district, season | burned_km2, detections_per_km2, % changes, or `{"error": "not available"}` |
   | `get_official_vs_satellite` | district, season | official, snpp, ratio, source_url, or an error |
-  | `get_gap_range` | district, season | gap_low_pct, gap_high_pct, methods, confidence |
+  | `get_gap_range` | district, season | detected_change_pct, reference_change_pct, gap_low_pct, gap_high_pct, methods, confidence, reason, timing_evidence, and the fixed caveat that the range excludes burned-area error |
   | `search_knowledge` | query | as before (before = Dec 1 of the season, injected) |
 
 - **Required tools:** trend, diurnal, gap range, search_knowledge.
@@ -547,8 +564,8 @@ Outputs: `data/processed/audit/*.parquet` and `data/processed/audit_summary.json
 - **Cost:** one extra LLM call per brief.
 
 **Tests:**
-- gap_range on synthetic data: detections −90% and burned area −30% gives a gap of about 0.86; two signals disagreeing in sign gives low confidence; one signal gives "insufficient evidence";
-- clipping;
+- gap_range on synthetic data: detections −90% and burned area −30% gives a gap of about 0.86; burned area falling more than detections gives a negative gap, unclipped; a range straddling 0 gives "low"; burned area < 50 km² or base count < 100 gives "insufficient evidence" with a reason; a district is never above "low"; Punjab is "medium" only with both timing indicators supporting and `gap_low ≥ 0.25`; nothing is ever "high";
+- timing_indicators: the Wilson-interval rule and the 1.5 MODIS rule at their boundaries;
 - the auditor runs with a FakeLLM, including the label check;
 - auditor with the planner on: the plan reaches the first message; a failing planner doesn't block the audit;
 - critic, with a FakeLLM:
@@ -564,7 +581,7 @@ Outputs: `data/processed/audit/*.parquet` and `data/processed/audit_summary.json
 - Paste the Punjab gap ranges into PROGRESS.md **with their methods and confidence**.
 - If the signals say detection is *not* hiding burning, report that just as plainly.
 
-**Review checklist:** no range is reported from fewer than 2 signals; every number in the audit brief traces to a tool; curated notes cite sources that were actually opened; "ground truth" wording never claims field verification; the Critic can't introduce numbers, a rewrite is always re-verified, and a Critic failure never removes a verified brief; the Planner sees signal names only, never values.
+**Review checklist:** no range is reported for a district-season that fails the small-number rule; confidence is never "high"; every gap output carries the burned-area-error caveat; NOAA-20/21 and official counts never act as the reference; every number in the audit brief traces to a tool; curated notes cite sources that were actually opened; "ground truth" wording never claims field verification; the Critic can't introduce numbers, a rewrite is always re-verified, and a Critic failure never removes a verified brief; the Planner sees signal names only, never values.
 
 **Also in acceptance:** run the 2024 and 2025 Punjab audits and the top-5 district audits with the Critic on. Report in PROGRESS.md how many issues it raised by type, and how many rewrites were accepted or rejected. Read 2 of the flagged issues yourself and say whether the Critic was right.
 
@@ -598,7 +615,7 @@ Outputs: `data/processed/audit/*.parquet` and `data/processed/audit_summary.json
   - pinball loss and 80% coverage;
   - and above all (D20) **top-5 hit rate**: the share of the actual top-5 districts that appear in the predicted top 5 each day, averaged over days with ≥20 detections statewide;
   - **Spearman** rank correlation across districts per day.
-- **"Likely burning" adjustment:** `likely_p50 = p50 / (1 − gap_mid)` with a band from gap_low and gap_high, where Module A gives a range for that district-season. Use the **previous** season's gap, so there is no leakage. This is shown as a separate, clearly labelled column, **never mixed into the backtest metrics.**
+- **"Likely burning" adjustment:** `likely_p50 = p50 / (1 − gap_mid)` with a band from gap_low and gap_high, where Module A gives a range for that district-season. For this adjustment only (D23), clip each gap to [0, 0.9] (never plan for less than detected; at most ×10), and use the Punjab range for districts with "insufficient evidence". Use the **previous** season's gap, so there is no leakage. This is shown as a separate, clearly labelled column, **never mixed into the backtest metrics.**
 - Outputs: `data/processed/risk_forecasts.parquet` (`issue_date, district, season, variant, p10, p50, p90, likely_low, likely_high, actual`) and `data/processed/risk_metrics.json`.
 
 **Tests:**
@@ -627,6 +644,7 @@ def allocate(risk: pd.DataFrame, units: int, k: float = 20.0,
     # returns: district, units, risk_used, covered_share, marginal_gain_last, reason (template string)
 def compare_to_proportional(...)   # the naive "share of last season's fires" allocation, for the Evidence page
 ```
+- **Machine stock (D24):** enter `data/manual/crm_machines.csv` (`district,machine_type,count,period,source_url,method_note`) from the tribunal filing in `docs/feasibility.md` §5, generated from the PDF and checked against its totals, Malerkotla folded into Sangrur on load. It is **context only**: shown on the page and to the Dispatcher, never used in `allocate()`. The fleet size and limits stay user inputs (D19).
 - **Backtest of the decision** (Evidence): for each test-season day, allocate N units (e.g. 500) using the forecast, then score "expected covered burning" against the **actual** next-3-day detections. Do the same for (a) a proportional-to-last-season allocation and (b) an oracle that knows the actuals.
 - Report the forecast allocation's score as a % of the oracle, next to the proportional baseline. This is the key "does it help decisions?" number.
 
@@ -647,6 +665,7 @@ def compare_to_proportional(...)   # the naive "share of last season's fires" al
   | `get_rain_outlook` | district, date | rain over the last and next 3 days (rain delays burning) |
   | `get_gap_range` | district | the reused Module A tool, for the previous season |
   | `search_knowledge` | query | as before; add curated notes `crm_options.md` (in-situ / ex-situ options, CRM scheme, custom hiring centres, each with a source) |
+  | `get_machine_stock` | district | machines supplied on subsidy 2018-19 to 2024-25 by type, with source_url and the caveat that these are machines supplied, not machines working (D24). Context only |
 
 - **Required tools:** risk, allocation, search_knowledge.
 - **Output:** a 3-day action brief (150–200 words) for the state control room, plus an optional per-district paragraph. It covers where the units go and why, the uncertainty, the detection-gap caveat, and what to watch (rain). It must **not** mention penalties, FIRs or enforcement. Add those words to the banned list **for this agent only**.
@@ -742,7 +761,7 @@ Do these in order. Each must keep the demo working: cached briefings still rende
 | Fire features don't beat no_fire | Report it honestly and explain (CAMS assimilates GFAS). The upwind contributors are still useful in briefings. |
 | District GeoJSON has no Malerkotla | Use 22 districts and state the limitation in the app and README. |
 | fastembed download blocked | The cached briefings still render. Rebuild the index on another network. |
-| Burned-area data is unreachable or too slow | D17 fallback: audit with sensors, time of day and official counts. The gap range needs ≥2 signals, otherwise "insufficient evidence". |
+| Burned-area data is unreachable or too slow | Audit with sensors, time of day and official counts, and report no gap range ("insufficient evidence": no reference signal, D23). |
 | MCD64A1 misses small fields (500 m) | Say so in the KB note and on the Audit page. Its *trend* is still useful. Use S-2 for 1–2 districts as a check if it's feasible. |
 | No historical mandi arrivals | Use the Phase 11 proxies (season progress, last-season curve, rain). Say so on the page. |
 | No district CRM machine counts | The fleet size is a user input in the planner (it's a decision tool anyway). |

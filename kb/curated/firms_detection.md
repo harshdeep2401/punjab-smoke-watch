@@ -16,7 +16,7 @@ A detection is a heat anomaly seen at one moment. It does not say what was burni
 
 # Why fires are missed
 
-- **Overpass timing.** S-NPP passes over a place about twice a day, at roughly 01:30 and 13:30 local solar time. A fire that starts and burns out between two passes is never seen.
+- **Overpass timing.** S-NPP has nominal equator-crossing times of 13:30 and 01:30 mean local time. Because neighbouring orbits overlap, a place in the mid-latitudes may be seen 3 to 4 times a day, but always close to those two times. A fire that starts and burns out between passes is never seen.
 - **Cloud and thick smoke.** The sensor cannot see through thick cloud, so fires under it are missed.
 - **Small or weak fires.** Small, short or low-intensity burns can fall below the detection threshold of a 375 m pixel.
 

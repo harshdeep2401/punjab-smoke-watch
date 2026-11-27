@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import json
+import re
+import time
 from datetime import date, timedelta
 
+import geopandas as gpd
 import pandas as pd
 
 from psw import config
@@ -14,6 +17,12 @@ ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 HOURLY = "temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,boundary_layer_height"
 ARCHIVE_LAG_DAYS = 2  # measured lag was 1 day in Phase 0; keep a margin
+# Open-Meteo daily variable -> our column
+DISTRICT_DAILY = {"precipitation_sum": "precip_mm", "temperature_2m_mean": "temp_mean",
+                  "relative_humidity_2m_mean": "rh_mean", "wind_speed_10m_mean": "wind_speed_mean"}
+DISTRICT_START = (9, 1)  # two weeks before the season, for trailing rain
+DISTRICT_END = (12, 3)  # three days after it, for "rain over the next 3 days"
+SLEEP = 0.2  # between district requests
 
 
 def _request(url: str, params: dict) -> dict:
@@ -79,3 +88,52 @@ def daily_weather(seasons: list[int]) -> pd.DataFrame:
         for city, (lat, lon) in config.CITIES.items():
             parts.append(daily_from_hourly(fetch_city_weather(city, lat, lon, start, end), city))
     return pd.concat(parts, ignore_index=True).sort_values(["city", "date"]).reset_index(drop=True)
+
+
+# ---------- district weather (ERA5 reanalysis at one point per district, not rain gauges) ----------
+
+
+def district_centroids(geo_path=None) -> dict[str, tuple[float, float]]:
+    """district -> (lat, lon) of its centroid, computed in a metric projection (UTM 43N)."""
+    g = gpd.read_file(geo_path or config.GEO / "punjab_districts.geojson")
+    points = g.to_crs("EPSG:32643").centroid.to_crs("EPSG:4326")
+    return {d: (round(p.y, 3), round(p.x, 3)) for d, p in zip(g["district"], points)}
+
+
+def _district_frame(payload: dict, district: str, start: date, end: date) -> pd.DataFrame:
+    """One row per day from `start` to `end`. Raises if a day or a value is missing."""
+    daily = payload["daily"]
+    df = pd.DataFrame({new: pd.to_numeric(daily[old]) for old, new in DISTRICT_DAILY.items()})
+    df.insert(0, "district", district)
+    df.insert(0, "date", pd.to_datetime(daily["time"]).date)
+    expected = (end - start).days + 1
+    if len(df) != expected or df.isna().any().any():
+        raise RuntimeError(f"Open-Meteo district weather: {district} {start} to {end} is incomplete "
+                           f"({len(df)} of {expected} days, {int(df.isna().any(axis=1).sum())} with gaps)")
+    return df
+
+
+def fetch_district_weather(district: str, lat: float, lon: float, start: date, end: date) -> pd.DataFrame:
+    """Daily weather from the archive, cached per request. An incomplete answer is not cached."""
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", district).strip("-")
+    path = config.RAW / "weather" / f"district_{slug}_{start}_{end}.json"
+    if path.exists():
+        return _district_frame(json.loads(path.read_text()), district, start, end)
+    payload = _request(ARCHIVE_URL, {"latitude": lat, "longitude": lon, "daily": ",".join(DISTRICT_DAILY),
+                                     "start_date": str(start), "end_date": str(end), "timezone": "Asia/Kolkata"})
+    df = _district_frame(payload, district, start, end)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"daily": payload["daily"]}))
+    time.sleep(SLEEP)
+    return df
+
+
+def district_daily_weather(seasons: list[int], geo_path=None) -> pd.DataFrame:
+    """date, district, precip_mm, temp_mean, rh_mean, wind_speed_mean (mm, deg C, %, km/h)."""
+    centroids = district_centroids(geo_path)
+    parts = []
+    for year in seasons:
+        start, end = date(year, *DISTRICT_START), date(year, *DISTRICT_END)
+        for district, (lat, lon) in centroids.items():
+            parts.append(fetch_district_weather(district, lat, lon, start, end))
+    return pd.concat(parts, ignore_index=True).sort_values(["district", "date"]).reset_index(drop=True)

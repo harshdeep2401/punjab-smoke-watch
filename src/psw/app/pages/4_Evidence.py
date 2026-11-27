@@ -115,8 +115,8 @@ st.header("Data sources and credits")
 st.markdown(
     "| Data | Source |\n|---|---|\n"
     "| Fire detections | NASA FIRMS, VIIRS S-NPP 375 m (archive product, low-confidence detections dropped) |\n"
-    "| PM2.5 (the forecast target) | Copernicus Atmosphere Monitoring Service (CAMS) via the Open-Meteo air-quality API |\n"
-    "| Weather | Open-Meteo historical weather (ERA5 reanalysis) |\n"
+    "| PM2.5 (the forecast target) | Copernicus Atmosphere Monitoring Service (CAMS) via the [Open-Meteo](https://open-meteo.com/) air-quality API, CC BY 4.0 |\n"
+    "| Weather | [Open-Meteo](https://open-meteo.com/) historical weather (ERA5 reanalysis), CC BY 4.0 |\n"
     "| District boundaries | geoBoundaries IND ADM2 (gbOpen), licence ODbL 1.0, attribution to geoBoundaries (wmgeolab) |\n"
     "| Embeddings for the knowledge base | `BAAI/bge-small-en-v1.5` run locally with fastembed |\n"
     f"| PM2.5 reference line | India NAAQS 24-hour standard, {config.NAAQS_PM25_24H} µg/m³ |")

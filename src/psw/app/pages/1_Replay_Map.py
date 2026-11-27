@@ -27,7 +27,7 @@ st.session_state.setdefault("playing", False)
 
 c1, c2 = st.columns([1, 6])
 label = "⏸ Pause" if st.session_state["playing"] else "▶ Play"
-if c1.button(label):
+if c1.button(label, key="play_toggle"):  # a stable key, so a label change does not leave a stale button
     st.session_state["playing"] = not st.session_state["playing"]
     st.rerun()
 day = c2.slider("Date", min_value=lo, max_value=hi, key=key, format="YYYY-MM-DD")

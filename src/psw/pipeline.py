@@ -90,6 +90,61 @@ def cmd_kb_eval(_args) -> None:
     print(f"Saved data/processed/{evaluate.REPORT_FILE}")
 
 
+MAX_PARQUET_MB = 40
+
+
+def cmd_audit_ingest(_args) -> None:
+    from psw.audit import sensors
+
+    if not config.FIRMS_MAP_KEY:
+        raise SystemExit("FIRMS_MAP_KEY is not set in .env")
+    ms = sensors.load_multisensor(config.SEASONS)
+    for c in ("latitude", "longitude"):
+        ms[c] = ms[c].round(4)
+    config.PROCESSED.mkdir(parents=True, exist_ok=True)
+    out = config.PROCESSED / "fires_multisensor.parquet"
+    ms.to_parquet(out, index=False)
+    if out.stat().st_size > MAX_PARQUET_MB * 1e6:
+        ms = ms[ms["district"].notna()]
+        ms.to_parquet(out, index=False)
+    inside = ms[ms["district"].notna()]
+    print(f"fires_multisensor: {len(ms)} rows ({out.stat().st_size / 1e6:.1f} MB), {len(inside)} inside Punjab")
+    for title, table in (("all of the bounding box", ms), ("inside Punjab", inside)):
+        print(f"rows per sensor and season, {title}:")
+        print(table.groupby(["sensor", "season"]).size().unstack(fill_value=0).to_string())
+    _ingest_burned_area()
+    _check_official_counts()
+    _ingest_district_weather()
+
+
+def _ingest_burned_area() -> None:
+    from psw.audit import burned_area
+
+    area = burned_area.load_burned_area(config.SEASONS)
+    area.to_parquet(config.PROCESSED / "burned_area.parquet", index=False)
+    totals = area.groupby("season")["burned_km2"].sum()
+    print(f"burned_area: {len(area)} district-seasons; Punjab km2 per season: "
+          f"{ {int(k): int(round(v)) for k, v in totals.items()} }")
+
+
+def _check_official_counts() -> None:
+    from psw.audit import official
+
+    counts = official.load_official()  # raises on a bad row, so a hand edit cannot slip through
+    totals = counts.groupby("season")["count"].sum()
+    print(f"official_counts: {len(counts)} district-seasons; Punjab totals per season: "
+          f"{ {int(k): int(v) for k, v in totals.items()} }")
+
+
+def _ingest_district_weather() -> None:
+    from psw.ingest import weather
+
+    wx = weather.district_daily_weather(config.SEASONS)
+    wx.to_parquet(config.PROCESSED / "district_weather_daily.parquet", index=False)
+    print(f"district_weather_daily: {len(wx)} rows, {wx['district'].nunique()} districts, "
+          f"{wx['date'].min()} to {wx['date'].max()}")
+
+
 def _print_briefing(rec) -> None:
     v = rec.verification
     print(f"\n[{rec.mode}] {rec.district} {rec.date} | model {rec.model} | verified {v['ok']} "
@@ -224,6 +279,7 @@ COMMANDS = {
     "kb-eval": cmd_kb_eval,
     "brief": cmd_brief,
     "demo-cache": cmd_demo_cache,
+    "audit-ingest": cmd_audit_ingest,
 }
 
 

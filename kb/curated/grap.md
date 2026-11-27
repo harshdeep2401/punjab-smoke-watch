@@ -3,16 +3,16 @@ id: grap
 title: GRAP - the Graded Response Action Plan (summary)
 doc_type: curated
 as_of: 2022-01-01
-source_url: https://caqm.nic.in
+source_url: https://www.newsonair.gov.in/caqm-revises-grap-for-entire-ncr-to-combat-rising-air-pollution
 ---
 
 # What GRAP is
 
-The Graded Response Action Plan (GRAP) is a set of emergency measures that the Commission for Air Quality Management (CAQM) in the National Capital Region and Adjoining Areas uses when air quality worsens. The measures are tied to bands of the Air Quality Index (AQI) and become stricter at each stage.
+The Graded Response Action Plan (GRAP) is a set of emergency measures that the Commission for Air Quality Management in NCR and Adjoining Areas (CAQM) uses for the National Capital Region when air quality worsens. The measures are tied to bands of the Air Quality Index (AQI) and become stricter at each stage.
 
 # The stages in short
 
-The plan has four stages, named by AQI band: Stage I (Poor), Stage II (Very Poor), Stage III (Severe) and Stage IV (Severe+). As the band rises, more restrictions apply, for example on construction and demolition work, on some vehicles and on some industries. The exact list of actions and the AQI thresholds are set by CAQM and have been revised over time. Read the current CAQM order for the details. This note gives only the structure and does not list actions.
+The plan has four stages tied to Delhi's AQI. As described in December 2024: Stage II deals with 'Very Poor' air (AQI 301 to 400), Stage III with 'Severe' (401 to 450) and Stage IV with 'Severe+' (above 450). Stage I covers the band below these. As the band rises, more restrictions apply, for example on construction and demolition work, on some vehicles and on some industries. The exact list of actions and the AQI thresholds are set by CAQM and have been revised over time. Read the current CAQM order for the details. This note gives only the structure and does not list actions.
 
 # How it relates to this project
 

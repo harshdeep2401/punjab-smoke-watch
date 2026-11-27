@@ -1,4 +1,4 @@
-"""NASA FIRMS VIIRS S-NPP fire detections, cached per chunk (including empty chunks)."""
+"""NASA FIRMS fire detections (S-NPP by default), cached per chunk (including empty chunks)."""
 from __future__ import annotations
 
 import io
@@ -48,18 +48,18 @@ def season_window(year: int) -> tuple[date, date]:
     return date(year, *config.SEASON_START), date(year, *config.SEASON_END)
 
 
-def fetch_season(year: int, key: str) -> pd.DataFrame:
+def fetch_season(year: int, key: str, product: str = "VIIRS_SNPP") -> pd.DataFrame:
     """All chunks Sep 15..Nov 30. SP first, NRT as fallback when SP returns nothing for a chunk."""
     start, end = season_window(year)
     parts = []
     d = start
     while d <= end:
         n = min(DAY_RANGE, (end - d).days + 1)
-        chunk = fetch_chunk("VIIRS_SNPP_SP", d, n, key)
-        source = "VIIRS_SNPP_SP"
+        source = f"{product}_SP"
+        chunk = fetch_chunk(source, d, n, key)
         if chunk.empty:
-            chunk = fetch_chunk("VIIRS_SNPP_NRT", d, n, key)
-            source = "VIIRS_SNPP_NRT"
+            source = f"{product}_NRT"
+            chunk = fetch_chunk(source, d, n, key)
         if not chunk.empty:
             parts.append(chunk.assign(source=source))
         d += timedelta(days=n)

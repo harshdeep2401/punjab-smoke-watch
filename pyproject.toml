@@ -20,6 +20,8 @@ dependencies = [
     "pydeck",
     "plotly",
     "rank-bm25>=0.2.2",
+    "rasterio>=1.5.2",
+    "paramiko>=5.1.0",
 ]
 
 [dependency-groups]
