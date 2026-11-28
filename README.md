@@ -1,245 +1,193 @@
 # Punjab Smoke Watch
 
-Satellite fire counts for Punjab have fallen steeply. This project asks **how much burning has really fallen** and **where help should go in the next 3 days**, using satellite, weather and air-quality data, agents whose numbers are checked by code, and a Streamlit app that runs offline.
+Satellite fire counts in Punjab fell **91%** between 2022 and 2025. Did the burning really fall that much, and where should help go next?
 
-It is not a chatbot and has no free-text Q&A box. **The LLM never does the maths:** every number comes from a Python tool, and a Verifier that is not a language model checks it.
+Punjab Smoke Watch is an **agentic, RAG-grounded intelligence pipeline** that answers those two questions:
+- **Audit:** it checks the fall against independent signals.
+- **Response:** it plans where a limited fleet of crop-residue machines and awareness teams should go over the next 3 days.
 
-## The problem
+AI agents write the briefs, and a rule-based Verifier checks every number they contain. **The language model never does the maths.**
 
-Indian Punjab, 15 September to 30 November, VIIRS S-NPP detections by satellite pass:
+![Overview](docs/screenshots/overview.png)
 
-| Season | Day detections (about 13:30) | Night detections (about 01:30) | Night share |
-|---|---|---|---|
-| 2022 | 45,305 | 82 | 0.2% |
-| 2023 | 30,300 | 90 | 0.3% |
-| 2024 | 8,530 | 142 | 1.6% |
-| 2025 | 3,942 | 96 | 2.4% |
+## Quickstart
 
-Daytime detections fell about 91%. Night detections did not fall, season-mean PM2.5 in four cities did not fall in step, and fire features did not help forecast it. Public reporting since 2024 says burning may have moved outside satellite pass times. If so, "fires down about 90%" is partly about what satellites see, and plans built on detections would miss real burning. The night counts are small, so this is **a lead to test, not proof**.
+You need [uv](https://docs.astral.sh/uv/). It installs Python 3.12 for you. No API keys and no network are needed after `uv sync`.
 
-## What it does
+```bash
+# install uv if you don't have it:  curl -LsSf https://astral.sh/uv/install.sh | sh
+git clone <this repo> && cd punjab-smoke-watch
+uv sync
+uv run streamlit run src/psw/app/main.py     # opens http://localhost:8501
+uv run pytest -q                             # 504 tests, offline
+```
 
-**Module A, Audit: are fires really down?** Compares fire detections from VIIRS (S-NPP, NOAA-20, NOAA-21) and MODIS with MODIS burned area (MCD64A1) and the official counts. It reports a **detection-gap range** per district and season with a confidence level, and an Auditor agent writes a cited brief. For monitoring cells, researchers, journalists and citizens.
+- On macOS, if LightGBM fails to import, run `brew install libomp`.
+- The app reads the committed `data/processed/` folder, so every page and every saved brief works offline.
 
-**Module B, Response: where should help go?** Forecasts each district's fire detections over the next 3 days, splits a fleet of machines or teams with a fixed rule, shows 5 km cells where detections clustered, and a Dispatcher agent explains the split. For agriculture officers and machinery banks. **Support, not enforcement.**
+### ⚠️ To run the AI agents live, add your API key or Ollama link to `.env`
 
-**Underneath (the first half of the project).** Ingestion with caching, district tables, a next-day PM2.5 quantile forecast with a backtest, a local RAG index with an `as_of` rule so retrieval cannot see the future, and a Sentinel, Analyst and Verifier that write district briefings.
+Without this step, the saved briefs still show, but the **Run / Regenerate** buttons only display "No LLM is configured".
 
-## Architecture
+```bash
+cp .env.example .env      # then open .env and fill it in (never commit this file)
+```
+
+**Option A: Gemini (free)**. Get a key at <https://aistudio.google.com/apikey>, then set:
+
+```ini
+LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+LLM_API_KEY=your-gemini-key
+LLM_MODEL=gemini-3.5-flash
+```
+
+**Option B: Ollama (local, no key)**. Point `.env` at your Ollama server, use a model that supports tool calling, and put any text as the key (it must not be empty):
+
+```ini
+# or http://<your-ollama-host>:11434/v1 if Ollama runs on another machine
+LLM_BASE_URL=http://localhost:11434/v1
+LLM_API_KEY=ollama
+# any model you have pulled with: ollama pull <model>
+LLM_MODEL=qwen2.5:14b
+```
+
+All three `LLM_*` lines must be filled in. Restart the app after editing `.env`. Re-fetching the data also needs a free NASA FIRMS key in `FIRMS_MAP_KEY` (see [Regenerating the data](#regenerating-the-data)). The app does not need it.
+
+## A 2-minute tour
+
+| Page | What it shows |
+|---|---|
+| **Overview** | The problem in three numbers and one chart, and the agents behind the app |
+| **1. Is burning really down?** | Detections against burned area, a detection-gap range per season, the timing evidence, and an Auditor brief |
+| **2. Where should help go?** | Set a date and a fleet size. You get a map of expected burning, the split of units, the Dispatcher brief and 5 km hotspot cells |
+| **3. Can you trust it?** | Backtests, the 2026 forward test, agent reliability, retrieval scores, sources and limits |
+| *Explore the data* | A fire replay map, a next-day PM2.5 forecast for 4 cities, and a daily district briefing |
+
+Good dates to try on page 2: **2025-10-28**, **2025-10-31** and **2025-11-14**. Each has a saved dispatch brief.
+
+## What the platform can do
+
+- **Ingest and cache** NASA FIRMS fire detections (VIIRS S-NPP, NOAA-20, NOAA-21 and MODIS), MODIS burned area, Open-Meteo weather, CAMS PM2.5, and official counts entered by hand with a source link on every row.
+- **Audit official claims** by triangulating several satellites, pass times, burned area and official counts into a **detection-gap range with a confidence level**, never a single "true" number.
+- **Forecast** each district's fires over the next 3 days (LightGBM quantiles, p10/p50/p90). It also adjusts the forecast for burning the satellites probably missed ("likely burning").
+- **Allocate** a fleet of machines or teams across districts with a fixed rule that accounts for diminishing returns, and point to the 5 km cells where detections cluster.
+- **Write cited briefs** with AI agents (district, audit and dispatch briefs), each checked by a Verifier and shown with its full trace, sources and the agents that made it.
+- **Test itself**: expanding-window backtests against simple baselines, a decision backtest of the allocation, and a frozen forward test on the 2026 season.
+
+## How it works
 
 ```
- NASA FIRMS (VIIRS, MODIS) ─┐
- MCD64A1 burned area ───────┤
- official counts (CSV) ─────┼─> ingest (cached) ─> district tables ─┬─> AUDIT: gap ranges ──────────┐
- Open-Meteo weather, CAMS ──┘                                        ├─> 3-day fire-risk forecast <──┘ (last season's gap)
-                                                                     │        └─> allocator (fixed rule) ─> 5 km cells
-                                                                     └─> next-day PM2.5 forecast
+ FIRMS · MCD64A1 · official counts · weather · CAMS
+        └─> ingest (cached) ─> district tables ─┬─> AUDIT: gap ranges ──────────────┐
+                                                ├─> 3-day fire-risk forecast <──────┘ (last season's gap)
+                                                │       └─> allocator (fixed rule) ─> 5 km cells
+                                                └─> next-day PM2.5 forecast
+ curated notes + documents the pipeline writes ─> RAG index (as_of dates) ─> search_knowledge tool
 
- curated notes + documents the pipeline writes ─> chunks with as_of dates ─> search_knowledge
-
- AGENT (LLM + tools, one reusable loop)            Sentinel ─> Analyst      Auditor      Dispatcher
-        │ draft
-        v
- VERIFIER (rules, no LLM) ── fail ─> one revision ── fail again, or no LLM ─> fixed TEMPLATE (also verified)
-        │ pass
-        v
- Critic (LLM, audits and dispatches): may only delete, reorder or reword; re-verified
-        v
- saved JSON in data/processed/ ─> Streamlit app
+ Planner (optional) ─> Analyst / Auditor / Dispatcher (LLM + tools) ─> Verifier (rules) ─> Critic (LLM) ─> app
+                                                     fail: one revision, then a fixed template
 ```
 
 ### The agents
 
-| Agent | LLM? | What it does |
+There is one plain-Python agent loop (`agents/runtime.py`, about 100 lines, no framework). Each agent is a prompt plus a set of tools run through that loop.
+
+| Agent | Type | Job |
 |---|---|---|
-| Sentinel | no | Flags districts for a date (spike, high count, smog risk) |
-| Analyst | yes | A district briefing from data tools and retrieval |
-| Auditor | yes | An audit brief in four labelled parts, with the range, its confidence and what it leaves out |
-| Dispatcher | yes | A 3-day action brief explaining an allocation it cannot change |
-| Planner (optional) | yes | A short plan from flag kinds or signal names, never values |
-| Critic | yes | Reads audit and dispatch drafts; never adds a number |
-| Verifier | no | Checks numbers, citations, length, banned content and, per brief type, required and forbidden claims |
+| **Sentinel** | rules | Scans every district for a date and flags spikes, high counts and smog risk |
+| **Planner** | LLM, optional | Writes a short plan from labels only, never from numbers |
+| **Analyst** | LLM + tools | Daily district briefing |
+| **Auditor** | LLM + tools | Audit brief: what detections say, what other signals say, the range and how sure we are, and what would settle it |
+| **Dispatcher** | LLM + tools | 3-day dispatch brief that explains an allocation it cannot change |
+| **Verifier** | rules | Checks every number against tool outputs, every citation, required statements and banned content (enforcement talk, personal or village names, health advice) |
+| **Critic** | LLM | Reads the verified brief against its sources. It may only delete, reorder or reword, and its edits are verified again |
 
-**What "verified" means, and what it does not.** Every number appears in a tool output or retrieved text, every citation was retrieved, and the statements each brief type must make are there. It does **not** prove that a cited source supports its sentence, or that a number is used correctly. Reading live output found briefs that passed and were still wrong (one said there were enough machines, quoting half a sentence from its source). Each such case got a new check; there will be others. Read a brief before sending it to anyone.
+If a draft fails the Verifier, the agent gets one revision with the list of errors. If it fails again, a fixed template (also verified) is used, so a page never shows unchecked numbers.
 
-## Quickstart (a clean clone, no keys, no network)
+**What the Verifier doesn't check:** whether a cited source actually supports its sentence. Read the sources tab.
 
-```bash
-git clone <this repo> && cd punjab-smoke-watch
-uv sync                                   # Python 3.12 via uv
-uv run streamlit run src/psw/app/main.py
-```
+### RAG
 
-The sidebar follows the story: **Overview**, then **1. Is burning really down?** (audit), **2. Where should help go?** (response planner and dispatch brief) and **3. Can you trust it?** (evidence). The Part 1 tools (fire replay, city PM2.5 forecast, daily district briefing) sit under **Explore the data**.
+- **Corpus:** 435 chunks from 16 hand-written method and policy notes (`kb/curated/`), plus documents the pipeline writes about its own results: season summaries, audit tables and the model card.
+- **Search:** hybrid. BM25 keyword search and local embeddings (`bge-small-en-v1.5` via fastembed) are merged by reciprocal rank fusion, with numpy only and no vector database.
+- **No look-ahead:** every chunk has an `as_of` date, and retrieval only returns chunks dated before the brief's date.
+- **Evaluation:** on 23 queries we wrote, hybrid search found the right document in the top 3 for all 23 (MRR 0.93).
 
-The app reads only the committed `data/processed/`. All pages and saved briefs work without a `.env`. The run and regenerate buttons need an LLM key and show a message without one. The Replay map's background needs a network; the planner's maps have no background.
+## Findings
 
-Add `--server.address localhost` to stop others on your network from opening the app and using your key.
-
-**Saved for the demo** (listed in `data/processed/demo.json`): district briefings for 2025-10-18, 10-26 and 10-31; audits of Punjab (2024, 2025) and of Tarn Taran, Sangrur and Amritsar (2025); dispatches issued 2025-10-28, 10-31 and 11-14 for 500 units.
-
-## Regenerating the data
-
-Copy `.env.example` to `.env` and fill in the keys (never commit `.env`):
-
-| Key | Used for |
-|---|---|
-| `FIRMS_MAP_KEY` | NASA FIRMS (free) |
-| `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | any OpenAI-compatible endpoint: the Gemini free tier, or Ollama (not tested) |
-
-```bash
-uv run python -m psw.pipeline ingest        # fetch and cache raw data (data/raw/, gitignored)
-uv run python -m psw.pipeline process       # fires -> districts, daily tables
-uv run python -m psw.pipeline train         # PM2.5 features, backtest, ablation
-uv run python -m psw.pipeline audit-ingest  # other satellites, burned area, manual CSVs, district weather
-uv run python -m psw.pipeline audit         # gap ranges, then audit briefs  (--tables-only: no LLM)
-uv run python -m psw.pipeline risk-train    # 3-day fire-risk backtest, decision backtest and its intervals
-uv run python -m psw.pipeline kb            # generate documents, build the index (downloads a ~130 MB model once)
-uv run python -m psw.pipeline kb-eval       # retrieval eval
-
-uv run python -m psw.pipeline brief --date 2025-10-31 [--district Sangrur]
-uv run python -m psw.pipeline audit --district Sangrur --season 2025 --force     # also --plan, --no-critic
-uv run python -m psw.pipeline dispatch --date 2025-10-28 --machines 500 [--district Sangrur] [--detected-only]
-uv run python -m psw.pipeline demo-cache    # all saved briefs (reuses good ones; --force, --redo-dispatch)
-uv run pytest -q                            # offline: a scripted fake LLM, no network
-```
-
-On macOS, LightGBM needs `brew install libomp`.
-
-## Results
-
-### Audit: Punjab against 2022
-
-| Season | S-NPP detections | Burned area (MCD64A1) | Official count | Night share (2022: 0.2%) | Detection-gap range | Confidence |
-|---|---|---|---|---|---|---|
-| 2023 | -33.0% | -9.4% | -26.6% | 0.3% | 19% to 26% | low |
-| 2024 | -80.9% | -61.6% | -78.1% | 1.6% | 30% to 50% | medium |
-| 2025 | -91.1% | -44.9% | -89.8% | 2.4% | 77% to 84% | medium |
-
-The gap is the **fall in detections per burned km²** since the base season. **It is not the share of burning that is missed.** The range shows how the result changes with the count series and base season only. It does not include the error of the burned-area product, which is unknown and is the largest uncertainty. The fall fits three explanations: burning moved outside pass times, fires became smaller or cooler, or the burned-area product's sensitivity changed. There is no field verification.
-
-Districts are weaker: in 2025, 13 of 22 have a range (11 where counts fell more than burned area, 1 with no sign of a gap, 1 unclear) and 9 have insufficient evidence. None is above low confidence.
-
-### Response: does the forecast help decide where units go?
-
-500 units, 148 issue days in 2024 and 2025, scored against the detections actually seen in the next 3 days, as a share of an allocation that knew them in advance:
-
-| Allocation | All days | 2024 | 2025 |
-|---|---|---|---|
-| **model forecast** | **95.3%** | 95.5% | 95.0% |
-| share of last season's fires (naive) | 91.1% | 90.9% | 91.5% |
-| climatology forecast | 90.1% | 92.8% | 84.3% |
-| persistence forecast | 87.6% | 85.1% | 93.0% |
-| equal split | 80.5% | 80.5% | 80.7% |
-
-The lead over the naive split is +4.2 points (95% interval 2.4 to 7.0) and holds in both seasons. It is real but modest, and an equal split already reaches 80.5%. What one unit achieves is **assumed**, so this compares allocations and does not measure fires prevented. Planning on "likely burning", the default, scores 94.4% against detections, which cannot see what it plans for.
-
-**3-day fire-risk forecast** (22 districts; ranking scored on 128 busy days):
-
-| Variant | MAE (detections) | 80% coverage | Top-5 hit rate | Spearman |
-|---|---|---|---|---|
-| LightGBM model | 10.72 | 87.6% | **63.7%** | **0.73** |
-| persistence (last 3 days) | **9.61** | 84.4% | 59.7% | 0.66 |
-| climatology | 13.34 | 81.3% | 57.1% | 0.63 |
-
-Picking 5 districts blindly would score about 23%. The model is **not** the most accurate, and its ranking lead over persistence is **unproven**: +7.9 points in 2024, -0.3 in 2025. Rain over the next 3 days is taken from the weather archive, which is optimistic.
-
-### Forward test on 2026 (a season never used for any choice)
-
-The method was frozen as of commit `f42a1e5`, trained on 2022 to 2025 and run on 2026. The pass marks were written down first (`docs/FORWARD_TEST_PLAN.md`). S-NPP's near-real-time feed stops on 2 November 2026, so the clean arm ends before the usual peak. A second arm feeds the same model NOAA-20 counts times 0.929 (the S-NPP to NOAA-20 ratio in 2022 to 2025) to cover the season to 23 November. Swapping the input sensor is itself a change, so that arm is secondary.
-
-| Measure | Backtest 2024 | Backtest 2025 | 2026, S-NPP (15 Sep to 29 Oct) | 2026, NOAA-20 stand-in (15 Sep to 23 Nov) |
-|---|---|---|---|---|
-| Top-5 hit rate, model | 69.4% | 57.6% | 60.7% | 65.8% |
-| Top-5 hit rate, persistence | 61.5% | 57.8% | 58.1% | 68.2% |
-| Spearman, model | 0.77 | 0.69 | **0.55** | 0.71 |
-| Allocation, model (% of oracle) | 95.5 | 95.0 | 92.2 | 95.7 |
-| Allocation, naive split | 90.9 | 91.5 | 85.4 | 89.6 |
-
-- **The allocation held.** The model's allocation beat the naive split in both arms: +6.7 points (95% interval 0.6 to 9.9) and +6.0 (4.8 to 7.6).
-- **Beating persistence at ranking did not clearly hold.** The lead was +2.6 points on S-NPP and -2.4 on NOAA-20, both within chance, as in the backtest.
-- **The S-NPP arm missed the ranking mark on Spearman** (0.55 against a mark of 0.64). On the same early dates the backtest scored 0.72 and 0.62, so the ranking really was weaker in 2026. This comparison was added after seeing the result.
-- Each arm met 3 of the 4 pass marks.
-- **Detections by the same date:** S-NPP 1,397 in 2026 against 1,740 in 2025 (to 1 November); NOAA-20 5,123 against 4,129 (to 26 November).
-
-### Next-day PM2.5 forecast
-
-616 out-of-sample forecasts per variant (4 cities × 154 days):
-
-| Variant | MAE (µg/m³) | Pinball loss | 80% band coverage | Band width (µg/m³) |
-|---|---|---|---|---|
-| full (with fire features) | 11.94 | 4.05 | 84.4% | 41.6 |
-| no fire features | 11.88 | 3.97 | 83.8% | 40.5 |
-| persistence (tomorrow = today) | **11.20** | **3.83** | 76.9% | **33.9** |
-
-**The fire features did not help, and persistence is best on MAE and pinball.** We did not tune on the test seasons.
-
-### Retrieval and agents
-
-**Retrieval**, 23 queries written by us (a sanity check, not a benchmark): hit@3 hybrid 23, embeddings 22, BM25 20; hit@1 20, 21, 17; MRR 0.93, 0.93, 0.80.
-
-**Saved briefs** (all pass the Verifier):
-
-| Set | Saved | Agent | After one revision | Template | Critic warnings | Edited by hand |
-|---|---|---|---|---|---|---|
-| district briefings (demo set) | 9 | 8 | 1 | 0 | not run | 0 |
-| district briefings (random sample, seed 42) | 12 | 12 | 0 | 0 | not run | 0 |
-| audit briefs | 7 | 2 | 5 | 0 | 3 | 1 |
-| dispatch briefs | 3 | 2 | 1 | 0 | 0 | 0 |
-
-These are the outputs **after reruns and after fixes to the checks**, not the chance that a new run passes.
-
-## Ethics
-
-- **Support, not enforcement.** The Response module is for placing help. Dispatch briefs may not mention penalties, police reports or enforcement.
-- **No one is identified.** The smallest unit it reports is a 5 km grid cell, its maps have no place names, and dispatch briefs that name a village or person are rejected (a name that is also an ordinary word could slip through). The separate Replay map plots raw satellite detections over a labelled background map.
-- **Cells with one detection are never offered** as places to send a team.
-- **Machine counts are context only.** They are machines supplied on subsidy, not machines that work, and never enter the allocation.
-- **Claims about official numbers** should go no further than the signals support. The auditor is told not to say farmers are hiding fires or that official figures are wrong, and the Critic is asked to flag it. **No code check enforces this**, so read audit briefs.
-
-## Screenshots
-
-Taken from a clean copy of the repo with no `.env` and no keys.
-
-| Audit | Response Planner |
-|---|---|
-| ![Audit](docs/screenshots/7_audit.png) | ![Response Planner](docs/screenshots/8_response_planner.png) |
-| **Dispatch brief** | **Evidence: decision backtest** |
-| ![Dispatch brief](docs/screenshots/9_dispatch_brief.png) | ![Evidence](docs/screenshots/6_evidence.png) |
-| **Replay map** | **District briefing** |
-| ![Replay map](docs/screenshots/2_replay_map.png) | ![Ludhiana briefing](docs/screenshots/5_briefing_ludhiana.png) |
-
-More in [`docs/screenshots/`](docs/screenshots/).
-
-## Data sources and credits
-
-- **Fire detections:** NASA FIRMS: VIIRS 375 m (S-NPP, NOAA-20, NOAA-21) and MODIS (Terra, Aqua). https://firms.modaps.eosdis.nasa.gov
-- **Burned area:** NASA MODIS MCD64A1 Collection 6.1, downloaded from the University of Maryland server named in its user guide.
-- **Official fire counts:** Punjab's reports to the National Green Tribunal (satellite-based), with the link on every row of `data/manual/official_counts.csv`.
-- **Machine figures:** a state status report of 26 Nov 2024; link in `data/manual/crm_machines.csv`.
-- **PM2.5:** Copernicus Atmosphere Monitoring Service (CAMS) via the Open-Meteo air-quality API (data by [Open-Meteo.com](https://open-meteo.com/), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Modelled, not a ground monitor.
-- **Weather:** [Open-Meteo.com](https://open-meteo.com/) (ERA5 reanalysis, Copernicus Climate Change Service), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **District boundaries:** geoBoundaries IND ADM2 (gbOpen), ODbL 1.0, attribution to geoBoundaries (wmgeolab). https://www.geoboundaries.org
-- **Embeddings:** `BAAI/bge-small-en-v1.5`, run locally with fastembed.
-- **PM2.5 reference line:** India's National Ambient Air Quality Standards, 24-hour value of 60 µg/m³.
-- **Libraries:** pandas, GeoPandas, rasterio, paramiko, LightGBM, scikit-learn, rank-bm25, Streamlit, pydeck, Plotly, the OpenAI Python SDK (as a generic client).
+1. **The fall in counts is bigger than the fall in burned area.** In 2025, against 2022, S-NPP detections were **−91%** but MODIS burned area was only **−45%**.
+   - Detections per burned km² fell by **77% to 84%** (confidence: medium).
+   - Over the same period the night share of detections rose from 0.2% to 2.4%, and modelled city PM2.5 did not fall (+0.1%).
+   - This fits burning moving outside satellite pass times. It does **not** prove it.
+2. **Fire features did not improve the next-day PM2.5 forecast.** "Tomorrow = today" was as good or better (MAE 11.2 against 11.9 µg/m³).
+3. **The forecast helps decide where units go, modestly.** In the 2024–2025 backtest, allocating on the forecast reached **95.3%** of a perfect-knowledge allocation, against **91.1%** for splitting by last season's fires (+4.2 points, 95% interval 2.4 to 7.0).
+4. **It held up on a season it had never seen.** On 2026, with the method frozen and the pass marks written down first, the allocation again beat the naive split (+6.7 and +6.0 points in the two test arms).
+   - Its lead over "the last 3 days" (persistence) at ranking districts is within chance, as in the backtest.
+   - Ranking was weaker early in 2026 (Spearman 0.55).
 
 ## Limitations
 
-- Satellites detect **heat anomalies**, not "stubble burning" specifically, and miss fires under cloud and outside pass times.
-- The audit is **triangulation, not ground truth**. The burned-area product is 500 m, misses small fields and is low confidence in cropland.
-- "Likely burning" scales a forecast by last season's gap. It is not a count of fires, cannot be checked against satellite data, and can move many units on a low-confidence range.
-- What one machine or team achieves is assumed.
-- 5 km cells come from detections, so they cannot show where undetected burning is.
-- Four seasons (2022 to 2025) is a short record. Test seasons were also used to pick the fire-risk variant.
-- PM2.5 is modelled and covers four cities. FIRMS dates are UTC, treated as the local day.
-- 22 districts: **Malerkotla** is counted inside Sangrur.
-- A student project, not a regulatory or health tool.
+- Satellites detect **heat anomalies**, not stubble burning as such, and miss fires under cloud or outside pass times.
+- The audit is **triangulation, not ground truth**. There is no field verification. The error of the burned-area product (500 m) is unknown and is the largest uncertainty.
+- The gap range is **not** the share of burning that is missed.
+- **"Likely burning" is an estimate, not a count of fires**, and it can move many units on a low-confidence range.
+- **What one machine achieves is assumed**, so the allocation results compare plans; they do not measure fires prevented.
+- **Short record:** four seasons (2022–2025). The fire-risk variant was picked on the same seasons it was tested on, which is why the 2026 forward test matters.
+- **2026 data gaps:** S-NPP's feed stopped on 2 Nov 2026, and burned area for Oct–Nov 2026 isn't published yet, so there is no 2026 gap range.
+- **PM2.5** is modelled (CAMS), not measured by ground monitors, and covers 4 cities.
+- **Districts:** 22. Malerkotla is counted inside Sangrur.
+- A student project: **decision support, not enforcement**, and not a health or regulatory tool. Nothing finer than a 5 km cell is shown, and no farm or farmer is identified.
 
-## What is ours
+## Screenshots
 
-The detection-gap method with its signal roles, the fire-risk features and decision backtest, the allocator, the 5 km hotspot rule, the upwind fire-pressure feature, the RAG corpus built from the pipeline's own outputs with the `as_of` rule, the agent loop, and the Verifier. Open data and libraries are credited above.
+| Audit | Dispatch brief |
+|---|---|
+| ![Audit](docs/screenshots/audit.png) | ![Dispatch brief](docs/screenshots/dispatch_brief.png) |
+| **Response planner** | **Forward test on 2026** |
+| ![Response planner](docs/screenshots/response.png) | ![Forward test](docs/screenshots/forward_test.png) |
 
-## More
+<details>
+<a id="regenerating-the-data"></a>
+<summary><b>Regenerating the data (optional, needs keys and network)</b></summary>
 
-`AGENTS.md` (context for AI sessions and the decisions log), `docs/PLAN.md` (the build plan), `docs/PROGRESS.md` (what was done, deviations, open items), `docs/feasibility.md` (data availability), `docs/REPORT_DATA.md` (facts for the report and slides), `Punjab_Smoke_Watch.md` (the original brief and the demo script).
+Fill in `.env` as in the Quickstart above, and also set `FIRMS_MAP_KEY` (a free key from <https://firms.modaps.eosdis.nasa.gov/api/map_key/>). Ollama should work but is untested on this project.
+
+```bash
+uv run python -m psw.pipeline ingest          # fetch and cache raw data
+uv run python -m psw.pipeline process         # fires -> districts, daily tables
+uv run python -m psw.pipeline train           # PM2.5 forecast backtest
+uv run python -m psw.pipeline audit-ingest    # other satellites, burned area, district weather
+uv run python -m psw.pipeline audit           # gap ranges + audit briefs (--tables-only: no LLM)
+uv run python -m psw.pipeline risk-train      # 3-day fire-risk and decision backtests
+uv run python -m psw.pipeline forward-test    # 2026 forward test
+uv run python -m psw.pipeline kb              # build the RAG index (downloads a ~130 MB model once)
+uv run python -m psw.pipeline dispatch --date 2025-10-28 --machines 500
+uv run python -m psw.pipeline demo-cache      # regenerate the saved briefs
+```
+</details>
+
+<details>
+<summary><b>Repository map</b></summary>
+
+```
+src/psw/
+  ingest/      FIRMS, weather, air quality, 2026 forward-test inputs
+  processing/  districts, features
+  models/      PM2.5 quantile model and evaluation
+  audit/       sensors, burned area, official counts, gap ranges
+  response/    harvest signals, fire-risk forecast, allocator, 5 km grid, forward test
+  rag/         knowledge base build and hybrid search
+  agents/      runtime loop, tools, Sentinel, Planner, Analyst, Auditor, Dispatcher, Verifier, Critic
+  app/         Streamlit pages
+data/processed/  everything the app needs (committed)
+kb/curated/      hand-written notes for the RAG index
+tests/           offline tests with a scripted fake LLM
+docs/            PLAN, PROGRESS, feasibility, forward-test plan
+```
+</details>
+
+## Data sources
+
+NASA FIRMS (VIIRS and MODIS fire detections) · NASA MODIS MCD64A1 burned area (University of Maryland) · Punjab Pollution Control Board and state reports (official counts and machine figures; a link on every row of `data/manual/`) · [Open-Meteo](https://open-meteo.com/) weather (ERA5) and CAMS air quality, CC BY 4.0 · geoBoundaries district boundaries, ODbL · `BAAI/bge-small-en-v1.5` embeddings.
+
+More detail: `docs/PROGRESS.md` (every result and decision), `docs/PLAN.md` (the build plan), `docs/FORWARD_TEST_PLAN.md`, `AGENTS.md` (decision log).
