@@ -10,17 +10,43 @@ import re
 import pandas as pd
 import streamlit as st
 
-from psw.app.helpers import badge, explain_numbers, retrieved_chunks
+from psw.app.helpers import agent_steps, badge, explain_numbers, retrieved_chunks
 
 VERIFIER_NOTE = ("The Verifier proves that every number appears in the tool outputs and that every cited chunk was "
                  "retrieved. It does not prove that a cited source supports the sentence, so read the sources.")
 
 
-def show_text(rec: dict) -> None:
-    """Headline, badge, errors, the text itself and the Critic's warning."""
-    kind, text = badge(rec)
+LABEL = re.compile(r"^([A-Z][A-Za-z ,']{2,40}):(?=\s|$)", re.MULTILINE)
+
+
+def bold_labels(text: str) -> str:
+    """Bold the section labels the agents write ("Why:", "What other signals say:") at the start of a line."""
+    return LABEL.sub(r"**\1:**", text)
+
+
+def agent_line(rec: dict, writer: str | None = None) -> str:
+    """The agents that made this brief as one line of badges: LLM agents violet, rule-based agents grey, a failed
+    check red and a template fallback orange."""
+    kind, _ = badge(rec)
+    parts = []
+    for s in agent_steps(rec, writer):
+        colour = "violet" if s["kind"].startswith("LLM") else "gray"
+        if s["agent"] == "Verifier":
+            colour = {"success": "green", "warning": "green", "error": "red"}[kind]
+        if "template" in s["did"]:
+            colour = "orange"
+        icon = ":material/smart_toy:" if s["kind"].startswith("LLM") else ":material/rule:"
+        suffix = " agent" if s["kind"].startswith("LLM") else ""
+        parts.append(f":{colour}-badge[{icon} {s['agent']}{suffix}] {s['did']}")
+    return " &nbsp;→&nbsp; ".join(parts)
+
+
+def show_text(rec: dict, writer: str | None = None) -> None:
+    """Headline, the agents that made it, errors, the text itself and the Critic's warning."""
     st.subheader(rec["headline"])
-    getattr(st, kind)(text)
+    st.markdown(agent_line(rec, writer))
+    if rec.get("model"):
+        st.caption(f"Language model: {rec['model']}. The LLM agents write words; every number comes from Python tools.")
     for e in rec["verification"].get("errors", []):
         st.error(e)
     if rec["mode"] == "template":
@@ -28,7 +54,7 @@ def show_text(rec: dict) -> None:
                                        "verification.")
         if rec.get("llm_error"):
             st.caption(f"Reason: {rec['llm_error']}")
-    st.markdown(re.sub(r"\n+", "\n\n", rec["briefing"]))
+    st.markdown(re.sub(r"\n+", "\n\n", bold_labels(rec["briefing"])))
     if rec.get("district_paragraph"):
         st.markdown(f"**{rec['district']}:** {rec['district_paragraph']}")
     if (rec.get("critic") or {}).get("warning"):
@@ -39,6 +65,20 @@ def show_provenance(rec: dict, extra: str = "") -> None:
     st.caption(f"Mode: {rec['mode']} · model: {rec.get('model')} · generated {rec.get('generated_at', '')[:19]} UTC"
                + (f" · {extra}" if extra else ""))
     st.caption(VERIFIER_NOTE)
+
+
+def show_record(rec: dict, fixed: str, caveat: str | None = None, notes: tuple[str, ...] = (), extra: str = "",
+                writer: str | None = None) -> None:
+    """A saved brief as a reader sees it: the text in a box with the agents that made it, then how it was checked."""
+    with st.container(border=True):
+        show_text(rec, writer)
+        if caveat:
+            st.caption(caveat)
+        for note in notes:
+            st.caption(note)
+    with st.expander("How the agents made and checked this brief: trace, sources, Verifier report"):
+        show_provenance(rec, extra)
+        show_tabs(rec, fixed)
 
 
 def _plan(rec: dict) -> None:

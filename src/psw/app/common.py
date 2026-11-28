@@ -8,6 +8,9 @@ import streamlit as st
 
 from psw import config
 
+LLM_RULE = ("**The language model never does the maths.** Every number comes from Python, and a Verifier that is not a "
+            "language model checks it before a brief is shown.")
+
 LIMITATIONS = """
 - Satellites detect **heat anomalies**, not "stubble burning" specifically, and miss fires outside overpass
   times or under cloud. FIRMS dates are UTC; we treat `acq_date` as the local day.
@@ -43,6 +46,15 @@ def load_fires() -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def load_geojson() -> dict:
     return json.loads((config.GEO / "punjab_districts.geojson").read_text())
+
+
+@st.cache_data(show_spinner=False)
+def load_pm25(root: str) -> pd.DataFrame | None:
+    """Daily CAMS PM2.5 per city, or None when the file is missing. `root` is the data folder (part of the cache key)."""
+    try:
+        return pd.read_parquet(f"{root}/pm25_daily.parquet")
+    except (OSError, ValueError):
+        return None
 
 
 # ---------- Phase 6 loaders ----------

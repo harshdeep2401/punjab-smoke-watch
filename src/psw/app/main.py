@@ -1,38 +1,24 @@
-"""Punjab Smoke Watch: Streamlit entry point. Run: uv run streamlit run src/psw/app/main.py"""
-import streamlit as st
+"""Punjab Smoke Watch: Streamlit entry point. Run: uv run streamlit run src/psw/app/main.py
 
-from psw.app.common import CREDITS, LIMITATIONS
+The pages are grouped so the app reads as one story: the problem, the response, and how far to trust both. The
+Part 1 tools stay available under "Explore the data".
+"""
+import streamlit as st
 
 st.set_page_config(page_title="Punjab Smoke Watch", page_icon="🔥", layout="wide")
 
-st.title("Punjab Smoke Watch")
-st.write(
-    "Satellite fire counts for Punjab have fallen steeply. This project asks two questions about that: **how much has "
-    "burning really fallen**, and **where should help go in the next 3 days?** Everything runs offline from the "
-    "committed `data/processed/` files."
-)
+STORY = [
+    st.Page("home.py", title="Overview", icon=":material/home:", default=True),
+    st.Page("pages/5_Audit.py", title="1. Is burning really down?", icon=":material/search:", url_path="audit"),
+    st.Page("pages/6_Response_Planner.py", title="2. Where should help go?", icon=":material/agriculture:",
+            url_path="response"),
+    st.Page("pages/4_Evidence.py", title="3. Can you trust it?", icon=":material/fact_check:", url_path="evidence"),
+]
+EXPLORE = [
+    st.Page("pages/1_Replay_Map.py", title="Fire replay", icon=":material/map:", url_path="replay"),
+    st.Page("pages/2_Forecast.py", title="City PM2.5 forecast", icon=":material/air:", url_path="forecast"),
+    st.Page("pages/3_Watch_and_Briefing.py", title="Daily district briefing", icon=":material/description:",
+            url_path="briefing"),
+]
 
-left, right = st.columns(2)
-with left.container(border=True):
-    st.subheader("Audit: are fires really down?")
-    st.write("Compares fire detections from several satellites and pass times with burned area and official counts, and "
-             "reports a range with its confidence, never one number.")
-    st.page_link("pages/5_Audit.py", label="Open the Audit page")
-with right.container(border=True):
-    st.subheader("Response: where should help go?")
-    st.write("Forecasts the next 3 days of burning by district, splits a fleet of machines or teams with a fixed rule, "
-             "and explains the split in a checked brief. Support, not enforcement.")
-    st.page_link("pages/6_Response_Planner.py", label="Open the Response Planner")
-
-st.markdown(
-    "**Also here**\n"
-    "- **Replay Map:** fire detections day by day.\n"
-    "- **Forecast:** next-day PM2.5 for four cities with an 80% band.\n"
-    "- **Watch and Briefing:** a rule-based district watchlist and cited, number-checked briefings.\n"
-    "- **Evidence:** the backtests, whether the forecast helps decisions, and how reliable the agents are.\n\n"
-    "**Rule: the language model never does the maths.** Every number comes from Python, and a Verifier that is not a "
-    "language model checks it. It does not prove that a cited source supports a sentence."
-)
-with st.expander("Limitations (please read)", expanded=True):
-    st.markdown(LIMITATIONS)
-st.caption(CREDITS)
+st.navigation({"The story": STORY, "Explore the data": EXPLORE}).run()

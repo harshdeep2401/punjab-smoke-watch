@@ -72,6 +72,53 @@ def badge(rec: dict) -> tuple[str, str]:
     return "success", "✅ Numbers verified"
 
 
+# ---------- which agents made a brief ----------
+
+AGENTS = {  # name -> (kind, one-line role); the order the app lists them in
+    "Sentinel": ("rules", "scans every district for a date and flags the ones to brief"),
+    "Planner": ("LLM", "optional: writes a short plan from labels only, never numbers"),
+    "Analyst": ("LLM + tools", "writes the daily district briefing from data tools and the knowledge base"),
+    "Auditor": ("LLM + tools", "writes the audit brief on whether burning really fell"),
+    "Dispatcher": ("LLM + tools", "explains the code's allocation as a 3-day dispatch brief"),
+    "Verifier": ("rules", "checks every number and citation against what the tools returned"),
+    "Critic": ("LLM", "reads the verified brief against its sources; may only delete, reorder or reword"),
+}
+WRITERS = {"analyst": "Analyst", "auditor": "Auditor", "dispatcher": "Dispatcher"}
+
+
+def agent_steps(rec: dict, writer: str | None = None) -> list[dict]:
+    """The agents that produced a saved brief, in order: [{agent, kind, did}]. Read from the record, never assumed.
+
+    `writer` is the fallback when the trace does not name the writing agent (an old record or the template).
+    """
+    steps = []
+    if rec.get("plan"):
+        steps.append({"agent": "Planner", "did": f"planned {len(rec['plan'].get('steps', []))} steps"})
+    elif rec.get("planner_error"):
+        steps.append({"agent": "Planner", "did": "gave no usable plan"})
+    named = [WRITERS[t["agent"]] for t in rec.get("trace", []) if t.get("agent") in WRITERS]
+    name = named[0] if named else writer
+    mode = base_mode(rec.get("mode"))
+    if name:
+        calls = sum(1 for t in rec.get("trace", []) if WRITERS.get(t.get("agent")) == name)
+        if mode == "template":
+            steps.append({"agent": name, "did": "failed, so a fixed template was used"})
+        else:
+            steps.append({"agent": name, "did": f"wrote it with {calls} tool call{'s' if calls != 1 else ''}"
+                          if calls else "wrote it"})
+    ok = bool(rec.get("verification", {}).get("ok"))
+    steps.append({"agent": "Verifier", "did": "rejected it" if not ok else
+                  "passed it after one revision" if mode == "agent_revised" else "passed it"})
+    critic = rec.get("critic") or {}
+    if critic:
+        issues = len(critic.get("issues") or [])
+        did = ("could not run" if critic.get("error") else
+               "rewrote it (re-verified)" if critic.get("rewrite_used") else
+               f"flagged {issues} issue{'s' if issues != 1 else ''}, text kept" if issues else "found no issue")
+        steps.append({"agent": "Critic", "did": did})
+    return [{**s, "kind": AGENTS[s["agent"]][0]} for s in steps]
+
+
 # ---------- the Verifier report: number -> evidence value ----------
 
 def _tool_numbers(result) -> list[float]:

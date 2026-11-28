@@ -10,8 +10,8 @@ import streamlit as st
 from psw import config
 from psw.app.common import load_district_daily, load_fires, load_geojson
 
-st.set_page_config(page_title="Replay map", layout="wide")
-st.title("Replay map")
+st.title("Fire replay")
+st.caption("Satellite fire detections (VIIRS S-NPP) day by day. Press play, or compare the same date across seasons.")
 
 daily, fires, geo = load_district_daily(), load_fires(), load_geojson()
 seasons = sorted(daily["season"].unique())

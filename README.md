@@ -70,6 +70,8 @@ uv sync                                   # Python 3.12 via uv
 uv run streamlit run src/psw/app/main.py
 ```
 
+The sidebar follows the story: **Overview**, then **1. Is burning really down?** (audit), **2. Where should help go?** (response planner and dispatch brief) and **3. Can you trust it?** (evidence). The Part 1 tools (fire replay, city PM2.5 forecast, daily district briefing) sit under **Explore the data**.
+
 The app reads only the committed `data/processed/`. All pages and saved briefs work without a `.env`. The run and regenerate buttons need an LLM key and show a message without one. The Replay map's background needs a network; the planner's maps have no background.
 
 Add `--server.address localhost` to stop others on your network from opening the app and using your key.
@@ -141,6 +143,24 @@ The lead over the naive split is +4.2 points (95% interval 2.4 to 7.0) and holds
 | climatology | 13.34 | 81.3% | 57.1% | 0.63 |
 
 Picking 5 districts blindly would score about 23%. The model is **not** the most accurate, and its ranking lead over persistence is **unproven**: +7.9 points in 2024, -0.3 in 2025. Rain over the next 3 days is taken from the weather archive, which is optimistic.
+
+### Forward test on 2026 (a season never used for any choice)
+
+The method was frozen as of commit `f42a1e5`, trained on 2022 to 2025 and run on 2026. The pass marks were written down first (`docs/FORWARD_TEST_PLAN.md`). S-NPP's near-real-time feed stops on 2 November 2026, so the clean arm ends before the usual peak. A second arm feeds the same model NOAA-20 counts times 0.929 (the S-NPP to NOAA-20 ratio in 2022 to 2025) to cover the season to 23 November. Swapping the input sensor is itself a change, so that arm is secondary.
+
+| Measure | Backtest 2024 | Backtest 2025 | 2026, S-NPP (15 Sep to 29 Oct) | 2026, NOAA-20 stand-in (15 Sep to 23 Nov) |
+|---|---|---|---|---|
+| Top-5 hit rate, model | 69.4% | 57.6% | 60.7% | 65.8% |
+| Top-5 hit rate, persistence | 61.5% | 57.8% | 58.1% | 68.2% |
+| Spearman, model | 0.77 | 0.69 | **0.55** | 0.71 |
+| Allocation, model (% of oracle) | 95.5 | 95.0 | 92.2 | 95.7 |
+| Allocation, naive split | 90.9 | 91.5 | 85.4 | 89.6 |
+
+- **The allocation held.** The model's allocation beat the naive split in both arms: +6.7 points (95% interval 0.6 to 9.9) and +6.0 (4.8 to 7.6).
+- **Beating persistence at ranking did not clearly hold.** The lead was +2.6 points on S-NPP and -2.4 on NOAA-20, both within chance, as in the backtest.
+- **The S-NPP arm missed the ranking mark on Spearman** (0.55 against a mark of 0.64). On the same early dates the backtest scored 0.72 and 0.62, so the ranking really was weaker in 2026. This comparison was added after seeing the result.
+- Each arm met 3 of the 4 pass marks.
+- **Detections by the same date:** S-NPP 1,397 in 2026 against 1,740 in 2025 (to 1 November); NOAA-20 5,123 against 4,129 (to 26 November).
 
 ### Next-day PM2.5 forecast
 

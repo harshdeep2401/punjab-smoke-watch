@@ -7,8 +7,7 @@ from psw import config
 from psw.agents import tools
 from psw.app.common import get_store, load_forecasts, load_metrics
 
-st.set_page_config(page_title="Forecast", layout="wide")
-st.title("Next-day PM2.5 forecast")
+st.title("City PM2.5 forecast")
 
 fc = load_forecasts()
 metrics = load_metrics()
@@ -18,8 +17,7 @@ test_seasons = sorted(int(s) for s in metrics["seasons_test"])
 city = st.sidebar.selectbox("City", list(config.CITIES))
 season = st.sidebar.selectbox("Season", test_seasons, index=len(test_seasons) - 1, help="Test seasons only")
 show_persistence = st.sidebar.toggle("Show persistence baseline", value=True)
-st.sidebar.caption("Out-of-sample backtest: the model for each season was trained on earlier seasons only.")
-st.caption(f"Season {season}: out-of-sample backtest")
+st.caption(f"Next-day PM2.5 with an 80% band. Season {season} is out of sample: its model was trained on earlier seasons only.")
 
 sel = fc[(fc["city"] == city) & (fc["season"] == season)]
 full = sel[sel["variant"] == "full"].sort_values("target_date").reset_index(drop=True)

@@ -1,5 +1,6 @@
 """Part 2 of the Evidence page: the bootstrap, the wording that follows the result, and the page on committed data."""
 import json
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -130,3 +131,40 @@ def test_evidence_page_says_what_to_run_when_part_2_files_are_missing(monkeypatc
     assert not at.exception, [e.value for e in at.exception]
     text = _text(at)
     assert "No decision backtest found" in text and "No fire-risk backtest found" in text and "No audit tables" in text
+
+
+def _forward_report():
+    crit = lambda met: [{"name": n, "met": met, "value": 0.6 if "ranking" in n or "band" in n else 0.03 if "persistence" in n else 6.0,  # noqa: E731
+                         "rule": "r"} for n in ("ranking holds", "not worse than persistence",
+                                                 "allocation beats the naive split", "band is honest")]
+    variants = {v: {"top5_hit": 0.6, "spearman": 0.6, "coverage80": 0.8} for v in ("model", "persistence", "climatology")}
+    arm = lambda met, end: {"first_issue": "2026-09-15", "last_issue": end, "data_end": end, "variants": variants,  # noqa: E731
+                            "allocation_pct_of_oracle": {"model": 95.0, "last_season_share": 89.0},
+                            "allocation_lead": {"points": 6.0, "low": 1.0, "high": 9.0},
+                            "ranking_lead": {"against": "persistence", "top5": {"points": 1.0, "low": -3.0, "high": 4.0}},
+                            "criteria": crit(met), "detections_same_dates_by_season": {"2025": 100, "2026": 80},
+                            "post_hoc_backtest_same_window": {"2025": {"model": {"spearman": 0.7}}}}
+    return {"season": 2026, "chosen_variant": "model", "frozen_code_commit": "abc", "trained_on": [2022, 2025],
+            "noaa20_scale": 0.93, "notes": [], "arms": {"snpp": arm(True, "2026-10-29"), "noaa20": arm(False, "2026-11-23")}}
+
+
+def test_forward_text_follows_the_report():
+    r = _forward_report()
+    text = " ".join(ev.forward_summary(r))
+    assert "S-NPP arm met 4 of 4, the NOAA-20 arm 0 of 4" in text and "+6.0 points" in text
+    assert "lower than every backtest season" in text and "added after seeing the result" in text
+    lines = ev.criteria_lines(r, "noaa20")
+    assert all(line.startswith("❌ not met") for line in lines) and "Spearman 0.60" in lines[0]
+    frame = ev.forward_frame(r, None, None)
+    assert list(frame.columns) == ["measure", "2026, S-NPP (15 Sep to 29 Oct)", "2026, NOAA-20 stand-in (15 Sep to 23 Nov)"]
+    assert "80 in 2026 against 100 in 2025" in ev.detection_note(r)
+    assert ev.load_forward(Path("/nonexistent")) is None
+
+
+@pytest.mark.skipif(ev.load_forward() is None, reason="forward test not run")
+def test_evidence_page_shows_the_forward_test():
+    at = _run()
+    assert not at.exception, [e.value for e in at.exception]
+    text = _text(at)
+    for line in ev.forward_summary(ev.load_forward()):
+        assert line in text

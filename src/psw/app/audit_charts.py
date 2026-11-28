@@ -9,14 +9,14 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from psw.app.audit_view import BASE, BURNED_SERIES, SNPP_SERIES
+from psw.app.audit_view import BASE, BURNED_SERIES, PM25_SERIES, SNPP_SERIES
 from psw.audit.sensors import AFTERNOON, MORNING, NIGHT, OTHER
 
 COLOURS = {
     "light": {"snpp": "#257de0", "burned": "#f47230", "official": "#00b894", MORNING: "#6a4ce2",
-              AFTERNOON: "#f2a600", NIGHT: "#ee7fac", OTHER: "#b2b2b2", "surface": "#ffffff"},
+              AFTERNOON: "#f2a600", NIGHT: "#ee7fac", OTHER: "#b2b2b2", "pm25": "#4a4a4a", "surface": "#ffffff"},
     "dark": {"snpp": "#338ced", "burned": "#e76624", "official": "#00a888", MORNING: "#9887ef",
-             AFTERNOON: "#d28e05", NIGHT: "#e24d8b", OTHER: "#6b6b6b", "surface": "#0e1117"},
+             AFTERNOON: "#d28e05", NIGHT: "#e24d8b", OTHER: "#6b6b6b", "pm25": "#c8c8c8", "surface": "#0e1117"},
 }
 # the hours of audit.sensors.pass_label, in Indian time: Aqua has drifted well past 13:30
 PASS_NAMES = {MORNING: "morning (10 to 12 h)", AFTERNOON: "afternoon (12 to 16 h)", NIGHT: "night (0 to 4 h)",
@@ -79,23 +79,51 @@ def night_share_figure(frame: pd.DataFrame, theme: str | None = None) -> go.Figu
     return _layout(fig, 340, showlegend=False)
 
 
-def indexed_figure(frame: pd.DataFrame, theme: str | None = None) -> go.Figure:
-    """Detections and burned area, each indexed to the base season = 100, on one axis."""
+def indexed_figure(frame: pd.DataFrame, theme: str | None = None, height: int = 340) -> go.Figure:
+    """Detections, burned area and (when present) city PM2.5, each indexed to the base season = 100, on one axis.
+
+    Each line ends in a direct label, so the legend only names the series.
+    """
     c = _colours(theme)
     fig = go.Figure()
-    for name, key in ((SNPP_SERIES, "snpp"), (BURNED_SERIES, "burned")):
+    for name, key, dash in ((SNPP_SERIES, "snpp", None), (BURNED_SERIES, "burned", None),
+                            (PM25_SERIES, "pm25", "dot")):
         part = frame[frame["series"] == name].sort_values("season")
         if part.empty:
             continue
         labels = [""] * (len(part) - 1) + [f"{part['index'].iloc[-1]:.0f}"]
         fig.add_trace(go.Scatter(
             x=part["season"].astype(str), y=part["index"], name=name, mode="lines+markers+text", text=labels,
-            textposition="top center", line={"color": c[key], "width": 2},
+            textposition="middle right", textfont={"color": c[key], "size": 13}, cliponaxis=False,
+            line={"color": c[key], "width": 2.5, "dash": dash},
             marker={"size": 9, "line": {"color": c["surface"], "width": 2}}, customdata=part["value"],
             hovertemplate=f"{name}: %{{y:.0f}} (%{{customdata:,.0f}})<extra></extra>"))
     fig.update_xaxes(type="category")
     fig.update_yaxes(title_text=f"index ({BASE} = 100)", rangemode="tozero")
-    return _layout(fig, 340, hovermode="x unified")
+    fig = _layout(fig, height, hovermode="x unified")
+    fig.update_layout(margin={**MARGIN, "r": 40})
+    return fig
+
+
+def pm25_figure(frame: pd.DataFrame, theme: str | None = None) -> go.Figure:
+    """Season-mean PM2.5: the four-city mean as the line that matters, each city as a thin grey line behind it."""
+    from psw.app.audit_view import ALL_CITIES
+    c = _colours(theme)
+    fig = go.Figure()
+    for city in sorted(set(frame["city"]) - {ALL_CITIES}):
+        part = frame[frame["city"] == city].sort_values("season")
+        fig.add_trace(go.Scatter(x=part["season"].astype(str), y=part["pm25"], name=city, mode="lines",
+                                 line={"color": c[OTHER], "width": 1}, showlegend=False,
+                                 hovertemplate=f"{city}, %{{x}}: %{{y:.1f}} µg/m³<extra></extra>"))
+    part = frame[frame["city"] == ALL_CITIES].sort_values("season")
+    fig.add_trace(go.Scatter(x=part["season"].astype(str), y=part["pm25"], name="mean of four cities",
+                             mode="lines+markers+text", text=[f"{v:.0f}" for v in part["pm25"]],
+                             textposition="top center", line={"color": c["pm25"], "width": 2.5},
+                             marker={"size": 9, "line": {"color": c["surface"], "width": 2}},
+                             hovertemplate="Four cities, %{x}: %{y:.1f} µg/m³<extra></extra>"))
+    fig.update_xaxes(type="category")
+    fig.update_yaxes(title_text="season mean PM2.5 (µg/m³)", rangemode="tozero")
+    return _layout(fig, 340, showlegend=False)
 
 
 def official_figure(frame: pd.DataFrame, theme: str | None = None) -> go.Figure:

@@ -1,0 +1,447 @@
+{
+ "plan": "docs/FORWARD_TEST_PLAN.md",
+ "season": 2026,
+ "frozen_code_commit": "f42a1e5",
+ "trained_on": [
+  2022,
+  2023,
+  2024,
+  2025
+ ],
+ "chosen_variant": "model",
+ "runner_up": "persistence",
+ "noaa20_scale": 0.929,
+ "snpp_end": "2026-11-01",
+ "data_cutoff": "2026-11-26",
+ "arms": {
+  "snpp": {
+   "description": "S-NPP, the sensor the model was trained on (primary; ends before the usual peak)",
+   "data_end": "2026-11-01",
+   "detections": 1397,
+   "detections_same_dates_by_season": {
+    "2022": 16686,
+    "2023": 8569,
+    "2024": 3014,
+    "2025": 1740,
+    "2026": 1397
+   },
+   "conformal": {
+    "applied": false,
+    "inner_coverage": 0.7272727272727273,
+    "correction": 0.0
+   },
+   "issue_days": 45,
+   "first_issue": "2026-09-15",
+   "last_issue": "2026-10-29",
+   "variants": {
+    "climatology": {
+     "n": 990,
+     "mae": 3.004818181818182,
+     "pinball": 1.1610383838383838,
+     "coverage80": 0.9161616161616162,
+     "band_width": 17.405141414141415,
+     "top5_hit": 0.5723176990094285,
+     "spearman": 0.4481234394138688,
+     "n_days": 35
+    },
+    "model": {
+     "n": 990,
+     "mae": 2.5558383838383842,
+     "pinball": 0.8170141414141415,
+     "coverage80": 0.7313131313131314,
+     "band_width": 7.473151515151515,
+     "top5_hit": 0.6068027210884354,
+     "spearman": 0.5547839571618479,
+     "n_days": 35
+    },
+    "persistence": {
+     "n": 990,
+     "mae": 2.6555555555555554,
+     "pinball": 0.9554542087542086,
+     "coverage80": 0.8949494949494949,
+     "band_width": 9.702212121212124,
+     "top5_hit": 0.5808187134502925,
+     "spearman": 0.5105958873706526,
+     "n_days": 35
+    }
+   },
+   "allocation_pct_of_oracle": {
+    "climatology": 86.45,
+    "model": 92.17,
+    "persistence": 86.34,
+    "last_season_share": 85.44,
+    "equal_split": 76.26
+   },
+   "likely_allocation_pct_of_oracle": 88.39,
+   "allocation_lead": {
+    "of": "model",
+    "against": "last_season_share",
+    "points": 6.72,
+    "low": 0.6,
+    "high": 9.91,
+    "by_season": {
+     "2026": {
+      "points": 6.72,
+      "low": 0.6,
+      "high": 9.91
+     }
+    }
+   },
+   "ranking_lead": {
+    "of": "model",
+    "against": "persistence",
+    "n_days": 35,
+    "top5": {
+     "points": 2.6,
+     "low": -4.86,
+     "high": 7.65,
+     "by_season": {
+      "2026": {
+       "points": 2.6,
+       "low": -4.86,
+       "high": 7.65
+      }
+     }
+    },
+    "spearman": {
+     "difference": 0.044,
+     "low": -0.019,
+     "high": 0.072
+    }
+   },
+   "criteria": [
+    {
+     "name": "ranking holds",
+     "met": false,
+     "value": 0.6068027210884354,
+     "rule": "top-5 hit at least 52.6% and Spearman at least 0.64"
+    },
+    {
+     "name": "not worse than persistence",
+     "met": true,
+     "value": 0.025984007638142903,
+     "rule": "top-5 hit rate at least persistence's"
+    },
+    {
+     "name": "allocation beats the naive split",
+     "met": true,
+     "value": 6.730000000000004,
+     "rule": "% of the oracle above the split by last season's fires"
+    },
+    {
+     "name": "band is honest",
+     "met": true,
+     "value": 0.7313131313131314,
+     "rule": "80% band coverage between 70% and 90%"
+    }
+   ],
+   "post_hoc_backtest_same_window": {
+    "2024": {
+     "climatology": {
+      "top5_hit": 0.5706293706293708,
+      "spearman": 0.5590051548380367,
+      "n_days": 39
+     },
+     "model": {
+      "top5_hit": 0.7346764346764348,
+      "spearman": 0.722273059785074,
+      "n_days": 39
+     },
+     "persistence": {
+      "top5_hit": 0.6435985002651672,
+      "spearman": 0.6228219891443951,
+      "n_days": 39
+     }
+    },
+    "2025": {
+     "climatology": {
+      "top5_hit": 0.5200953682908571,
+      "spearman": 0.5371882219830587,
+      "n_days": 35
+     },
+     "model": {
+      "top5_hit": 0.5900000000000001,
+      "spearman": 0.6167186507292867,
+      "n_days": 35
+     },
+     "persistence": {
+      "top5_hit": 0.542077097505669,
+      "spearman": 0.5307613651875124,
+      "n_days": 35
+     }
+    }
+   }
+  },
+  "noaa20": {
+   "description": "NOAA-20 scaled to S-NPP, the full season to date (secondary; the input sensor is swapped)",
+   "data_end": "2026-11-26",
+   "detections": 5123,
+   "detections_same_dates_by_season": {
+    "2022": 48253,
+    "2023": 32704,
+    "2024": 9827,
+    "2025": 4129,
+    "2026": 5123
+   },
+   "conformal": {
+    "applied": false,
+    "inner_coverage": 0.7272727272727273,
+    "correction": 0.0
+   },
+   "issue_days": 70,
+   "first_issue": "2026-09-15",
+   "last_issue": "2026-11-23",
+   "variants": {
+    "climatology": {
+     "n": 1540,
+     "mae": 6.105058441558442,
+     "pinball": 2.2184651515151512,
+     "coverage80": 0.8831168831168831,
+     "band_width": 28.92658441558442,
+     "top5_hit": 0.5634099616858239,
+     "spearman": 0.5648228422757772,
+     "n_days": 58
+    },
+    "model": {
+     "n": 1540,
+     "mae": 4.674019480519481,
+     "pinball": 1.5501160173160173,
+     "coverage80": 0.7896103896103897,
+     "band_width": 15.865331168831167,
+     "top5_hit": 0.6580459770114943,
+     "spearman": 0.7091047875141614,
+     "n_days": 58
+    },
+    "persistence": {
+     "n": 1540,
+     "mae": 5.966883116883117,
+     "pinball": 2.1196746753246747,
+     "coverage80": 0.8707792207792208,
+     "band_width": 26.82192857142857,
+     "top5_hit": 0.6821450897358337,
+     "spearman": 0.6872653377748426,
+     "n_days": 58
+    }
+   },
+   "allocation_pct_of_oracle": {
+    "climatology": 89.37,
+    "model": 95.67,
+    "persistence": 92.99,
+    "last_season_share": 89.63,
+    "equal_split": 82.61
+   },
+   "likely_allocation_pct_of_oracle": 90.23,
+   "allocation_lead": {
+    "of": "model",
+    "against": "last_season_share",
+    "points": 6.05,
+    "low": 4.8,
+    "high": 7.57,
+    "by_season": {
+     "2026": {
+      "points": 6.05,
+      "low": 4.8,
+      "high": 7.57
+     }
+    }
+   },
+   "ranking_lead": {
+    "of": "model",
+    "against": "persistence",
+    "n_days": 58,
+    "top5": {
+     "points": -2.41,
+     "low": -9.39,
+     "high": 3.15,
+     "by_season": {
+      "2026": {
+       "points": -2.41,
+       "low": -9.39,
+       "high": 3.15
+      }
+     }
+    },
+    "spearman": {
+     "difference": 0.022,
+     "low": -0.024,
+     "high": 0.07
+    }
+   },
+   "criteria": [
+    {
+     "name": "ranking holds",
+     "met": true,
+     "value": 0.6580459770114943,
+     "rule": "top-5 hit at least 52.6% and Spearman at least 0.64"
+    },
+    {
+     "name": "not worse than persistence",
+     "met": false,
+     "value": -0.0240991127243394,
+     "rule": "top-5 hit rate at least persistence's"
+    },
+    {
+     "name": "allocation beats the naive split",
+     "met": true,
+     "value": 6.040000000000006,
+     "rule": "% of the oracle above the split by last season's fires"
+    },
+    {
+     "name": "band is honest",
+     "met": true,
+     "value": 0.7896103896103897,
+     "rule": "80% band coverage between 70% and 90%"
+    }
+   ],
+   "post_hoc_backtest_same_window": {
+    "2024": {
+     "climatology": {
+      "top5_hit": 0.6008797653958945,
+      "spearman": 0.662262372694147,
+      "n_days": 62
+     },
+     "model": {
+      "top5_hit": 0.699231950844854,
+      "spearman": 0.7759881699897925,
+      "n_days": 62
+     },
+     "persistence": {
+      "top5_hit": 0.615319942900588,
+      "spearman": 0.6808554227322153,
+      "n_days": 62
+     }
+    },
+    "2025": {
+     "climatology": {
+      "top5_hit": 0.5430101769575455,
+      "spearman": 0.6131764106096329,
+      "n_days": 60
+     },
+     "model": {
+      "top5_hit": 0.5858333333333334,
+      "spearman": 0.6970703529788594,
+      "n_days": 60
+     },
+     "persistence": {
+      "top5_hit": 0.5753783068783068,
+      "spearman": 0.6378275115598953,
+      "n_days": 60
+     }
+    }
+   },
+   "on_snpp_dates": {
+    "issue_days": 45,
+    "first_issue": "2026-09-15",
+    "last_issue": "2026-10-29",
+    "variants": {
+     "climatology": {
+      "n": 990,
+      "mae": 2.99620202020202,
+      "pinball": 1.1984417508417506,
+      "coverage80": 0.9272727272727272,
+      "band_width": 18.978,
+      "top5_hit": 0.6023569023569024,
+      "spearman": 0.5254176929491933,
+      "n_days": 33
+     },
+     "model": {
+      "n": 990,
+      "mae": 2.536909090909091,
+      "pinball": 0.8304777777777778,
+      "coverage80": 0.7707070707070707,
+      "band_width": 7.942919191919192,
+      "top5_hit": 0.6262626262626263,
+      "spearman": 0.5913055124257189,
+      "n_days": 33
+     },
+     "persistence": {
+      "n": 990,
+      "mae": 2.8373737373737375,
+      "pinball": 1.0065511784511785,
+      "coverage80": 0.8848484848484849,
+      "band_width": 10.46320202020202,
+      "top5_hit": 0.659527733475102,
+      "spearman": 0.5867490671352015,
+      "n_days": 33
+     }
+    },
+    "allocation_pct_of_oracle": {
+     "climatology": 87.67,
+     "model": 92.87,
+     "persistence": 87.72,
+     "last_season_share": 85.55,
+     "equal_split": 77.24
+    },
+    "likely_allocation_pct_of_oracle": 89.43,
+    "allocation_lead": {
+     "of": "model",
+     "against": "last_season_share",
+     "points": 7.31,
+     "low": 0.02,
+     "high": 9.45,
+     "by_season": {
+      "2026": {
+       "points": 7.31,
+       "low": 0.02,
+       "high": 9.45
+      }
+     }
+    },
+    "ranking_lead": {
+     "of": "model",
+     "against": "persistence",
+     "n_days": 33,
+     "top5": {
+      "points": -3.33,
+      "low": -13.5,
+      "high": 6.31,
+      "by_season": {
+       "2026": {
+        "points": -3.33,
+        "low": -13.5,
+        "high": 6.31
+       }
+      }
+     },
+     "spearman": {
+      "difference": 0.005,
+      "low": -0.066,
+      "high": 0.073
+     }
+    },
+    "criteria": [
+     {
+      "name": "ranking holds",
+      "met": false,
+      "value": 0.6262626262626263,
+      "rule": "top-5 hit at least 52.6% and Spearman at least 0.64"
+     },
+     {
+      "name": "not worse than persistence",
+      "met": false,
+      "value": -0.033265107212475664,
+      "rule": "top-5 hit rate at least persistence's"
+     },
+     {
+      "name": "allocation beats the naive split",
+      "met": true,
+      "value": 7.320000000000007,
+      "rule": "% of the oracle above the split by last season's fires"
+     },
+     {
+      "name": "band is honest",
+      "met": true,
+      "value": 0.7707070707070707,
+      "rule": "80% band coverage between 70% and 90%"
+     }
+    ]
+   }
+  }
+ },
+ "notes": [
+  "2026 detections are FIRMS near-real-time (NRT) data; training used the standard archive.",
+  "Rain over the next 3 days is from the weather archive, standing in for a forecast, as in the backtest.",
+  "There is no 2026 gap range yet (burned area for October and November is not published). Likely burning uses the 2025 range, as the planner would have."
+ ],
+ "generated_at": "2026-11-28T01:38:24+00:00"
+}

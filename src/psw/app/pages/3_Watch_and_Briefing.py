@@ -1,18 +1,18 @@
-"""Daily Watch & Briefing: the Sentinel watchlist, then one cited, verified district briefing with its agent trace."""
+"""Daily district briefing: the Sentinel watchlist, then one cited, verified district briefing with its agent trace."""
 from datetime import date as Date
 
 import pandas as pd
 import streamlit as st
 
-from psw.agents import analyst, tools
 from psw.agents.demo import load_demo
 from psw.app.common import get_kb, get_store, load_district_daily, scan_watchlist
 from psw.app.helpers import cached_districts, find_briefing, peak_day
-from psw.app.record_view import show_provenance, show_tabs, show_text
+from psw.app.record_view import show_record
 from psw.llm import LLM, LLMError
 
-st.set_page_config(page_title="Watch & Briefing", layout="wide")
-st.title("Daily Watch & Briefing")
+st.title("Daily district briefing")
+st.caption("The rule-based **Sentinel** screens every district for a date; the **Analyst agent** (an LLM with data "
+           "tools) writes a cited briefing for one, and the **Verifier** checks its numbers.")
 
 daily = load_district_daily()
 all_days = pd.to_datetime(daily["date"])
@@ -37,8 +37,8 @@ except ValueError:
 flagged = [r for r in rows if r["flags"]]
 have = cached_districts(date)
 st.subheader(f"Sentinel watchlist for {date}")
-st.write(f"**{len(flagged)}** of {len(rows)} districts are flagged by the rules (spike, high count, smog risk). "
-         f"The Sentinel is deterministic: no LLM is involved in this table.")
+st.write(f"**{len(flagged)}** of {len(rows)} districts are flagged by fixed rules (spike, high count, smog risk). "
+         "No language model is involved in this table.")
 if all(r["nearest_city_p90"] is None for r in rows):
     st.info("There is no PM2.5 forecast for this date (forecasts exist only for the test seasons), "
             "so the smog-risk rule cannot fire and a briefing will have no forecast section.")
@@ -61,7 +61,7 @@ st.caption("Flags are rule-based screening, not a diagnosis. Detections are a lo
            "under cloud and outside overpass times.")
 
 # ---------- district + briefing ----------
-st.divider()
+st.subheader("Analyst briefing")
 order = [r["district"] for r in flagged] + [r["district"] for r in rows if not r["flags"]]
 flag_set = {r["district"] for r in flagged}
 
@@ -101,35 +101,6 @@ if rec is None:
     st.info(f"No saved briefing for {district} on {date}.")
     run_agent_button("Run agent")
 else:
-    left, right = st.columns([5, 4])
-    with left:
-        show_text(rec)
-        show_provenance(rec, f"nearest city: {rec.get('nearest_city')}")
-        run_agent_button("Regenerate with the agent")
-    with right:
-        show_tabs(rec, "Date, city and the retrieval filters are fixed by the orchestrator, not chosen by the model.")
-
-# ---------- how it works ----------
-with st.expander("How the agent works"):
-    st.code(
-        "Sentinel (rules, no LLM)  ->  ranked watchlist\n"
-        "        |\n"
-        "        v   top flagged district\n"
-        "(optional) Planner (LLM, no tools)  ->  a short plan from the flag kinds, passed to the Analyst\n"
-        "        |\n"
-        "        v\n"
-        "Analyst (LLM + tools)  ->  calls data tools and search_knowledge, writes JSON {headline, briefing, citations}\n"
-        "        |\n"
-        "        v\n"
-        "Verifier (rules, no LLM)  ->  every number in the tool outputs? every citation retrieved? length, banned content\n"
-        "        |  fail: one revision with the error list\n"
-        "        v  fail again: fixed template\n"
-        "Saved briefing (this page)",
-        language="text")
-    st.markdown("**Rule: the LLM never does the maths.** Every number comes from a Python tool, and the Verifier enforces it.")
-    st.markdown("**Tools the Analyst can call**")
-    for s in tools.TOOL_SCHEMAS:
-        f = s["function"]
-        st.markdown(f"- `{f['name']}`: {f['description']}")
-    st.markdown("**System prompt**")
-    st.code(analyst.SYSTEM_PROMPT, language="text")
+    show_record(rec, "Date, city and the retrieval filters are fixed by the orchestrator, not chosen by the model.",
+                extra=f"nearest city: {rec.get('nearest_city')}", writer="Analyst")
+    run_agent_button("Regenerate with the agent")

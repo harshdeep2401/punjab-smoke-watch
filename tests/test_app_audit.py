@@ -195,3 +195,34 @@ def test_a_failed_regeneration_keeps_the_saved_audit(monkeypatch, tmp_path):
     assert not at.exception, [e.value for e in at.exception]
     assert any("the saved audit was kept" in w.value and "rate limited" in w.value for w in at.warning)
     assert saved.read_text() == before
+
+
+# ---------- city air (Overview and Audit) ----------
+
+def _pm25():
+    rows = [{"date": f"{y}-{md}", "city": c, "pm25_mean": v}
+            for y, base in ((2022, 60.0), (2025, 66.0)) for c, off in (("Ludhiana", 0.0), ("Patiala", 10.0))
+            for md, v in (("10-20", base + off), ("11-10", base + off + 2), ("12-20", 500.0), ("09-01", 500.0))]
+    return pd.DataFrame(rows)
+
+
+def test_city_pm25_uses_the_season_window_and_a_four_city_mean():
+    frame = audit_view.city_pm25_frame(_pm25())
+    allc = frame[frame["city"] == audit_view.ALL_CITIES].set_index("season")["pm25"]
+    assert allc[2022] == pytest.approx(66.0) and allc[2025] == pytest.approx(72.0)  # December and early Sept left out
+    assert audit_view.pm25_change(frame, 2025) == pytest.approx(6 / 66 * 100)
+    assert audit_view.pm25_change(frame, 2024) is None
+    assert audit_view.city_pm25_frame(None).empty and audit_view.pm25_change(audit_view.city_pm25_frame(None), 2025) is None
+
+
+def test_story_chart_adds_pm25_as_a_third_line():
+    t = tables()
+    frame = audit_view.with_pm25(audit_view.indexed_frame(t), audit_view.city_pm25_frame(_pm25()))
+    fig = audit_charts.indexed_figure(frame)
+    light = audit_charts.COLOURS["light"]
+    assert [tr.line.color for tr in fig.data] == [light["snpp"], light["burned"], light["pm25"]]
+    assert "yaxis2" not in fig.to_dict()["layout"]
+    assert audit_view.with_pm25(audit_view.indexed_frame(t), audit_view.city_pm25_frame(None)).equals(
+        audit_view.indexed_frame(t))
+    pm = audit_charts.pm25_figure(audit_view.city_pm25_frame(_pm25()))
+    assert pm.data[-1].line.color == light["pm25"] and len(pm.data) == 3  # two cities in grey, the mean on top

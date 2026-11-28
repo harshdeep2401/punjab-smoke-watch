@@ -226,3 +226,24 @@ def test_evidence_page_says_which_risk_variant_was_selected(monkeypatch):
     assert not at.exception
     shown = " ".join(x.value for x in at.markdown)
     assert f"allocate with: {helpers.RISK_LABEL[saved['best_ranking_variant']]}" in shown
+
+
+def test_brief_section_labels_are_bolded_but_ordinary_sentences_are_not():
+    from psw.app.record_view import bold_labels
+    text = "Where the units go:\nOf 500 units, Fazilka (57 units).\nWhy: Fazilka has 35 detections at 13:30."
+    out = bold_labels(text)
+    assert "**Where the units go:**" in out and "**Why:**" in out and "13:30" in out and "**Of" not in out
+
+
+def test_agent_steps_are_read_from_the_record():
+    rec = {"mode": "agent_revised+critic", "verification": {"ok": True}, "plan": {"steps": ["a", "b"]},
+           "trace": [{"agent": "auditor"}, {"agent": "auditor"}, {"agent": "critic"}],
+           "critic": {"issues": [{"type": "overclaim"}], "rewrite_used": False, "error": None}}
+    steps = helpers.agent_steps(rec)
+    assert [s["agent"] for s in steps] == ["Planner", "Auditor", "Verifier", "Critic"]
+    assert steps[1]["did"] == "wrote it with 2 tool calls" and steps[1]["kind"] == "LLM + tools"
+    assert steps[2]["did"] == "passed it after one revision" and steps[2]["kind"] == "rules"
+    assert steps[3]["did"] == "flagged 1 issue, text kept"
+    old = {"mode": "template", "verification": {"ok": True}, "trace": []}
+    steps = helpers.agent_steps(old, writer="Analyst")
+    assert [s["agent"] for s in steps] == ["Analyst", "Verifier"] and "template" in steps[0]["did"]

@@ -162,8 +162,8 @@ def night_visibility_note(frame: pd.DataFrame) -> str | None:
     share = night / frame["count"].sum() * 100 if frame["count"].sum() else 0
     if share >= 5:
         return None
-    return (f"Night detections are {share:.1f}% of those drawn here, too thin to see at this scale; the night share "
-            "chart below shows them for S-NPP.")
+    return (f"Night detections are {share:.1f}% of those drawn here, too thin to see at this scale; the Night "
+            "detections tab shows them for S-NPP.")
 
 
 def night_share_frame(tables: dict) -> pd.DataFrame:
@@ -261,6 +261,51 @@ def district_summary(table: pd.DataFrame, season: int) -> str:
              "direction is unclear.")
     levels = sorted(ranged["confidence"].unique())
     return text + f" Confidence for these ranges is {' or '.join(levels)}."
+
+
+# ---------- city air (a hint, not part of the gap method) ----------
+
+PM25_NOTE = ("CAMS modelled PM2.5, the mean of the four cities over the season window. PM2.5 has many sources and "
+             "depends on the weather, so a flat line is a hint that burning did not fall as much as the counts, not proof.")
+
+
+def city_pm25_frame(pm25: pd.DataFrame | None) -> pd.DataFrame:
+    """season, city, pm25 (season-window mean, µg/m³), with a 'four cities' row per season. Empty without data."""
+    cols = ["season", "city", "pm25"]
+    if pm25 is None or pm25.empty:
+        return pd.DataFrame(columns=cols)
+    d = pm25.assign(date=pd.to_datetime(pm25["date"]))
+    md = d["date"].dt.month * 100 + d["date"].dt.day
+    lo, hi = (m * 100 + day for m, day in (config.SEASON_START, config.SEASON_END))
+    d = d[(md >= lo) & (md <= hi)].assign(season=lambda x: x["date"].dt.year)
+    by_city = d.groupby(["season", "city"], as_index=False)["pm25_mean"].mean()
+    overall = d.groupby("season", as_index=False)["pm25_mean"].mean().assign(city=ALL_CITIES)
+    out = pd.concat([by_city, overall]).rename(columns={"pm25_mean": "pm25"})
+    return out[cols].sort_values(["season", "city"]).reset_index(drop=True)
+
+
+ALL_CITIES = "four cities"
+
+
+PM25_SERIES = "City PM2.5 (CAMS)"
+
+
+def with_pm25(indexed: pd.DataFrame, pm25: pd.DataFrame) -> pd.DataFrame:
+    """`indexed_frame` plus the four-city PM2.5 season mean on the same index (base season = 100)."""
+    t = pm25[pm25["city"] == ALL_CITIES].set_index("season")["pm25"] if not pm25.empty else pd.Series(dtype=float)
+    if BASE not in t.index or not t[BASE]:
+        return indexed
+    extra = pd.DataFrame([{"season": int(s), "series": PM25_SERIES, "value": float(v), "index": float(v) / t[BASE] * 100}
+                          for s, v in t.items()])
+    return pd.concat([indexed, extra], ignore_index=True) if not indexed.empty else extra
+
+
+def pm25_change(frame: pd.DataFrame, season: int) -> float | None:
+    """% change in the four-city season mean from the base season to `season`."""
+    t = frame[frame["city"] == ALL_CITIES].set_index("season")["pm25"] if not frame.empty else pd.Series(dtype=float)
+    if BASE not in t.index or season not in t.index:
+        return None
+    return float(gap.pct_change(t[season], t[BASE]))
 
 
 def night_counts(tables: dict, district: str) -> dict[int, int]:

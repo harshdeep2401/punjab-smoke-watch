@@ -141,7 +141,7 @@ def _metric(at, label):
 def test_planner_page_shows_the_plan_the_saved_brief_and_the_caption(monkeypatch):
     at = _run(monkeypatch)
     assert not at.exception, [e.value for e in at.exception]
-    assert [c.value for c in at.caption].count(planner_view.CAPTION) >= 2
+    assert at.caption[0].value == planner_view.CAPTION  # the support-not-enforcement line opens the page
     saved = json.loads((config.PROCESSED / "dispatch" / "2025-10-28.json").read_text())
     assert saved["headline"] in [s.value for s in at.subheader]
     assert _metric(at, "Units placed") == "500" and "written for other inputs" not in _text(at)

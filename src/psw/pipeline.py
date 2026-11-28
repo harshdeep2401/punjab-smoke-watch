@@ -517,7 +517,117 @@ def _print_dispatch(rec) -> None:
         print("  VERIFY ERRORS:", v["errors"])
 
 
+FORWARD_DIR = "forward_2026"
+SNPP_LAST_FULL_DAY = "2026-11-01"  # S-NPP NRT stops on 2026-11-02, which may be partial (FORWARD_TEST_PLAN.md)
+FORWARD_LATEST = "2026-11-26"  # the plan's latest data cutoff
+
+
+def cmd_forward_test(args) -> None:
+    """Score the frozen fire-risk forecast and allocation on 2026 (docs/FORWARD_TEST_PLAN.md). Needs the network once."""
+    import json
+    from datetime import date, datetime, timezone
+
+    import geopandas as gpd
+    import pandas as pd
+
+    from psw.ingest import forward as fwd_in
+    from psw.response import forward, intervals, risk
+
+    P, out = config.PROCESSED, config.PROCESSED / FORWARD_DIR
+    out.mkdir(parents=True, exist_ok=True)
+    cutoff = min(date.fromisoformat(args.date or FORWARD_LATEST), fwd_in.last_weather_day())
+    snpp_end = min(date.fromisoformat(SNPP_LAST_FULL_DAY), cutoff)
+    names = sorted(gpd.read_file(config.GEO / "punjab_districts.geojson")["district"])
+
+    det_path = out / f"detections_to_{cutoff}.parquet"
+    if det_path.exists():
+        det = pd.read_parquet(det_path)
+    else:
+        det = fwd_in.load_detections({"snpp": snpp_end, "noaa20": cutoff})
+        det = det[det["district"].notna()].reset_index(drop=True)  # Punjab only
+        det.to_parquet(det_path, index=False)
+    wx_path = out / f"district_weather_to_{cutoff}.parquet"
+    if wx_path.exists():
+        wx = pd.read_parquet(wx_path)
+    else:
+        wx = fwd_in.district_weather(cutoff)
+        wx.to_parquet(wx_path, index=False)
+    wx["date"] = pd.to_datetime(wx["date"]).dt.date
+    print(f"2026 detections in Punjab: " + ", ".join(f"{s} {n:,}" for s, n in det.groupby("sensor").size().items())
+          + f"; S-NPP to {snpp_end}, NOAA-20 and weather to {cutoff}")
+
+    history = pd.read_parquet(P / "district_daily.parquet")
+    wx_hist = pd.read_parquet(P / "district_weather_daily.parquet")
+    gaps = pd.read_parquet(P / "audit" / "gap_range.parquet")
+    metrics = json.loads((P / risk.METRICS_FILE).read_text())
+    if metrics["best_ranking_variant"] != forward.CHOSEN:
+        raise SystemExit(f"the backtest now selects {metrics['best_ranking_variant']}; the plan froze {forward.CHOSEN}")
+    runner = intervals.runner_up(metrics)
+    multisensor = pd.read_parquet(P / "fires_multisensor.parquet")
+    ratio = forward.snpp_ratio(multisensor)
+    backtest = pd.read_parquet(P / risk.FORECAST_FILE)
+    print(f"S-NPP / NOAA-20 ratio from 2022-2025: {ratio:.3f}")
+
+    report = {"plan": "docs/FORWARD_TEST_PLAN.md", "season": forward.SEASON, "frozen_code_commit": "f42a1e5",
+              "trained_on": sorted(int(s) for s in history["season"].unique()), "chosen_variant": forward.CHOSEN,
+              "runner_up": runner, "noaa20_scale": round(ratio, 4), "snpp_end": str(snpp_end),
+              "data_cutoff": str(cutoff), "arms": {},
+              "notes": ["2026 detections are FIRMS near-real-time (NRT) data; training used the standard archive.",
+                        "Rain over the next 3 days is from the weather archive, standing in for a forecast, as in "
+                        "the backtest.",
+                        "There is no 2026 gap range yet (burned area for October and November is not published). "
+                        "Likely burning uses the 2025 range, as the planner would have."]}
+    for arm, sensor, end, scale in (("snpp", "snpp", snpp_end, 1.0), ("noaa20", "noaa20", cutoff, ratio)):
+        current = forward.counts(det, sensor, end, names, scale)
+        table = forward.build(history, current, wx_hist, wx)
+        fc, conformal = forward.run(table, gaps)
+        fc[risk.FORECAST_COLUMNS].to_parquet(out / f"forecasts_{arm}.parquet", index=False)
+        result = forward.evaluate(fc, history, runner)
+        raw = forward.counts(det, sensor, end, names)
+        entry = {"description": forward.ARMS[arm], "data_end": str(end), "detections": int(raw["fire_count"].sum()),
+                 "detections_same_dates_by_season": forward.detections_to_date(multisensor, raw, sensor, end),
+                 "conformal": conformal, **result, "criteria": forward.criteria(result),
+                 "post_hoc_backtest_same_window": forward.backtest_window(backtest, result["first_issue"],
+                                                                          result["last_issue"])}
+        if arm == "noaa20":
+            same = forward.evaluate(forward.on_dates(fc, report["arms"]["snpp"]["last_issue"]), history, runner)
+            entry["on_snpp_dates"] = {**same, "criteria": forward.criteria(same)}
+        report["arms"][arm] = entry
+    report["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    (out / "forward_test.json").write_text(json.dumps(_plain(report), indent=1, allow_nan=False))
+
+    for arm, e in report["arms"].items():
+        print(f"\n== arm {arm}: {e['issue_days']} issue days {e['first_issue']} to {e['last_issue']}, "
+              f"{e['variants'][forward.CHOSEN]['n_days']} ranking days")
+        for v, s in e["variants"].items():
+            print(f"  {v:12s} MAE {s['mae']:6.2f}  cov80 {s['coverage80']:5.1%}  top5 {s['top5_hit']:5.1%}  "
+                  f"spearman {s['spearman']:.2f}")
+        print("  allocation % of oracle: " + ", ".join(f"{k} {v}" for k, v in e["allocation_pct_of_oracle"].items()))
+        for c in e["criteria"]:
+            print(f"  [{'MET' if c['met'] else 'not met' if c['met'] is not None else 'n/a'}] {c['name']}: {c['value']}")
+    print(f"\nSaved data/processed/{FORWARD_DIR}/forward_test.json")
+
+
+def _plain(x):
+    """JSON-ready copy: numpy scalars to Python, NaN to None."""
+    import math
+
+    import numpy as np
+    if isinstance(x, dict):
+        return {str(k): _plain(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_plain(v) for v in x]
+    if isinstance(x, np.bool_):
+        return bool(x)
+    if isinstance(x, np.integer):
+        return int(x)
+    if isinstance(x, (float, np.floating)):
+        return None if math.isnan(float(x)) else float(x)
+    return x
+
+
 COMMANDS = {
+    "forward-test": cmd_forward_test,
     "ingest": cmd_ingest,
     "process": cmd_process,
     "train": cmd_train,

@@ -168,3 +168,114 @@ AUDIT_LIMITS = [
     "The official counts are satellite-based too, so their agreement with S-NPP is not independent confirmation.",
     "There is no field verification. This is triangulation, not ground truth.",
 ]
+
+
+# ---------- forward test on 2026 (docs/FORWARD_TEST_PLAN.md) ----------
+
+FORWARD_FILE = Path("forward_2026") / "forward_test.json"
+ARM_LABEL = {"snpp": "S-NPP", "noaa20": "NOAA-20 stand-in"}
+
+
+def load_forward(root: Path | None = None) -> dict | None:
+    try:
+        return json.loads((Path(root or config.PROCESSED) / FORWARD_FILE).read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _short(day: str) -> str:
+    return pd.Timestamp(day).strftime("%d %b").lstrip("0")
+
+
+def arm_column(report: dict, arm: str) -> str:
+    e = report["arms"][arm]
+    return f"2026, {ARM_LABEL[arm]} ({_short(e['first_issue'])} to {_short(e['last_issue'])})"
+
+
+def forward_frame(report: dict, risk_metrics: dict | None, decision: dict | None) -> pd.DataFrame:
+    """The 2026 arms beside the backtest seasons, one row per measure, values as text (mixed units)."""
+    chosen = report["chosen_variant"]
+    measures = [  # (label, how to read one column's numbers)
+        ("Top-5 hit rate, model", lambda v, a: v[chosen]["top5_hit"] * 100, "{:.1f}%"),
+        ("Top-5 hit rate, persistence", lambda v, a: v["persistence"]["top5_hit"] * 100, "{:.1f}%"),
+        ("Spearman, model", lambda v, a: v[chosen]["spearman"], "{:.2f}"),
+        ("80% band coverage, model", lambda v, a: v[chosen]["coverage80"] * 100, "{:.1f}%"),
+        ("Allocation, model (% of oracle)", lambda v, a: a[chosen], "{:.1f}"),
+        ("Allocation, last season's split (% of oracle)", lambda v, a: a["last_season_share"], "{:.1f}"),
+    ]
+    columns = {}
+    if risk_metrics and decision:
+        for season in sorted(risk_metrics["variants"][chosen]["by_season"]):
+            v = {name: s["by_season"][season] for name, s in risk_metrics["variants"].items()}
+            columns[f"backtest {season}"] = (v, decision["by_season"][season])
+    for arm, e in report["arms"].items():
+        columns[arm_column(report, arm)] = (e["variants"], e["allocation_pct_of_oracle"])
+    rows = []
+    for label, get, fmt in measures:
+        row = {"measure": label}
+        for name, (v, a) in columns.items():
+            try:
+                value = get(v, a)
+                row[name] = "-" if value is None else fmt.format(value)
+            except (KeyError, TypeError):
+                row[name] = "-"
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def criteria_lines(report: dict, arm: str) -> list[str]:
+    out = []
+    model = report["arms"][arm]["variants"][report["chosen_variant"]]
+    for c in report["arms"][arm]["criteria"]:
+        mark = "✅ met" if c["met"] else "❌ not met" if c["met"] is False else "– not scored"
+        value = c["value"]
+        shown = ("-" if value is None
+                 else f"top-5 {model['top5_hit']:.1%}, Spearman {model['spearman']:.2f}" if c["name"] == "ranking holds"
+                 else f"{value:+.1f} points" if "allocation" in c["name"]
+                 else f"{value * 100:+.1f} points" if "persistence" in c["name"]
+                 else f"{value:.1%}" if isinstance(value, float) else str(value))
+        out.append(f"{mark}: **{c['name']}** ({shown}; rule: {c['rule']})")
+    return out
+
+
+def forward_summary(report: dict) -> list[str]:
+    """The forward test in words, computed from the report."""
+    a, b = report["arms"]["snpp"], report["arms"]["noaa20"]
+    chosen = report["chosen_variant"]
+    met = lambda e: sum(bool(c["met"]) for c in e["criteria"])  # noqa: E731
+    lead = lambda e: e["allocation_lead"]  # noqa: E731
+    out = [f"The method was frozen (code as of `{report['frozen_code_commit']}`), trained on "
+           f"{report['trained_on'][0]} to {report['trained_on'][-1]} and run on 2026, a season never used for any "
+           f"choice. The pass marks were written down before the run. The S-NPP arm met {met(a)} of "
+           f"{len(a['criteria'])}, the NOAA-20 arm {met(b)} of {len(b['criteria'])}."]
+    out.append(f"**What held: the allocation.** Placing units on the {chosen} forecast beat the split by last "
+               f"season's fires in both arms: {lead(a)['points']:+.1f} points (95% interval {lead(a)['low']:+.1f} to "
+               f"{lead(a)['high']:+.1f}) and {lead(b)['points']:+.1f} ({lead(b)['low']:+.1f} to {lead(b)['high']:+.1f}).")
+    ra, rb = a.get("ranking_lead"), b.get("ranking_lead")
+    if ra and rb:
+        out.append(f"**What did not clearly hold: beating persistence at ranking.** The top-5 lead over "
+                   f"{ra['against']} was {ra['top5']['points']:+.1f} points ({ra['top5']['low']:+.1f} to "
+                   f"{ra['top5']['high']:+.1f}) on S-NPP and {rb['top5']['points']:+.1f} ({rb['top5']['low']:+.1f} to "
+                   f"{rb['top5']['high']:+.1f}) on NOAA-20: within chance either way, as in the backtest.")
+    same = a.get("post_hoc_backtest_same_window", {})
+    if same:
+        rho = a["variants"][chosen]["spearman"]
+        ref = ", ".join(f"{s}: {v[chosen]['spearman']:.2f}" for s, v in sorted(same.items()) if chosen in v)
+        weaker = all(rho < v[chosen]["spearman"] for v in same.values() if chosen in v)
+        out.append(f"The S-NPP arm covers only the early season, when ranking is hardest. On the same dates the "
+                   f"backtest's Spearman was {ref}; 2026's {rho:.2f} is "
+                   + ("lower than every backtest season, so the ranking really was weaker in 2026. "
+                      if weaker else "within that range. ")
+                   + "(This comparison was added after seeing the result.)")
+    return out
+
+
+def detection_note(report: dict) -> str:
+    """2026 detections against earlier seasons on the same dates. Context only."""
+    parts = []
+    for arm, e in report["arms"].items():
+        by = e["detections_same_dates_by_season"]
+        prev = by.get(str(report["season"] - 1))
+        parts.append(f"{ARM_LABEL[arm].split()[0]} to {_short(e['data_end'])}: {by[str(report['season'])]:,} in "
+                     f"{report['season']}" + (f" against {prev:,} in {report['season'] - 1}" if prev else ""))
+    return "Detections in Punjab by the same date: " + "; ".join(parts) + "."
